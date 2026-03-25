@@ -41,6 +41,7 @@ export default function JobsPage() {
   const [sortBy, setSortBy] = useState<SortOption>('confidence');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [applying, setApplying] = useState(false);
+  const [searchMode, setSearchMode] = useState<'multi' | 'linkedin'>('multi');
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -79,28 +80,23 @@ export default function JobsPage() {
     }
   };
 
-  const handleApplyAll = async () => {
+  const handleApplyAll = () => {
     const approvedJobs = jobs.filter((j) => j.status === 'approved');
     if (approvedJobs.length === 0) return;
 
-    setApplying(true);
+    // Open each job's application URL in a new tab for the user to review and submit
     for (const job of approvedJobs) {
-      try {
-        await api.post(`/applications/${job.id}/apply`);
-        setJobs((prev) =>
-          prev.map((j) => (j.id === job.id ? { ...j, status: 'applied' } : j))
-        );
-      } catch (error) {
-        console.error(`Failed to apply for job ${job.id}:`, error);
+      if (job.job_url) {
+        window.open(job.job_url, '_blank', 'noopener,noreferrer');
       }
     }
-    setApplying(false);
   };
 
   const handleManualSearch = async () => {
     setLoading(true);
     try {
-      await api.post('/jobs/search', {});
+      const endpoint = searchMode === 'multi' ? '/jobs/search/multi' : '/jobs/search';
+      await api.post(endpoint, {});
       await fetchJobs();
     } catch (error) {
       console.error('Manual search failed:', error);
@@ -137,12 +133,23 @@ export default function JobsPage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Today&apos;s Jobs
             </h1>
-            <button
-              onClick={handleManualSearch}
-              className="text-sm text-linkedin-blue font-medium"
-            >
-              Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={searchMode}
+                onChange={(e) => setSearchMode(e.target.value as 'multi' | 'linkedin')}
+                className="text-xs bg-gray-100 dark:bg-gray-800 border-0 rounded-lg px-2 py-1.5 text-gray-600 dark:text-gray-400"
+              >
+                <option value="multi">All Sources</option>
+                <option value="linkedin">LinkedIn Only</option>
+              </select>
+              <button
+                onClick={handleManualSearch}
+                disabled={loading}
+                className="text-sm text-linkedin-blue font-medium disabled:opacity-50"
+              >
+                {loading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
           </div>
 
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
@@ -186,7 +193,7 @@ export default function JobsPage() {
                 disabled={applying}
                 className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
               >
-                {applying ? 'Applying...' : `Apply All (${approvedCount})`}
+{`Open All (${approvedCount})`}
               </button>
             )}
           </div>

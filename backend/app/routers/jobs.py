@@ -14,6 +14,7 @@ from app.models.criteria import SearchCriteria
 from app.routers.auth import get_current_user
 from app.services.linkedin_scraper import LinkedInScraper
 from app.services.job_matcher import JobMatcher
+from app.services.job_aggregator import JobAggregator
 from app.security import RateLimitConfig, InputSanitizer
 
 from slowapi import Limiter
@@ -233,6 +234,148 @@ async def trigger_job_search(
         }
     finally:
         await scraper.close()
+
+
+@router.post("/search/multi")
+@limiter.limit(RateLimitConfig.SEARCH_LIMIT)
+async def multi_source_search(
+    request: Request,
+    data: SearchRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Search multiple job boards (Adzuna, RemoteOK, Arbeitnow, The Muse, JSearch).
+
+    Uses public APIs — no scraping, no TOS violations. Results are scored
+    with the same confidence algorithm and added to your daily batch.
+    """
+    criteria_result = await db.execute(
+        select(SearchCriteria).where(SearchCriteria.user_id == current_user.id)
+    )
+    saved_criteria = criteria_result.scalar_one_or_none()
+
+    search_criteria = {
+        "target_titles": data.target_titles or (saved_criteria.target_titles if saved_criteria else []),
+        "location": data.location or (saved_criteria.location if saved_criteria else "") or current_user.location or "",
+        "remote_ok": data.remote_ok if data.remote_ok is not None else (saved_criteria.remote_ok if saved_criteria else True),
+        "hybrid_ok": saved_criteria.hybrid_ok if saved_criteria else True,
+        "max_office_days": saved_criteria.max_office_days if saved_criteria else 5,
+        "min_salary_same_level": saved_criteria.min_salary_same_level if saved_criteria else None,
+        "min_salary_step_up": saved_criteria.min_salary_step_up if saved_criteria else None,
+        "excluded_companies": saved_criteria.excluded_companies if saved_criteria else [],
+        "excluded_industries": saved_criteria.excluded_industries if saved_criteria else [],
+        "daily_batch_size": saved_criteria.daily_batch_size if saved_criteria else 10,
+    }
+
+    if not search_criteria["target_titles"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No target titles specified. Set search criteria first.",
+        )
+
+    profile_data = current_user.profile_data or {}
+    profile_dict = {
+        "name": current_user.name,
+        "email": current_user.email,
+        "headline": current_user.headline or "",
+        "location": current_user.location or "",
+        "linkedin_id": current_user.linkedin_id,
+        "skills": profile_data.get("skills", []),
+        "experience": profile_data.get("experience", []),
+    }
+
+    aggregator = JobAggregator()
+    listings = await aggregator.search(
+        titles=search_criteria["target_titles"],
+        location=search_criteria["location"],
+        remote_ok=search_criteria["remote_ok"],
+    )
+
+    # Convert JobListing objects to dicts for the matcher
+    raw_jobs = []
+    for listing in listings:
+        raw_jobs.append({
+            "linkedin_job_id": listing.linkedin_job_id,
+            "title": listing.title,
+            "company": listing.company,
+            "location": listing.location,
+            "description": listing.description,
+            "requirements": listing.requirements,
+            "salary_min": listing.salary_min,
+            "salary_max": listing.salary_max,
+            "remote_type": listing.remote_type,
+            "job_url": listing.apply_url or listing.job_url,
+        })
+
+    matcher = JobMatcher()
+    scored_jobs = matcher.rank_jobs(raw_jobs, profile_dict, search_criteria)
+
+    batch_size = search_criteria["daily_batch_size"]
+    top_jobs = scored_jobs[:batch_size]
+
+    created_jobs = []
+    for job_data in top_jobs:
+        existing = await db.execute(
+            select(Job).where(
+                Job.user_id == current_user.id,
+                Job.linkedin_job_id == job_data.get("linkedin_job_id", ""),
+            )
+        )
+        if existing.scalar_one_or_none():
+            continue
+
+        from app.models.job import RemoteType
+        remote_str = job_data.get("remote_type", "onsite").lower()
+        try:
+            remote_type = RemoteType(remote_str)
+        except ValueError:
+            remote_type = RemoteType.ONSITE
+
+        score_breakdown = job_data.get("score_breakdown", {})
+        new_job = Job(
+            user_id=current_user.id,
+            linkedin_job_id=job_data.get("linkedin_job_id", ""),
+            title=job_data.get("title", ""),
+            company=job_data.get("company", ""),
+            location=job_data.get("location", ""),
+            salary_min=job_data.get("salary_min"),
+            salary_max=job_data.get("salary_max"),
+            remote_type=remote_type,
+            description=job_data.get("description", ""),
+            requirements=job_data.get("requirements", ""),
+            confidence_score=job_data.get("confidence_score", 0.0),
+            linkedin_match_score=job_data.get("linkedin_match_score"),
+            status=JobStatus.PENDING,
+            score_breakdown=json.dumps(score_breakdown) if score_breakdown else None,
+            job_url=job_data.get("job_url", ""),
+        )
+        db.add(new_job)
+        created_jobs.append(new_job)
+
+    await db.commit()
+
+    for job in created_jobs:
+        await db.refresh(job)
+
+    return {
+        "message": f"Searched {len(aggregator.source_names)} sources, found {len(listings)} jobs, added {len(created_jobs)} new matches",
+        "sources": aggregator.source_names,
+        "total_found": len(listings),
+        "total_scored": len(scored_jobs),
+        "new_jobs_added": len(created_jobs),
+        "jobs": [_serialize_job(j) for j in created_jobs],
+    }
+
+
+@router.get("/sources")
+async def list_job_sources(current_user: User = Depends(get_current_user)):
+    """List all configured job sources and their availability."""
+    aggregator = JobAggregator()
+    sources = []
+    for source in aggregator._sources:
+        available = await source.is_available()
+        sources.append({"name": source.name, "available": available})
+    return {"sources": sources}
 
 
 @router.get("/history")
