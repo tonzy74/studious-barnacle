@@ -26,7 +26,14 @@ interface Job {
   status: string;
   score_breakdown: ScoreBreakdown | null;
   job_url: string;
+  source?: string;
 }
+
+const SOURCE_ATTRIBUTION: Record<string, { label: string; url: string }> = {
+  remoteok: { label: 'Remote OK', url: 'https://remoteok.com' },
+  arbeitnow: { label: 'Arbeitnow', url: 'https://www.arbeitnow.com' },
+  themuse: { label: 'The Muse', url: 'https://www.themuse.com' },
+};
 
 interface JobCardProps {
   job: Job;
@@ -181,6 +188,21 @@ export default function JobCard({ job, onApprove, onReject }: JobCardProps) {
               >
                 View Posting
               </a>
+            )}
+
+            {/* Source attribution (required by API terms) */}
+            {job.source && SOURCE_ATTRIBUTION[job.source] && (
+              <p className="text-xs text-gray-400 mt-1">
+                via{' '}
+                <a
+                  href={SOURCE_ATTRIBUTION[job.source].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-gray-600"
+                >
+                  {SOURCE_ATTRIBUTION[job.source].label}
+                </a>
+              </p>
             )}
           </div>
         )}

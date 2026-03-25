@@ -325,9 +325,13 @@ def _serialize_job(job: Job) -> dict:
         except json.JSONDecodeError:
             score_breakdown = None
 
+    # Extract source name from the composite ID (e.g. "remoteok_12345" -> "remoteok")
+    source = job.linkedin_job_id.split("_", 1)[0] if job.linkedin_job_id and "_" in job.linkedin_job_id else ""
+
     return {
         "id": job.id,
         "linkedin_job_id": job.linkedin_job_id,
+        "source": source,
         "title": job.title,
         "company": job.company,
         "location": job.location,

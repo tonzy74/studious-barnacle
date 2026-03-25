@@ -17,10 +17,6 @@ class Settings(BaseSettings):
     MAX_DAILY_APPLICATIONS: int = Field(default=5)
     CAPTCHA_SERVICE_API_KEY: str = Field(default="")
 
-    # Job source API keys (optional — free sources work without these)
-    ADZUNA_APP_ID: str = Field(default="")
-    ADZUNA_APP_KEY: str = Field(default="")
-
     @property
     def allowed_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]

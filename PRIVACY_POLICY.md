@@ -14,7 +14,7 @@ This Privacy Policy describes how the LinkedIn Job Agent application ("the App",
 - **Job Interaction Data**: Your approve/reject decisions on job listings.
 
 ### Information From Third-Party Job APIs
-- We query public job board APIs (RemoteOK, Arbeitnow, The Muse, and Adzuna) on your behalf. Job listing data retrieved from these services is stored temporarily to display results and track your application pipeline.
+- We query public job board APIs (RemoteOK, Arbeitnow, and The Muse) on your behalf. Job listing data retrieved from these services is stored temporarily to display results and track your application pipeline.
 
 ### Automatically Collected Information
 - Session tokens for authentication purposes.
@@ -58,7 +58,6 @@ The App integrates with the following third-party services via their official pu
 | **RemoteOK API** | Search queries (job titles) | Job search |
 | **Arbeitnow API** | Search queries (job titles) | Job search |
 | **The Muse API** | Search queries (job categories, location) | Job search |
-| **Adzuna API** | Search queries (job titles, location) | Job search |
 
 Each third-party service is governed by its own privacy policy and terms of service. We encourage you to review them.
 

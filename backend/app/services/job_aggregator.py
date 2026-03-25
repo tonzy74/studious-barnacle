@@ -4,11 +4,9 @@ import logging
 from typing import Optional
 
 from app.services.job_sources.base import JobSource, JobListing
-from app.services.job_sources.adzuna import AdzunaSource
 from app.services.job_sources.remoteok import RemoteOKSource
 from app.services.job_sources.arbeitnow import ArbeitnowSource
 from app.services.job_sources.themuse import TheMuseSource
-from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +21,16 @@ class JobAggregator:
             self._sources = self._build_sources()
 
     def _build_sources(self) -> list[JobSource]:
-        """Build job sources from environment config."""
-        settings = get_settings()
+        """Build job sources from environment config.
+
+        Only includes sources with free public APIs that explicitly
+        permit third-party aggregation without a commercial agreement.
+        """
         sources: list[JobSource] = []
 
-        # Always add free, no-auth sources
         sources.append(RemoteOKSource())
         sources.append(ArbeitnowSource())
         sources.append(TheMuseSource())
-
-        # Add API-key sources if configured
-        adzuna_id = getattr(settings, "ADZUNA_APP_ID", "")
-        adzuna_key = getattr(settings, "ADZUNA_APP_KEY", "")
-        if adzuna_id and adzuna_key:
-            sources.append(AdzunaSource(adzuna_id, adzuna_key))
 
         return sources
 
