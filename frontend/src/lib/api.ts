@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
-import { getToken, removeToken } from './auth';
+import { removeToken } from './auth';
 
 const api = axios.create({
   baseURL: '/api',
@@ -13,10 +13,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Authentication is handled via httponly cookie (withCredentials: true)
 
     const csrfToken = Cookies.get('csrf_token');
     if (csrfToken && config.method && ['post', 'put', 'delete', 'patch'].includes(config.method)) {

@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -8,7 +9,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from app.config import get_settings
-from app.security import SecurityHeaders
+from app.security import SecurityHeaders, CSRFMiddleware
 from app.database import init_db, close_db
 from app.routers import auth, profile, jobs, applications
 
@@ -45,13 +46,14 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
 
+    is_production = os.getenv("ENVIRONMENT", "production") == "production"
     application = FastAPI(
         title="LinkedIn Job Agent API",
         description="Automated LinkedIn job search, matching, and application agent.",
         version="1.0.0",
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url=None if is_production else "/docs",
+        redoc_url=None if is_production else "/redoc",
     )
 
     application.state.limiter = limiter
@@ -67,6 +69,7 @@ def create_app() -> FastAPI:
     )
 
     application.add_middleware(SecurityHeaders)
+    application.add_middleware(CSRFMiddleware)
 
     application.include_router(auth.router, prefix="/api")
     application.include_router(profile.router, prefix="/api")

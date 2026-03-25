@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 class JobApplier:
     """Playwright-based job application automation for LinkedIn."""
 
-    SCREENSHOT_DIR = "/tmp/job_agent_screenshots"
+    SCREENSHOT_DIR = os.environ.get("SCREENSHOT_DIR", "/tmp/job_agent_screenshots")
 
     def __init__(self, scraper: LinkedInScraper, captcha_solver: Optional[CaptchaSolver] = None):
         self.scraper = scraper
         self.captcha_solver = captcha_solver
-        os.makedirs(self.SCREENSHOT_DIR, exist_ok=True)
+        os.makedirs(self.SCREENSHOT_DIR, mode=0o700, exist_ok=True)
 
     async def fill_application(self, job: dict, user_profile: dict) -> dict:
         """
@@ -316,7 +316,14 @@ class JobApplier:
         if resume_input:
             resume_path = user_profile.get("resume_path")
             if resume_path and os.path.exists(resume_path):
-                await resume_input.set_input_files(resume_path)
+                allowed_dir = os.path.realpath(
+                    os.environ.get("RESUME_UPLOAD_DIR", "/app/uploads/resumes")
+                )
+                real_path = os.path.realpath(resume_path)
+                if real_path.startswith(allowed_dir + os.sep):
+                    await resume_input.set_input_files(resume_path)
+                else:
+                    logger.warning(f"Resume path traversal blocked: {resume_path}")
 
     async def _fill_external_form(self, page: Page, user_profile: dict):
         """Fill fields on external ATS application forms."""

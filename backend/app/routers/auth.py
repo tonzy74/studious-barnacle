@@ -1,12 +1,19 @@
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
 from app.config import get_settings, Settings
-from app.security import get_jwt_manager, get_session_manager, get_csrf_protection, JWTManager, SessionManager
+from app.security import get_jwt_manager, get_session_manager, get_csrf_protection, JWTManager, SessionManager, RateLimitConfig
 from app.services.linkedin_auth import LinkedInAuthService
 from app.models.user import User
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -59,25 +66,50 @@ async def get_current_user(
 
 
 @router.get("/linkedin")
-async def linkedin_login(settings: Settings = Depends(get_settings)):
+@limiter.limit(RateLimitConfig.AUTH_LIMIT)
+async def linkedin_login(
+    request: Request,
+    response: Response,
+    settings: Settings = Depends(get_settings),
+):
     """Redirect the user to LinkedIn OAuth authorization page."""
+    state = secrets.token_urlsafe(32)
     auth_service = LinkedInAuthService(
         client_id=settings.LINKEDIN_CLIENT_ID,
         client_secret=settings.LINKEDIN_CLIENT_SECRET,
         redirect_uri=settings.LINKEDIN_REDIRECT_URI,
     )
-    auth_url = auth_service.get_authorization_url()
+    auth_url = auth_service.get_authorization_url(state=state)
+    response.set_cookie(
+        key="oauth_state",
+        value=state,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=600,
+    )
     return {"authorization_url": auth_url}
 
 
 @router.get("/callback")
+@limiter.limit(RateLimitConfig.AUTH_LIMIT)
 async def linkedin_callback(
     code: str,
+    state: str,
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
     """Handle LinkedIn OAuth callback, create/update user, and return JWT."""
+    stored_state = request.cookies.get("oauth_state")
+    if not stored_state or not secrets.compare_digest(state, stored_state):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OAuth state parameter",
+        )
+    response.delete_cookie("oauth_state")
+
     auth_service = LinkedInAuthService(
         client_id=settings.LINKEDIN_CLIENT_ID,
         client_secret=settings.LINKEDIN_CLIENT_SECRET,
@@ -159,7 +191,6 @@ async def linkedin_callback(
     )
 
     return {
-        "access_token": jwt_token,
         "token_type": "bearer",
         "user": {
             "id": user.id,

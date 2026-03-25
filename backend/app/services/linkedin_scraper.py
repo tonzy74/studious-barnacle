@@ -3,6 +3,7 @@ import logging
 import random
 import re
 from typing import Optional
+from urllib.parse import urlencode
 
 from playwright.async_api import async_playwright, Page, Browser, BrowserContext
 
@@ -32,7 +33,6 @@ class LinkedInScraper:
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--disable-infobars",
-                "--no-sandbox",
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",
             ],
@@ -274,8 +274,7 @@ class LinkedInScraper:
                 if remote_ok:
                     params["f_WT"] = "2"
 
-                param_str = "&".join(f"{k}={v}" for k, v in params.items())
-                full_url = search_url + param_str
+                full_url = search_url + urlencode(params)
 
                 await self.page.goto(full_url, wait_until="domcontentloaded")
                 await self._random_delay(2.0, 4.0)

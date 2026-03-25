@@ -1,7 +1,8 @@
 import json
+import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -13,6 +14,13 @@ from app.routers.auth import get_current_user
 from app.services.linkedin_scraper import LinkedInScraper
 from app.services.job_applier import JobApplier
 from app.services.captcha_solver import CaptchaSolver
+from app.security import RateLimitConfig
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -50,7 +58,7 @@ async def list_applications(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status filter: {status_filter}",
+                detail="Invalid status filter. Valid values: " + ", ".join(s.value for s in JobStatus),
             )
 
     count_result = await db.execute(
@@ -74,7 +82,9 @@ async def list_applications(
 
 
 @router.post("/{job_id}/apply")
+@limiter.limit(RateLimitConfig.APPLY_LIMIT)
 async def apply_to_job(
+    request: Request,
     job_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -147,10 +157,16 @@ async def apply_to_job(
     applier = JobApplier(scraper, captcha_solver)
 
     try:
+        from app.security import get_session_manager
+        session_mgr = get_session_manager()
+        session_data = session_mgr.decrypt_session_token(
+            current_user.encrypted_session_token or ""
+        )
+        li_at_value = session_data.get("nonce", "") if session_data else ""
         session_cookies = [
             {
                 "name": "li_at",
-                "value": current_user.encrypted_session_token or "",
+                "value": li_at_value,
                 "domain": ".linkedin.com",
                 "path": "/",
             }
@@ -183,9 +199,10 @@ async def apply_to_job(
         job.status = JobStatus.ERROR
         job.error_message = str(e)
         await db.commit()
+        logger.error(f"Application failed for job {job_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Application failed: {str(e)}",
+            detail="Application failed due to an internal error. Please try again later.",
         )
     finally:
         await scraper.close()
@@ -235,6 +252,6 @@ def _serialize_application(job: Job) -> dict:
         "score_breakdown": score_breakdown,
         "job_url": job.job_url,
         "applied_at": job.applied_at.isoformat() if job.applied_at else None,
-        "error_message": job.error_message,
+        "error_message": "An error occurred during application." if job.error_message else None,
         "created_at": job.created_at.isoformat() if job.created_at else None,
     }

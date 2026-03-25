@@ -9,7 +9,7 @@ from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
-from jose import jwt, JWTError
+import jwt
 import re
 
 from app.config import get_settings
@@ -139,7 +139,7 @@ class JWTManager:
                 token, self.secret_key, algorithms=[self.algorithm]
             )
             return payload
-        except JWTError:
+        except (jwt.PyJWTError, Exception):
             return None
 
 
@@ -211,6 +211,44 @@ def get_session_manager() -> SessionManager:
 def get_jwt_manager() -> JWTManager:
     settings = get_settings()
     return JWTManager(settings.SECRET_KEY)
+
+
+class CSRFMiddleware(BaseHTTPMiddleware):
+    """Middleware to validate CSRF tokens on mutating requests."""
+
+    SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        if request.method in self.SAFE_METHODS:
+            return await call_next(request)
+
+        csrf_token = request.headers.get("X-CSRF-Token")
+        if not csrf_token:
+            return JSONResponse(
+                status_code=403, content={"detail": "Missing CSRF token"}
+            )
+
+        jwt_manager = get_jwt_manager()
+        token = None
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+        else:
+            token = request.cookies.get("access_token")
+
+        if token:
+            payload = jwt_manager.verify_token(token)
+            if payload:
+                session_id = payload.get("sub", "")
+                csrf = get_csrf_protection()
+                if not csrf.validate_token(csrf_token, session_id):
+                    return JSONResponse(
+                        status_code=403, content={"detail": "Invalid CSRF token"}
+                    )
+
+        return await call_next(request)
 
 
 class RateLimitConfig:

@@ -1,8 +1,8 @@
 import json
 from datetime import datetime, timezone, date
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
@@ -14,6 +14,12 @@ from app.models.criteria import SearchCriteria
 from app.routers.auth import get_current_user
 from app.services.linkedin_scraper import LinkedInScraper
 from app.services.job_matcher import JobMatcher
+from app.security import RateLimitConfig, InputSanitizer
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -22,6 +28,20 @@ class SearchRequest(BaseModel):
     target_titles: Optional[list[str]] = None
     location: Optional[str] = None
     remote_ok: Optional[bool] = True
+
+    @field_validator("target_titles", mode="before")
+    @classmethod
+    def sanitize_titles(cls, v):
+        if v:
+            return [InputSanitizer.sanitize_string(t) for t in v]
+        return v
+
+    @field_validator("location", mode="before")
+    @classmethod
+    def sanitize_location(cls, v):
+        if v:
+            return InputSanitizer.sanitize_string(v)
+        return v
 
 
 @router.get("/daily")
@@ -98,7 +118,9 @@ async def reject_job(
 
 
 @router.post("/search")
+@limiter.limit(RateLimitConfig.SEARCH_LIMIT)
 async def trigger_job_search(
+    request: Request,
     data: SearchRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -229,7 +251,7 @@ async def get_job_history(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status filter: {status_filter}",
+                detail="Invalid status filter. Valid values: " + ", ".join(s.value for s in JobStatus),
             )
 
     count_result = await db.execute(
@@ -292,6 +314,6 @@ def _serialize_job(job: Job) -> dict:
         "score_breakdown": score_breakdown,
         "job_url": job.job_url,
         "applied_at": job.applied_at.isoformat() if job.applied_at else None,
-        "error_message": job.error_message,
+        "error_message": "An error occurred during application." if job.error_message else None,
         "created_at": job.created_at.isoformat() if job.created_at else None,
     }

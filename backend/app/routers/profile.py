@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.criteria import SearchCriteria
 from app.routers.auth import get_current_user
 from app.services.linkedin_scraper import LinkedInScraper
+from app.security import InputSanitizer
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -24,6 +25,27 @@ class CriteriaUpdateRequest(BaseModel):
     excluded_industries: Optional[list[str]] = None
     excluded_companies: Optional[list[str]] = None
     daily_batch_size: Optional[int] = None
+
+    @field_validator("target_titles", mode="before")
+    @classmethod
+    def sanitize_titles(cls, v):
+        if v:
+            return [InputSanitizer.sanitize_string(t) for t in v]
+        return v
+
+    @field_validator("location", mode="before")
+    @classmethod
+    def sanitize_location(cls, v):
+        if v:
+            return InputSanitizer.sanitize_string(v)
+        return v
+
+    @field_validator("excluded_industries", "excluded_companies", mode="before")
+    @classmethod
+    def sanitize_string_lists(cls, v):
+        if v:
+            return [InputSanitizer.sanitize_string(s) for s in v]
+        return v
 
 
 @router.get("")
@@ -67,7 +89,7 @@ async def sync_profile(
                 session_cookies = [
                     {
                         "name": "li_at",
-                        "value": current_user.encrypted_session_token,
+                        "value": session_data.get("nonce", ""),
                         "domain": ".linkedin.com",
                         "path": "/",
                     }
