@@ -45,6 +45,9 @@ class SecurityHeaders(BaseHTTPMiddleware):
         )
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         return response
 
 
@@ -217,11 +220,15 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     """Middleware to validate CSRF tokens on mutating requests."""
 
     SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+    CSRF_EXEMPT_PATHS = {"/api/auth/linkedin", "/api/auth/callback"}
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         if request.method in self.SAFE_METHODS:
+            return await call_next(request)
+
+        if request.url.path in self.CSRF_EXEMPT_PATHS:
             return await call_next(request)
 
         csrf_token = request.headers.get("X-CSRF-Token")
@@ -238,15 +245,23 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         else:
             token = request.cookies.get("access_token")
 
-        if token:
-            payload = jwt_manager.verify_token(token)
-            if payload:
-                session_id = payload.get("sub", "")
-                csrf = get_csrf_protection()
-                if not csrf.validate_token(csrf_token, session_id):
-                    return JSONResponse(
-                        status_code=403, content={"detail": "Invalid CSRF token"}
-                    )
+        if not token:
+            return JSONResponse(
+                status_code=403, content={"detail": "Invalid CSRF token"}
+            )
+
+        payload = jwt_manager.verify_token(token)
+        if not payload:
+            return JSONResponse(
+                status_code=403, content={"detail": "Invalid CSRF token"}
+            )
+
+        session_id = payload.get("sub", "")
+        csrf = get_csrf_protection()
+        if not csrf.validate_token(csrf_token, session_id):
+            return JSONResponse(
+                status_code=403, content={"detail": "Invalid CSRF token"}
+            )
 
         return await call_next(request)
 

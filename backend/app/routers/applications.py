@@ -111,7 +111,9 @@ async def apply_to_job(
         )
 
     result = await db.execute(
-        select(Job).where(Job.id == job_id, Job.user_id == current_user.id)
+        select(Job)
+        .where(Job.id == job_id, Job.user_id == current_user.id)
+        .with_for_update()
     )
     job = result.scalar_one_or_none()
     if not job:
@@ -197,9 +199,9 @@ async def apply_to_job(
 
     except Exception as e:
         job.status = JobStatus.ERROR
-        job.error_message = str(e)
+        job.error_message = "Application failed due to an internal error"
         await db.commit()
-        logger.error(f"Application failed for job {job_id}: {e}", exc_info=True)
+        logger.error(f"Application failed for job {job_id}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Application failed due to an internal error. Please try again later.",

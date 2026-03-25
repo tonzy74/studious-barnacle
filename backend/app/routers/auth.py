@@ -62,6 +62,13 @@ async def get_current_user(
             detail="User not found",
         )
 
+    if not user.encrypted_session_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has been invalidated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return user
 
 
@@ -227,6 +234,5 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "headline": current_user.headline,
         "location": current_user.location,
-        "profile_data": current_user.profile_data,
         "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
     }

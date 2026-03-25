@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone, date
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
@@ -25,8 +25,10 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 class SearchRequest(BaseModel):
-    target_titles: Optional[list[str]] = None
-    location: Optional[str] = None
+    model_config = {"extra": "forbid"}
+
+    target_titles: Optional[list[str]] = Field(None, max_length=20)
+    location: Optional[str] = Field(None, max_length=200)
     remote_ok: Optional[bool] = True
 
     @field_validator("target_titles", mode="before")

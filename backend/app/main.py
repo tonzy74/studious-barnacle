@@ -3,7 +3,9 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -59,6 +61,14 @@ def create_app() -> FastAPI:
     application.state.limiter = limiter
     application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+    @application.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        logger.warning(f"Validation error on {request.url.path}: {exc.errors()}")
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Invalid request parameters."},
+        )
+
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins_list,
@@ -78,7 +88,7 @@ def create_app() -> FastAPI:
 
     @application.get("/api/health")
     async def health_check():
-        return {"status": "healthy", "version": "1.0.0"}
+        return {"status": "healthy"}
 
     return application
 

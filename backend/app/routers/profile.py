@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,16 +15,18 @@ router = APIRouter(prefix="/profile", tags=["profile"])
 
 
 class CriteriaUpdateRequest(BaseModel):
-    target_titles: Optional[list[str]] = None
+    model_config = {"extra": "forbid"}
+
+    target_titles: Optional[list[str]] = Field(None, max_length=50)
     min_salary_same_level: Optional[float] = None
     min_salary_step_up: Optional[float] = None
-    location: Optional[str] = None
-    max_office_days: Optional[int] = None
+    location: Optional[str] = Field(None, max_length=200)
+    max_office_days: Optional[int] = Field(None, ge=0, le=7)
     remote_ok: Optional[bool] = None
     hybrid_ok: Optional[bool] = None
-    excluded_industries: Optional[list[str]] = None
-    excluded_companies: Optional[list[str]] = None
-    daily_batch_size: Optional[int] = None
+    excluded_industries: Optional[list[str]] = Field(None, max_length=50)
+    excluded_companies: Optional[list[str]] = Field(None, max_length=100)
+    daily_batch_size: Optional[int] = Field(None, ge=1, le=50)
 
     @field_validator("target_titles", mode="before")
     @classmethod

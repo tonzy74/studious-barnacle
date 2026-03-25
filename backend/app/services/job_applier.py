@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import random
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -32,6 +33,9 @@ class JobApplier:
         job_url = job.get("job_url", "")
         if not job_url:
             return {"status": "error", "message": "No job URL provided"}
+
+        if not job_url.startswith("https://www.linkedin.com/") and not job_url.startswith("https://linkedin.com/"):
+            return {"status": "error", "message": "Invalid job URL"}
 
         try:
             page = self.scraper.page
@@ -371,12 +375,17 @@ class JobApplier:
         if not page:
             return None
         try:
-            job_id = job.get("linkedin_job_id", "unknown")
+            raw_job_id = str(job.get("linkedin_job_id", "unknown"))
+            job_id = re.sub(r'[^a-zA-Z0-9_-]', '', raw_job_id)
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             filename = f"error_{job_id}_{timestamp}.png"
             filepath = os.path.join(self.SCREENSHOT_DIR, filename)
+            real_path = os.path.realpath(filepath)
+            if not real_path.startswith(os.path.realpath(self.SCREENSHOT_DIR) + os.sep):
+                logger.warning(f"Screenshot path traversal blocked: {filepath}")
+                return None
             await page.screenshot(path=filepath, full_page=True)
-            logger.info(f"Error screenshot saved to {filepath}")
+            logger.info(f"Error screenshot saved: {filename}")
             return filepath
         except Exception as e:
             logger.warning(f"Failed to capture error screenshot: {e}")
