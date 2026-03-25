@@ -8,7 +8,6 @@ from app.services.job_sources.adzuna import AdzunaSource
 from app.services.job_sources.remoteok import RemoteOKSource
 from app.services.job_sources.arbeitnow import ArbeitnowSource
 from app.services.job_sources.themuse import TheMuseSource
-from app.services.job_sources.jsearch import JSearchSource
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -38,10 +37,6 @@ class JobAggregator:
         adzuna_key = getattr(settings, "ADZUNA_APP_KEY", "")
         if adzuna_id and adzuna_key:
             sources.append(AdzunaSource(adzuna_id, adzuna_key))
-
-        jsearch_key = getattr(settings, "JSEARCH_API_KEY", "")
-        if jsearch_key:
-            sources.append(JSearchSource(jsearch_key))
 
         return sources
 

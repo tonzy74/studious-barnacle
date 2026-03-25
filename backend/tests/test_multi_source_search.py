@@ -1,4 +1,4 @@
-"""Tests for the multi-source search API endpoint."""
+"""Tests for the job search API endpoint."""
 import pytest
 from unittest.mock import patch, AsyncMock
 
@@ -8,16 +8,16 @@ from app.models.criteria import SearchCriteria
 
 @pytest.mark.asyncio
 class TestMultiSourceSearchEndpoint:
-    """Test the /jobs/search/multi endpoint."""
+    """Test the /jobs/search endpoint."""
 
     async def test_requires_auth(self, client):
-        resp = await client.post("/api/jobs/search/multi", json={})
+        resp = await client.post("/api/jobs/search", json={})
         assert resp.status_code in (401, 403)
 
     async def test_requires_criteria(self, client, auth_headers):
         """Should fail if no target titles set."""
         resp = await client.post(
-            "/api/jobs/search/multi",
+            "/api/jobs/search",
             headers=auth_headers,
             json={},
         )
@@ -61,7 +61,7 @@ class TestMultiSourceSearchEndpoint:
             mock_instance._sources = []
 
             resp = await client.post(
-                "/api/jobs/search/multi",
+                "/api/jobs/search",
                 headers=auth_headers,
                 json={},
             )
@@ -82,7 +82,7 @@ class TestMultiSourceSearchEndpoint:
             mock_instance._sources = []
 
             resp = await client.post(
-                "/api/jobs/search/multi",
+                "/api/jobs/search",
                 headers=auth_headers,
                 json={"target_titles": ["Backend Developer"]},
             )

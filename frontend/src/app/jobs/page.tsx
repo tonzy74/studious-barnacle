@@ -41,7 +41,6 @@ export default function JobsPage() {
   const [sortBy, setSortBy] = useState<SortOption>('confidence');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [applying, setApplying] = useState(false);
-  const [searchMode, setSearchMode] = useState<'multi' | 'linkedin'>('multi');
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -95,8 +94,7 @@ export default function JobsPage() {
   const handleManualSearch = async () => {
     setLoading(true);
     try {
-      const endpoint = searchMode === 'multi' ? '/jobs/search/multi' : '/jobs/search';
-      await api.post(endpoint, {});
+      await api.post('/jobs/search', {});
       await fetchJobs();
     } catch (error) {
       console.error('Manual search failed:', error);
@@ -133,23 +131,13 @@ export default function JobsPage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Today&apos;s Jobs
             </h1>
-            <div className="flex items-center gap-2">
-              <select
-                value={searchMode}
-                onChange={(e) => setSearchMode(e.target.value as 'multi' | 'linkedin')}
-                className="text-xs bg-gray-100 dark:bg-gray-800 border-0 rounded-lg px-2 py-1.5 text-gray-600 dark:text-gray-400"
-              >
-                <option value="multi">All Sources</option>
-                <option value="linkedin">LinkedIn Only</option>
-              </select>
-              <button
-                onClick={handleManualSearch}
-                disabled={loading}
-                className="text-sm text-linkedin-blue font-medium disabled:opacity-50"
-              >
-                {loading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
+            <button
+              onClick={handleManualSearch}
+              disabled={loading}
+              className="text-sm text-linkedin-blue font-medium disabled:opacity-50"
+            >
+              {loading ? 'Searching...' : 'Search'}
+            </button>
           </div>
 
           <div className="flex gap-2 overflow-x-auto no-scrollbar">

@@ -7,7 +7,6 @@ from app.services.job_sources.remoteok import RemoteOKSource
 from app.services.job_sources.arbeitnow import ArbeitnowSource
 from app.services.job_sources.themuse import TheMuseSource
 from app.services.job_sources.adzuna import AdzunaSource
-from app.services.job_sources.jsearch import JSearchSource
 from app.services.job_aggregator import JobAggregator
 
 
@@ -111,24 +110,6 @@ class TestAdzunaSource:
     @pytest.mark.asyncio
     async def test_name(self):
         assert AdzunaSource("id", "key").name == "Adzuna"
-
-
-class TestJSearchSource:
-    """Test JSearch provider."""
-
-    @pytest.mark.asyncio
-    async def test_is_available_with_key(self):
-        source = JSearchSource("some-key")
-        assert await source.is_available() is True
-
-    @pytest.mark.asyncio
-    async def test_is_available_without_key(self):
-        source = JSearchSource("")
-        assert await source.is_available() is False
-
-    @pytest.mark.asyncio
-    async def test_name(self):
-        assert JSearchSource("key").name == "JSearch"
 
 
 class TestJobAggregator:
