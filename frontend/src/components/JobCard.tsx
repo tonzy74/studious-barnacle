@@ -179,7 +179,7 @@ export default function JobCard({ job, onApprove, onReject }: JobCardProps) {
                 rel="noopener noreferrer"
                 className="inline-block text-xs text-linkedin-blue font-medium"
               >
-                View on LinkedIn
+                View Posting
               </a>
             )}
           </div>
@@ -201,17 +201,28 @@ export default function JobCard({ job, onApprove, onReject }: JobCardProps) {
             {job.status === 'rejected' ? 'Rejected' : 'Reject'}
           </button>
           <div className="w-px bg-gray-100 dark:bg-gray-700" />
-          <button
-            onClick={onApprove}
-            disabled={job.status === 'approved'}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${
-              job.status === 'approved'
-                ? 'bg-green-50 dark:bg-green-900/20 text-green-400 cursor-default'
-                : 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
-            }`}
-          >
-            {job.status === 'approved' ? 'Approved' : 'Approve'}
-          </button>
+          {job.status === 'approved' && job.job_url ? (
+            <a
+              href={job.job_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-3 text-sm font-medium text-center text-white bg-linkedin-blue hover:bg-linkedin-dark transition-colors"
+            >
+              Apply
+            </a>
+          ) : (
+            <button
+              onClick={onApprove}
+              disabled={job.status === 'approved'}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                job.status === 'approved'
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-400 cursor-default'
+                  : 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
+              }`}
+            >
+              {job.status === 'approved' ? 'Approved' : 'Approve'}
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -198,7 +198,7 @@ export default function ApplicationsPage() {
                         rel="noopener noreferrer"
                         className="text-linkedin-blue font-medium"
                       >
-                        View on LinkedIn
+                        View Posting
                       </a>
                     )}
                   </div>
