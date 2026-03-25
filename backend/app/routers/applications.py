@@ -11,7 +11,6 @@ from app.config import get_settings
 from app.models.user import User
 from app.models.job import Job, JobStatus
 from app.routers.auth import get_current_user
-from app.services.linkedin_scraper import LinkedInScraper
 from app.services.job_applier import JobApplier
 from app.services.captcha_solver import CaptchaSolver
 from app.security import RateLimitConfig
@@ -137,7 +136,7 @@ async def apply_to_job(
         "email": current_user.email,
         "headline": current_user.headline or "",
         "location": current_user.location or "",
-        "linkedin_id": current_user.linkedin_id,
+        "oauth_id": current_user.oauth_id,
         "phone": profile_data.get("phone", ""),
         "skills": profile_data.get("skills", []),
         "experience": profile_data.get("experience", []),
@@ -145,36 +144,19 @@ async def apply_to_job(
     }
 
     job_data = {
-        "linkedin_job_id": job.linkedin_job_id,
+        "source_job_id": job.source_job_id,
         "title": job.title,
         "company": job.company,
         "job_url": job.job_url,
     }
 
-    scraper = LinkedInScraper()
     captcha_solver = None
     if settings.CAPTCHA_SERVICE_API_KEY:
         captcha_solver = CaptchaSolver(settings.CAPTCHA_SERVICE_API_KEY)
 
-    applier = JobApplier(scraper, captcha_solver)
+    applier = JobApplier(captcha_solver)
 
     try:
-        from app.security import get_session_manager
-        session_mgr = get_session_manager()
-        session_data = session_mgr.decrypt_session_token(
-            current_user.encrypted_session_token or ""
-        )
-        li_at_value = session_data.get("nonce", "") if session_data else ""
-        session_cookies = [
-            {
-                "name": "li_at",
-                "value": li_at_value,
-                "domain": ".linkedin.com",
-                "path": "/",
-            }
-        ]
-        await scraper.login_with_session(session_cookies)
-
         apply_result = await applier.fill_application(job_data, user_profile)
 
         if apply_result["status"] == "applied":
@@ -207,7 +189,7 @@ async def apply_to_job(
             detail="Application failed due to an internal error. Please try again later.",
         )
     finally:
-        await scraper.close()
+        await applier.close()
 
 
 @router.get("/{job_id}/status")
@@ -241,7 +223,7 @@ def _serialize_application(job: Job) -> dict:
 
     return {
         "id": job.id,
-        "linkedin_job_id": job.linkedin_job_id,
+        "source_job_id": job.source_job_id,
         "title": job.title,
         "company": job.company,
         "location": job.location,
@@ -249,7 +231,6 @@ def _serialize_application(job: Job) -> dict:
         "salary_max": job.salary_max,
         "remote_type": job.remote_type.value if job.remote_type else "onsite",
         "confidence_score": job.confidence_score,
-        "linkedin_match_score": job.linkedin_match_score,
         "status": job.status.value if job.status else "pending",
         "score_breakdown": score_breakdown,
         "job_url": job.job_url,

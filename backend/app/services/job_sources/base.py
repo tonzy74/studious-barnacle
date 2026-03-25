@@ -8,7 +8,7 @@ from typing import Optional
 class JobListing:
     """Standardized job listing from any source."""
 
-    source: str  # e.g. "adzuna", "remoteok", "linkedin"
+    source: str  # e.g. "remoteok", "arbeitnow", "themuse"
     source_id: str  # unique ID from the source
     title: str
     company: str
@@ -24,8 +24,8 @@ class JobListing:
     posted_date: Optional[str] = None
 
     @property
-    def linkedin_job_id(self) -> str:
-        """Compatibility with existing Job model."""
+    def source_job_id(self) -> str:
+        """Composite ID for the Job model."""
         return f"{self.source}_{self.source_id}"
 
 

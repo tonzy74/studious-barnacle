@@ -35,7 +35,7 @@ class TestApproveReject:
     async def test_approve_pending_job(self, client, auth_headers, db_session, test_user):
         job = Job(
             user_id=test_user.id,
-            linkedin_job_id="job_pending_1",
+            source_job_id="job_pending_1",
             title="Test Job",
             company="TestCo",
             status=JobStatus.PENDING,
@@ -54,7 +54,7 @@ class TestApproveReject:
     async def test_approve_already_applied_job_fails(self, client, auth_headers, db_session, test_user):
         job = Job(
             user_id=test_user.id,
-            linkedin_job_id="job_applied_1",
+            source_job_id="job_applied_1",
             title="Applied Job",
             company="TestCo",
             status=JobStatus.APPLIED,
@@ -72,7 +72,7 @@ class TestApproveReject:
     async def test_reject_pending_job(self, client, auth_headers, db_session, test_user):
         job = Job(
             user_id=test_user.id,
-            linkedin_job_id="job_pending_2",
+            source_job_id="job_pending_2",
             title="Another Job",
             company="TestCo",
             status=JobStatus.PENDING,
@@ -96,7 +96,7 @@ class TestApproveReject:
         """Jobs belonging to other users should return 404."""
         job = Job(
             user_id=99999,  # different user
-            linkedin_job_id="other_user_job",
+            source_job_id="other_user_job",
             title="Other User Job",
             company="OtherCo",
             status=JobStatus.PENDING,
@@ -126,7 +126,7 @@ class TestJobHistory:
         for i in range(5):
             db_session.add(Job(
                 user_id=test_user.id,
-                linkedin_job_id=f"hist_job_{i}",
+                source_job_id=f"hist_job_{i}",
                 title=f"Job {i}",
                 company="TestCo",
                 status=JobStatus.PENDING,
@@ -185,7 +185,7 @@ class TestApplications:
         """Error messages stored in DB should be masked in API responses."""
         job = Job(
             user_id=test_user.id,
-            linkedin_job_id="error_job_1",
+            source_job_id="error_job_1",
             title="Error Job",
             company="TestCo",
             status=JobStatus.ERROR,
@@ -214,12 +214,12 @@ class TestApplyToJob:
         """Cannot apply to a job that isn't APPROVED."""
         job = Job(
             user_id=test_user.id,
-            linkedin_job_id="pending_apply_1",
+            source_job_id="pending_apply_1",
             title="Pending Job",
             company="TestCo",
             status=JobStatus.PENDING,
             confidence_score=0.5,
-            job_url="https://www.linkedin.com/jobs/view/99999",
+            job_url="https://example.com/jobs/99999",
         )
         db_session.add(job)
         await db_session.commit()

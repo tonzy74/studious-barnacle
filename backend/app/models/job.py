@@ -27,7 +27,7 @@ class Job(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    linkedin_job_id = Column(String(100), nullable=False, index=True)
+    source_job_id = Column(String(100), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     company = Column(String(255), nullable=False)
     location = Column(String(255), nullable=True)
@@ -39,7 +39,6 @@ class Job(Base):
     description = Column(Text, nullable=True)
     requirements = Column(Text, nullable=True)
     confidence_score = Column(Float, default=0.0, nullable=False)
-    linkedin_match_score = Column(Float, nullable=True)
     status = Column(
         Enum(JobStatus), default=JobStatus.PENDING, nullable=False, index=True
     )

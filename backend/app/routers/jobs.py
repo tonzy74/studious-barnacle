@@ -162,7 +162,7 @@ async def trigger_job_search(
         "email": current_user.email,
         "headline": current_user.headline or "",
         "location": current_user.location or "",
-        "linkedin_id": current_user.linkedin_id,
+        "oauth_id": current_user.oauth_id,
         "skills": profile_data.get("skills", []),
         "experience": profile_data.get("experience", []),
     }
@@ -178,7 +178,7 @@ async def trigger_job_search(
     raw_jobs = []
     for listing in listings:
         raw_jobs.append({
-            "linkedin_job_id": listing.linkedin_job_id,
+            "source_job_id": listing.source_job_id,
             "title": listing.title,
             "company": listing.company,
             "location": listing.location,
@@ -201,7 +201,7 @@ async def trigger_job_search(
         existing = await db.execute(
             select(Job).where(
                 Job.user_id == current_user.id,
-                Job.linkedin_job_id == job_data.get("linkedin_job_id", ""),
+                Job.source_job_id == job_data.get("source_job_id", ""),
             )
         )
         if existing.scalar_one_or_none():
@@ -217,7 +217,7 @@ async def trigger_job_search(
         score_breakdown = job_data.get("score_breakdown", {})
         new_job = Job(
             user_id=current_user.id,
-            linkedin_job_id=job_data.get("linkedin_job_id", ""),
+            source_job_id=job_data.get("source_job_id", ""),
             title=job_data.get("title", ""),
             company=job_data.get("company", ""),
             location=job_data.get("location", ""),
@@ -227,7 +227,6 @@ async def trigger_job_search(
             description=job_data.get("description", ""),
             requirements=job_data.get("requirements", ""),
             confidence_score=job_data.get("confidence_score", 0.0),
-            linkedin_match_score=job_data.get("linkedin_match_score"),
             status=JobStatus.PENDING,
             score_breakdown=json.dumps(score_breakdown) if score_breakdown else None,
             job_url=job_data.get("job_url", ""),
@@ -326,11 +325,11 @@ def _serialize_job(job: Job) -> dict:
             score_breakdown = None
 
     # Extract source name from the composite ID (e.g. "remoteok_12345" -> "remoteok")
-    source = job.linkedin_job_id.split("_", 1)[0] if job.linkedin_job_id and "_" in job.linkedin_job_id else ""
+    source = job.source_job_id.split("_", 1)[0] if job.source_job_id and "_" in job.source_job_id else ""
 
     return {
         "id": job.id,
-        "linkedin_job_id": job.linkedin_job_id,
+        "source_job_id": job.source_job_id,
         "source": source,
         "title": job.title,
         "company": job.company,
@@ -341,7 +340,6 @@ def _serialize_job(job: Job) -> dict:
         "description": job.description,
         "requirements": job.requirements,
         "confidence_score": job.confidence_score,
-        "linkedin_match_score": job.linkedin_match_score,
         "status": job.status.value if job.status else "pending",
         "score_breakdown": score_breakdown,
         "job_url": job.job_url,

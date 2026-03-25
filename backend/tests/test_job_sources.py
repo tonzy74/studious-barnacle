@@ -12,14 +12,14 @@ from app.services.job_aggregator import JobAggregator
 class TestJobListing:
     """Test the standardized JobListing dataclass."""
 
-    def test_linkedin_job_id_format(self):
+    def test_source_job_id_format(self):
         listing = JobListing(
-            source="adzuna",
+            source="remoteok",
             source_id="12345",
             title="Software Engineer",
             company="TestCo",
         )
-        assert listing.linkedin_job_id == "adzuna_12345"
+        assert listing.source_job_id == "remoteok_12345"
 
     def test_default_values(self):
         listing = JobListing(

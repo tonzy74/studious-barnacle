@@ -35,7 +35,7 @@ class ArbeitnowSource(JobSource):
                 resp = await client.get(
                     self.API_URL,
                     params={"page": page},
-                    headers={"User-Agent": "LinkedInJobAgent/1.0"},
+                    headers={"User-Agent": "JobPilot/1.0"},
                 )
                 resp.raise_for_status()
                 data = resp.json()

@@ -12,7 +12,7 @@ from app.database import async_session_factory, init_db
 from app.models.user import User
 from app.models.job import Job, JobStatus, RemoteType
 from app.models.criteria import SearchCriteria
-from app.services.linkedin_scraper import LinkedInScraper
+from app.services.job_aggregator import JobAggregator
 from app.services.job_matcher import JobMatcher
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class JobScheduler:
             self.run_daily_search,
             trigger=CronTrigger(hour=self.run_hour, minute=self.run_minute),
             id="daily_job_search",
-            name="Daily LinkedIn Job Search",
+            name="Daily Job Search",
             replace_existing=True,
             misfire_grace_time=3600,
         )
@@ -113,36 +113,41 @@ class JobScheduler:
             "email": user.email,
             "headline": user.headline or "",
             "location": user.location or "",
-            "linkedin_id": user.linkedin_id,
+            "oauth_id": user.oauth_id,
             "skills": profile_data.get("skills", []),
             "experience": profile_data.get("experience", []),
             "education": profile_data.get("education", []),
             "certifications": profile_data.get("certifications", []),
         }
 
-        scraper = LinkedInScraper()
-        try:
-            raw_jobs = await scraper.search_jobs(criteria_dict)
-            logger.info(
-                f"Found {len(raw_jobs)} raw jobs for user {user.id}."
-            )
+        aggregator = JobAggregator()
+        listings = await aggregator.search(
+            titles=criteria_dict["target_titles"],
+            location=criteria_dict["location"],
+            remote_ok=criteria_dict["remote_ok"],
+        )
+        logger.info(
+            f"Found {len(listings)} raw jobs for user {user.id}."
+        )
 
-            for raw_job in raw_jobs:
-                job_url = raw_job.get("job_url", "")
-                if job_url:
-                    details = await scraper.get_job_details(job_url)
-                    if details:
-                        raw_job.update(details)
-                    match_score = await scraper.get_linkedin_match_score(job_url)
-                    if match_score is not None:
-                        raw_job["linkedin_match_score"] = match_score
+        raw_jobs = []
+        for listing in listings:
+            raw_jobs.append({
+                "source_job_id": listing.source_job_id,
+                "title": listing.title,
+                "company": listing.company,
+                "location": listing.location,
+                "description": listing.description,
+                "requirements": listing.requirements,
+                "salary_min": listing.salary_min,
+                "salary_max": listing.salary_max,
+                "remote_type": listing.remote_type,
+                "job_url": listing.apply_url or listing.job_url,
+            })
 
-            scored_jobs = self.score_and_filter(raw_jobs, criteria_dict, profile_dict)
-            await self.create_daily_batch(session, user.id, scored_jobs, criteria_dict["daily_batch_size"])
-            await self.send_notification(user.id, len(scored_jobs))
-
-        finally:
-            await scraper.close()
+        scored_jobs = self.score_and_filter(raw_jobs, criteria_dict, profile_dict)
+        await self.create_daily_batch(session, user.id, scored_jobs, criteria_dict["daily_batch_size"])
+        await self.send_notification(user.id, len(scored_jobs))
 
     def score_and_filter(
         self, jobs: list[dict], criteria: dict, profile: dict
@@ -173,7 +178,7 @@ class JobScheduler:
             existing = await session.execute(
                 select(Job).where(
                     Job.user_id == user_id,
-                    Job.linkedin_job_id == job_data.get("linkedin_job_id", ""),
+                    Job.source_job_id == job_data.get("source_job_id", ""),
                 )
             )
             if existing.scalar_one_or_none():
@@ -189,7 +194,7 @@ class JobScheduler:
 
             new_job = Job(
                 user_id=user_id,
-                linkedin_job_id=job_data.get("linkedin_job_id", ""),
+                source_job_id=job_data.get("source_job_id", ""),
                 title=job_data.get("title", ""),
                 company=job_data.get("company", ""),
                 location=job_data.get("location", ""),
@@ -199,7 +204,6 @@ class JobScheduler:
                 description=job_data.get("description", ""),
                 requirements=job_data.get("requirements", ""),
                 confidence_score=job_data.get("confidence_score", 0.0),
-                linkedin_match_score=job_data.get("linkedin_match_score"),
                 status=JobStatus.PENDING,
                 score_breakdown=json.dumps(score_breakdown) if score_breakdown else None,
                 job_url=job_data.get("job_url", ""),

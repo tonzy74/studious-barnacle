@@ -8,7 +8,7 @@ import api from '@/lib/api';
 
 interface Job {
   id: number;
-  linkedin_job_id: string;
+  source_job_id: string;
   title: string;
   company: string;
   location: string;
@@ -18,7 +18,6 @@ interface Job {
   description: string;
   requirements: string;
   confidence_score: number;
-  linkedin_match_score: number | null;
   status: string;
   score_breakdown: {
     title_score: number;
@@ -26,7 +25,6 @@ interface Job {
     experience_score: number;
     salary_score: number;
     location_score: number;
-    linkedin_score: number;
   } | null;
   job_url: string;
   created_at: string;
@@ -134,7 +132,7 @@ export default function JobsPage() {
             <button
               onClick={handleManualSearch}
               disabled={loading}
-              className="text-sm text-linkedin-blue font-medium disabled:opacity-50"
+              className="text-sm text-brand-blue font-medium disabled:opacity-50"
             >
               {loading ? 'Searching...' : 'Search'}
             </button>
@@ -148,7 +146,7 @@ export default function JobsPage() {
                   onClick={() => setFilterBy(filter)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                     filterBy === filter
-                      ? 'bg-linkedin-blue text-white'
+                      ? 'bg-brand-blue text-white'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                   }`}
                 >

@@ -74,7 +74,7 @@ export default function DashboardPage() {
   return (
     <AuthGuard>
       <div className="pb-20">
-        <div className="bg-linkedin-blue px-6 pt-12 pb-8 rounded-b-3xl">
+        <div className="bg-brand-blue px-6 pt-12 pb-8 rounded-b-3xl">
           <h2 className="text-white/80 text-sm font-medium">Welcome back</h2>
           {loading ? (
             <div className="h-8 bg-white/20 rounded w-48 mt-1 animate-pulse" />
@@ -97,7 +97,7 @@ export default function DashboardPage() {
               onClick={() => router.push('/jobs')}
               className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left"
             >
-              <div className="text-3xl font-bold text-linkedin-blue">
+              <div className="text-3xl font-bold text-brand-blue">
                 {loading ? '-' : data?.dailyJobCount || 0}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -186,8 +186,8 @@ export default function DashboardPage() {
                 </svg>
               </div>
               <div className="text-left">
-                <div className="font-medium text-gray-900 dark:text-white">Sync Profile</div>
-                <div className="text-sm text-gray-500">Update your LinkedIn data</div>
+                <div className="font-medium text-gray-900 dark:text-white">Update Profile</div>
+                <div className="text-sm text-gray-500">Update your profile information</div>
               </div>
             </button>
           </div>

@@ -142,7 +142,7 @@ export default function CriteriaPage() {
     return (
       <AuthGuard>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-linkedin-blue" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue" />
         </div>
         <Navigation />
       </AuthGuard>
@@ -178,7 +178,7 @@ export default function CriteriaPage() {
               />
               <button
                 onClick={addTitle}
-                className="bg-linkedin-blue text-white px-4 py-3 rounded-xl text-sm font-medium"
+                className="bg-brand-blue text-white px-4 py-3 rounded-xl text-sm font-medium"
               >
                 Add
               </button>
@@ -219,7 +219,7 @@ export default function CriteriaPage() {
                     min_salary_same_level: parseInt(e.target.value) || null,
                   }))
                 }
-                className="w-full accent-linkedin-blue"
+                className="w-full accent-brand-blue"
               />
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {formatSalary(criteria.min_salary_same_level) || 'Not set'}
@@ -241,7 +241,7 @@ export default function CriteriaPage() {
                     min_salary_step_up: parseInt(e.target.value) || null,
                   }))
                 }
-                className="w-full accent-linkedin-blue"
+                className="w-full accent-brand-blue"
               />
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {formatSalary(criteria.min_salary_step_up) || 'Not set'}
@@ -276,7 +276,7 @@ export default function CriteriaPage() {
                   setCriteria((prev) => ({ ...prev, remote_ok: !prev.remote_ok }))
                 }
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  criteria.remote_ok ? 'bg-linkedin-blue' : 'bg-gray-300 dark:bg-gray-600'
+                  criteria.remote_ok ? 'bg-brand-blue' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >
                 <span
@@ -295,7 +295,7 @@ export default function CriteriaPage() {
                   setCriteria((prev) => ({ ...prev, hybrid_ok: !prev.hybrid_ok }))
                 }
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  criteria.hybrid_ok ? 'bg-linkedin-blue' : 'bg-gray-300 dark:bg-gray-600'
+                  criteria.hybrid_ok ? 'bg-brand-blue' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >
                 <span
@@ -324,11 +324,11 @@ export default function CriteriaPage() {
                   max_office_days: parseInt(e.target.value),
                 }))
               }
-              className="w-full accent-linkedin-blue"
+              className="w-full accent-brand-blue"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>0 (Full Remote)</span>
-              <span className="font-medium text-linkedin-blue">
+              <span className="font-medium text-brand-blue">
                 {criteria.max_office_days} days
               </span>
               <span>5 (Full Onsite)</span>
@@ -447,7 +447,7 @@ export default function CriteriaPage() {
             className={`w-full py-3.5 rounded-xl font-semibold text-white transition-colors ${
               saved
                 ? 'bg-green-500'
-                : 'bg-linkedin-blue hover:bg-linkedin-dark disabled:opacity-50'
+                : 'bg-brand-blue hover:bg-brand-dark disabled:opacity-50'
             }`}
           >
             {saving ? 'Saving...' : saved ? 'Saved Successfully' : 'Save Criteria'}

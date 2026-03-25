@@ -110,7 +110,7 @@ async def test_user(db_session):
     session_mgr = get_session_manager()
 
     user = User(
-        linkedin_id="test_linkedin_123",
+        oauth_id="test_oauth_123",
         name="Test User",
         email="test@example.com",
         headline="Software Engineer",
@@ -122,7 +122,7 @@ async def test_user(db_session):
 
     # Create valid session token
     user.encrypted_session_token = session_mgr.create_session_token(
-        user.id, user.linkedin_id
+        user.id, user.oauth_id
     )
     await db_session.commit()
     await db_session.refresh(user)
@@ -136,7 +136,7 @@ async def auth_headers(test_user):
     csrf = get_csrf_protection()
 
     token = jwt_manager.create_access_token(
-        data={"sub": str(test_user.id), "linkedin_id": test_user.linkedin_id}
+        data={"sub": str(test_user.id), "oauth_id": test_user.oauth_id}
     )
     csrf_token = csrf.generate_token(str(test_user.id))
 
@@ -151,7 +151,7 @@ async def test_job(db_session, test_user):
     """Create a test job in APPROVED status."""
     job = Job(
         user_id=test_user.id,
-        linkedin_job_id="job_12345",
+        source_job_id="job_12345",
         title="Senior Software Engineer",
         company="TestCorp",
         location="Remote",
@@ -162,7 +162,7 @@ async def test_job(db_session, test_user):
         requirements="Python, FastAPI",
         confidence_score=0.85,
         status=JobStatus.APPROVED,
-        job_url="https://www.linkedin.com/jobs/view/12345",
+        job_url="https://example.com/jobs/12345",
     )
     db_session.add(job)
     await db_session.commit()

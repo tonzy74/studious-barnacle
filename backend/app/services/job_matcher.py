@@ -41,19 +41,17 @@ STEP_UP_TITLES = {
 class JobMatcher:
     """Matching engine that calculates confidence scores for job matches."""
 
-    WEIGHT_TITLE = 0.25
-    WEIGHT_SKILLS = 0.25
+    WEIGHT_TITLE = 0.30
+    WEIGHT_SKILLS = 0.30
     WEIGHT_EXPERIENCE = 0.15
     WEIGHT_SALARY = 0.15
     WEIGHT_LOCATION = 0.10
-    WEIGHT_LINKEDIN = 0.10
 
     def calculate_confidence(
         self,
         job: dict,
         profile: dict,
         criteria: dict,
-        linkedin_match_score: Optional[float] = None,
     ) -> dict:
         """
         Calculate an overall confidence score (0-100) for a job match.
@@ -96,19 +94,12 @@ class JobMatcher:
             criteria.get("max_office_days", 5),
         )
 
-        linkedin_score_normalized = 0.0
-        if linkedin_match_score is not None:
-            linkedin_score_normalized = min(linkedin_match_score, 100.0)
-        elif skills_score > 0:
-            linkedin_score_normalized = (title_score + skills_score) / 2.0
-
         overall = (
             title_score * self.WEIGHT_TITLE
             + skills_score * self.WEIGHT_SKILLS
             + experience_score * self.WEIGHT_EXPERIENCE
             + salary_score * self.WEIGHT_SALARY
             + location_score * self.WEIGHT_LOCATION
-            + linkedin_score_normalized * self.WEIGHT_LINKEDIN
         )
 
         return {
@@ -118,7 +109,6 @@ class JobMatcher:
             "experience_score": round(experience_score, 1),
             "salary_score": round(salary_score, 1),
             "location_score": round(location_score, 1),
-            "linkedin_score": round(linkedin_score_normalized, 1),
         }
 
     def _score_title(
@@ -426,8 +416,7 @@ class JobMatcher:
             if any(ind in description_lower for ind in excluded_industries):
                 continue
 
-            linkedin_score = job.get("linkedin_match_score")
-            result = self.calculate_confidence(job, profile, criteria, linkedin_score)
+            result = self.calculate_confidence(job, profile, criteria)
 
             job["confidence_score"] = result["overall"]
             job["score_breakdown"] = result

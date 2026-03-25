@@ -66,7 +66,7 @@ export default function Navigation() {
               onClick={() => router.push(tab.href)}
               className={`flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-colors min-w-[56px] ${
                 isActive
-                  ? 'text-linkedin-blue'
+                  ? 'text-brand-blue'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
             >

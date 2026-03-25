@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     LINKEDIN_CLIENT_ID: str = Field(...)
     LINKEDIN_CLIENT_SECRET: str = Field(...)
     LINKEDIN_REDIRECT_URI: str = Field(default="http://localhost:8000/auth/callback")
-    DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./linkedin_agent.db")
+    DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./jobpilot.db")
     REDIS_URL: str = Field(default="redis://localhost:6379")
     ENCRYPTION_KEY: str = Field(...)
     ALLOWED_ORIGINS: str = Field(default="http://localhost:3000")

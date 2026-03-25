@@ -8,7 +8,6 @@ from app.database import get_db
 from app.models.user import User
 from app.models.criteria import SearchCriteria
 from app.routers.auth import get_current_user
-from app.services.linkedin_scraper import LinkedInScraper
 from app.security import InputSanitizer
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -60,7 +59,7 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "headline": current_user.headline,
         "location": current_user.location,
-        "linkedin_id": current_user.linkedin_id,
+        "oauth_id": current_user.oauth_id,
         "experience": profile_data.get("experience", []),
         "skills": profile_data.get("skills", []),
         "education": profile_data.get("education", []),
@@ -72,71 +71,80 @@ async def get_profile(current_user: User = Depends(get_current_user)):
     }
 
 
-@router.post("/sync")
-async def sync_profile(
+class ProfileUpdateRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    name: Optional[str] = Field(None, max_length=255)
+    headline: Optional[str] = Field(None, max_length=500)
+    location: Optional[str] = Field(None, max_length=255)
+    skills: Optional[list[str]] = Field(None, max_length=100)
+    experience: Optional[list[dict]] = None
+    education: Optional[list[dict]] = None
+    certifications: Optional[list[dict]] = None
+    about: Optional[str] = Field(None, max_length=2000)
+    phone: Optional[str] = Field(None, max_length=50)
+    resume_path: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("name", "headline", "location", "about", "phone", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v):
+        if v:
+            return InputSanitizer.sanitize_string(v)
+        return v
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def sanitize_skill_list(cls, v):
+        if v:
+            return [InputSanitizer.sanitize_string(s) for s in v]
+        return v
+
+
+@router.put("/update")
+async def update_profile(
+    data: ProfileUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger a Playwright scrape of the user's LinkedIn profile to update stored data."""
-    profile_url = f"https://www.linkedin.com/in/{current_user.linkedin_id}/"
+    """Update the user's profile information manually."""
+    if data.name is not None:
+        current_user.name = data.name
+    if data.headline is not None:
+        current_user.headline = data.headline
+    if data.location is not None:
+        current_user.location = data.location
 
-    scraper = LinkedInScraper()
-    try:
-        session_cookies = []
-        if current_user.encrypted_session_token:
-            from app.security import get_session_manager
-            session_mgr = get_session_manager()
-            session_data = session_mgr.decrypt_session_token(current_user.encrypted_session_token)
-            if session_data:
-                session_cookies = [
-                    {
-                        "name": "li_at",
-                        "value": session_data.get("nonce", ""),
-                        "domain": ".linkedin.com",
-                        "path": "/",
-                    }
-                ]
+    existing_data = current_user.profile_data or {}
+    if data.skills is not None:
+        existing_data["skills"] = data.skills
+    if data.experience is not None:
+        existing_data["experience"] = data.experience
+    if data.education is not None:
+        existing_data["education"] = data.education
+    if data.certifications is not None:
+        existing_data["certifications"] = data.certifications
+    if data.about is not None:
+        existing_data["about"] = data.about
+    if data.phone is not None:
+        existing_data["phone"] = data.phone
+    if data.resume_path is not None:
+        existing_data["resume_path"] = data.resume_path
 
-        logged_in = await scraper.login_with_session(session_cookies)
-        if not logged_in:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="LinkedIn session expired. Please re-authenticate.",
-            )
+    current_user.profile_data = existing_data
 
-        profile_data = await scraper.scrape_profile(profile_url)
-        if not profile_data:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to scrape LinkedIn profile.",
-            )
+    await db.commit()
+    await db.refresh(current_user)
 
-        existing_data = current_user.profile_data or {}
-        existing_data.update(profile_data)
-        current_user.profile_data = existing_data
-
-        if profile_data.get("name"):
-            current_user.name = profile_data["name"]
-        if profile_data.get("headline"):
-            current_user.headline = profile_data["headline"]
-        if profile_data.get("location"):
-            current_user.location = profile_data["location"]
-
-        await db.commit()
-        await db.refresh(current_user)
-
-        return {
-            "message": "Profile synced successfully",
-            "profile": {
-                "name": current_user.name,
-                "headline": current_user.headline,
-                "location": current_user.location,
-                "skills_count": len(profile_data.get("skills", [])),
-                "experience_count": len(profile_data.get("experience", [])),
-            },
-        }
-    finally:
-        await scraper.close()
+    return {
+        "message": "Profile updated successfully",
+        "profile": {
+            "name": current_user.name,
+            "headline": current_user.headline,
+            "location": current_user.location,
+            "skills_count": len(existing_data.get("skills", [])),
+            "experience_count": len(existing_data.get("experience", [])),
+        },
+    }
 
 
 @router.put("/criteria")

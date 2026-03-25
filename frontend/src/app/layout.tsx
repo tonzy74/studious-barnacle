@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'LinkedIn Job Agent',
-  description: 'Automated LinkedIn job search, matching, and application agent',
+  title: 'JobPilot',
+  description: 'Automated job search, matching, and application agent',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Job Agent',
+    title: 'JobPilot',
   },
   formatDetection: {
     telephone: false,

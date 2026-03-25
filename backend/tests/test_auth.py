@@ -72,7 +72,7 @@ class TestSessionInvalidation:
 
         jwt_manager = get_jwt_manager()
         token = jwt_manager.create_access_token(
-            data={"sub": str(test_user.id), "linkedin_id": test_user.linkedin_id}
+            data={"sub": str(test_user.id), "oauth_id": test_user.oauth_id}
         )
 
         resp = await client.get(

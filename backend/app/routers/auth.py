@@ -138,18 +138,18 @@ async def linkedin_callback(
             detail="Failed to fetch LinkedIn profile",
         )
 
-    linkedin_id = profile.get("sub", profile.get("id", ""))
+    oauth_id = profile.get("sub", profile.get("id", ""))
     email = profile.get("email", "")
     name = profile.get("name", "")
 
-    result = await db.execute(select(User).where(User.linkedin_id == linkedin_id))
+    result = await db.execute(select(User).where(User.oauth_id == oauth_id))
     user = result.scalar_one_or_none()
 
     session_manager = get_session_manager()
 
     if user is None:
         user = User(
-            linkedin_id=linkedin_id,
+            oauth_id=oauth_id,
             name=name,
             email=email,
             headline=profile.get("headline", ""),
@@ -167,14 +167,14 @@ async def linkedin_callback(
         if profile.get("location"):
             user.location = profile["location"]
 
-    encrypted_session = session_manager.create_session_token(user.id, linkedin_id)
+    encrypted_session = session_manager.create_session_token(user.id, oauth_id)
     user.encrypted_session_token = encrypted_session
     await db.commit()
     await db.refresh(user)
 
     jwt_manager = get_jwt_manager()
     jwt_token = jwt_manager.create_access_token(
-        data={"sub": str(user.id), "linkedin_id": linkedin_id}
+        data={"sub": str(user.id), "oauth_id": oauth_id}
     )
 
     csrf = get_csrf_protection()

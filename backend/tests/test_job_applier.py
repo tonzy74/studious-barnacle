@@ -11,42 +11,37 @@ class TestJobUrlValidation:
 
     @pytest.mark.asyncio
     async def test_empty_url_rejected(self):
-        applier = JobApplier(scraper=None, captcha_solver=None)
+        applier = JobApplier(captcha_solver=None)
         result = await applier.fill_application({"job_url": ""}, {})
         assert result["status"] == "error"
         assert "No job URL" in result["message"]
 
     @pytest.mark.asyncio
-    async def test_non_linkedin_url_rejected(self):
-        applier = JobApplier(scraper=None, captcha_solver=None)
+    async def test_non_http_url_rejected(self):
+        applier = JobApplier(captcha_solver=None)
         result = await applier.fill_application(
-            {"job_url": "https://evil.com/steal-cookies"}, {}
+            {"job_url": "ftp://evil.com/steal-cookies"}, {}
         )
         assert result["status"] == "error"
         assert "Invalid job URL" in result["message"]
 
     @pytest.mark.asyncio
-    async def test_linkedin_url_accepted_format(self):
-        """Valid LinkedIn URLs should pass URL validation (will fail later on scraper)."""
-        from unittest.mock import MagicMock
-        mock_scraper = MagicMock()
-        mock_scraper.page = None  # No browser page available
-        applier = JobApplier(scraper=mock_scraper, captcha_solver=None)
-        result = await applier.fill_application(
-            {"job_url": "https://www.linkedin.com/jobs/view/12345"}, {}
-        )
-        # Should fail with "Browser not initialized", NOT "Invalid job URL"
-        assert "Invalid job URL" not in result.get("message", "")
-        assert result["status"] == "error"
-        assert "Browser not initialized" in result["message"]
-
-    @pytest.mark.asyncio
     async def test_javascript_url_rejected(self):
-        applier = JobApplier(scraper=None, captcha_solver=None)
+        applier = JobApplier(captcha_solver=None)
         result = await applier.fill_application(
             {"job_url": "javascript:alert(1)"}, {}
         )
         assert result["status"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_https_url_accepted(self):
+        """Valid HTTPS URLs should pass URL validation (will fail on browser init in tests)."""
+        applier = JobApplier(captcha_solver=None)
+        result = await applier.fill_application(
+            {"job_url": "https://careers.example.com/jobs/12345"}, {}
+        )
+        # Should attempt to open browser, not reject the URL
+        assert "Invalid job URL" not in result.get("message", "")
 
 
 class TestScreenshotPathSafety:
@@ -61,9 +56,9 @@ class TestScreenshotPathSafety:
         assert sanitized == "etcpasswd"
 
     def test_normal_job_id_preserved(self):
-        raw_job_id = "12345678"
+        raw_job_id = "remoteok_12345678"
         sanitized = re.sub(r'[^a-zA-Z0-9_-]', '', raw_job_id)
-        assert sanitized == "12345678"
+        assert sanitized == "remoteok_12345678"
 
     def test_special_chars_stripped(self):
         raw_job_id = "job<script>123"

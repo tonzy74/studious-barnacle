@@ -27,7 +27,7 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
-    logger.info("Starting LinkedIn Job Agent API...")
+    logger.info("Starting JobPilot API...")
     await init_db()
     logger.info("Database initialized.")
 
@@ -50,8 +50,8 @@ def create_app() -> FastAPI:
 
     is_production = os.getenv("ENVIRONMENT", "production") == "production"
     application = FastAPI(
-        title="LinkedIn Job Agent API",
-        description="Automated LinkedIn job search, matching, and application agent.",
+        title="JobPilot API",
+        description="Automated job search, matching, and application agent.",
         version="1.0.0",
         lifespan=lifespan,
         docs_url=None if is_production else "/docs",

@@ -14,7 +14,7 @@ class TestGetProfile:
         data = resp.json()
         assert data["name"] == "Test User"
         assert data["email"] == "test@example.com"
-        assert data["linkedin_id"] == "test_linkedin_123"
+        assert data["oauth_id"] == "test_oauth_123"
 
     async def test_get_profile_unauthenticated(self, client):
         resp = await client.get("/api/profile")

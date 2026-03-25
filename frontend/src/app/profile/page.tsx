@@ -77,7 +77,7 @@ export default function ProfilePage() {
     return (
       <AuthGuard>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-linkedin-blue" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue" />
         </div>
         <Navigation />
       </AuthGuard>
@@ -88,7 +88,7 @@ export default function ProfilePage() {
     <AuthGuard>
       <div className="pb-20">
         {/* Profile Header */}
-        <div className="bg-linkedin-blue px-6 pt-12 pb-8 rounded-b-3xl text-center">
+        <div className="bg-brand-blue px-6 pt-12 pb-8 rounded-b-3xl text-center">
           <div className="w-20 h-20 rounded-full bg-white/20 mx-auto flex items-center justify-center overflow-hidden">
             {profile?.picture ? (
               <img
@@ -121,7 +121,7 @@ export default function ProfilePage() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 text-linkedin-blue font-medium shadow-sm disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 text-brand-blue font-medium shadow-sm disabled:opacity-50"
           >
             <svg
               className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`}
@@ -136,7 +136,7 @@ export default function ProfilePage() {
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-            {syncing ? 'Syncing...' : 'Sync with LinkedIn'}
+            {syncing ? 'Syncing...' : 'Update Profile'}
           </button>
 
           {/* About */}
@@ -161,9 +161,9 @@ export default function ProfilePage() {
                 {profile.experience.map((exp, index) => (
                   <div
                     key={index}
-                    className="relative pl-6 border-l-2 border-linkedin-blue/30"
+                    className="relative pl-6 border-l-2 border-brand-blue/30"
                   >
-                    <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-linkedin-blue" />
+                    <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-brand-blue" />
                     <h3 className="font-medium text-gray-900 dark:text-white text-sm">
                       {exp.title}
                     </h3>

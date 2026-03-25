@@ -9,7 +9,6 @@ interface ScoreBreakdown {
   experience_score: number;
   salary_score: number;
   location_score: number;
-  linkedin_score: number;
 }
 
 interface Job {
@@ -22,7 +21,6 @@ interface Job {
   remote_type: string;
   description: string;
   confidence_score: number;
-  linkedin_match_score: number | null;
   status: string;
   score_breakdown: ScoreBreakdown | null;
   job_url: string;
@@ -68,7 +66,6 @@ export default function JobCard({ job, onApprove, onReject }: JobCardProps) {
     experience_score: 'Experience',
     salary_score: 'Salary',
     location_score: 'Location',
-    linkedin_score: 'LinkedIn',
   };
 
   return (
@@ -102,11 +99,7 @@ export default function JobCard({ job, onApprove, onReject }: JobCardProps) {
               >
                 {job.remote_type.charAt(0).toUpperCase() + job.remote_type.slice(1)}
               </span>
-              {job.linkedin_match_score !== null && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-linkedin-blue/10 text-linkedin-blue">
-                  LI: {job.linkedin_match_score}%
-                </span>
-              )}
+
             </div>
           </div>
         </div>
@@ -184,7 +177,7 @@ export default function JobCard({ job, onApprove, onReject }: JobCardProps) {
                 href={job.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block text-xs text-linkedin-blue font-medium"
+                className="inline-block text-xs text-brand-blue font-medium"
               >
                 View Posting
               </a>
@@ -228,7 +221,7 @@ export default function JobCard({ job, onApprove, onReject }: JobCardProps) {
               href={job.job_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 py-3 text-sm font-medium text-center text-white bg-linkedin-blue hover:bg-linkedin-dark transition-colors"
+              className="flex-1 py-3 text-sm font-medium text-center text-white bg-brand-blue hover:bg-brand-dark transition-colors"
             >
               Apply
             </a>

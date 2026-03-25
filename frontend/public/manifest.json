@@ -1,7 +1,7 @@
 {
-  "name": "LinkedIn Job Agent",
-  "short_name": "JobAgent",
-  "description": "Automated LinkedIn job search, matching, and application agent",
+  "name": "JobPilot",
+  "short_name": "JobPilot",
+  "description": "Automated job search, matching, and application agent",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

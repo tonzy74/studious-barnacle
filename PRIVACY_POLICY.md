@@ -4,7 +4,7 @@
 
 ## 1. Introduction
 
-This Privacy Policy describes how the LinkedIn Job Agent application ("the App", "we", "our") collects, uses, and protects your personal information. By using the App, you agree to the practices described in this policy.
+This Privacy Policy describes how the JobPilot application ("the App", "we", "our") collects, uses, and protects your personal information. By using the App, you agree to the practices described in this policy.
 
 ## 2. Information We Collect
 

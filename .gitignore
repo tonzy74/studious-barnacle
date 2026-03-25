@@ -16,7 +16,7 @@ build/
 
 # Database
 *.db
-linkedin_agent.db
+jobpilot.db
 
 # Node
 node_modules/

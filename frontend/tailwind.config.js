@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        linkedin: {
+        brand: {
           blue: '#0A66C2',
           light: '#70B5F9',
           dark: '#004182',

@@ -95,7 +95,7 @@ export default function ApplicationsPage() {
                 }}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   activeFilter === filter
-                    ? 'bg-linkedin-blue text-white'
+                    ? 'bg-brand-blue text-white'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                 }`}
               >
@@ -175,7 +175,7 @@ export default function ApplicationsPage() {
                           <div
                             className={`h-1.5 flex-1 rounded-full ${
                               index <= statusStep
-                                ? 'bg-linkedin-blue'
+                                ? 'bg-brand-blue'
                                 : 'bg-gray-200 dark:bg-gray-700'
                             }`}
                           />
@@ -196,7 +196,7 @@ export default function ApplicationsPage() {
                         href={app.job_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-linkedin-blue font-medium"
+                        className="text-brand-blue font-medium"
                       >
                         View Posting
                       </a>

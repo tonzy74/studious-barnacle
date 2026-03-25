@@ -1,1 +1,1 @@
-# LinkedIn Job Agent
+# JobPilot

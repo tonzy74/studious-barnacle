@@ -37,7 +37,7 @@ class RemoteOKSource(JobSource):
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
                     self.API_URL,
-                    headers={"User-Agent": "LinkedInJobAgent/1.0"},
+                    headers={"User-Agent": "JobPilot/1.0"},
                 )
                 resp.raise_for_status()
                 data = resp.json()
