@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: jobpilot-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./data/jobpilot.db
+      - key: ALLOWED_ORIGINS
+        value: https://jobpilot-frontend.onrender.com
+      - key: ENVIRONMENT
+        value: production
+    healthCheckPath: /api/health
+    disk:
+      name: jobpilot-data
+      mountPath: /app/data
+      sizeGB: 1
+
+  - type: web
+    name: jobpilot-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://jobpilot-backend.onrender.com/api
