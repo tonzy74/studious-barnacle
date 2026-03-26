@@ -1,13 +1,11 @@
-import secrets
-
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
 from app.config import get_settings, Settings
 from app.security import get_jwt_manager, get_session_manager, get_csrf_protection, JWTManager, SessionManager, RateLimitConfig
-from app.services.oauth_service import OAuthService
 from app.models.user import User
 
 from slowapi import Limiter
@@ -16,6 +14,17 @@ from slowapi.util import get_remote_address
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    name: str = Field(..., min_length=1, max_length=255)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=1)
 
 
 async def get_current_user(
@@ -72,109 +81,15 @@ async def get_current_user(
     return user
 
 
-@router.get("/login")
-@limiter.limit(RateLimitConfig.AUTH_LIMIT)
-async def oauth_login(
-    request: Request,
-    response: Response,
-    settings: Settings = Depends(get_settings),
-):
-    """Redirect the user to OAuth authorization page."""
-    state = secrets.token_urlsafe(32)
-    auth_service = OAuthService(
-        client_id=settings.OAUTH_CLIENT_ID,
-        client_secret=settings.OAUTH_CLIENT_SECRET,
-        redirect_uri=settings.OAUTH_REDIRECT_URI,
-    )
-    auth_url = auth_service.get_authorization_url(state=state)
-    response.set_cookie(
-        key="oauth_state",
-        value=state,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=600,
-    )
-    return {"authorization_url": auth_url}
-
-
-@router.get("/callback")
-@limiter.limit(RateLimitConfig.AUTH_LIMIT)
-async def callback(
-    code: str,
-    state: str,
-    request: Request,
-    response: Response,
-    db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-):
-    """Handle OAuth callback, create/update user, and return JWT."""
-    stored_state = request.cookies.get("oauth_state")
-    if not stored_state or not secrets.compare_digest(state, stored_state):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid OAuth state parameter",
-        )
-    response.delete_cookie("oauth_state")
-
-    auth_service = OAuthService(
-        client_id=settings.OAUTH_CLIENT_ID,
-        client_secret=settings.OAUTH_CLIENT_SECRET,
-        redirect_uri=settings.OAUTH_REDIRECT_URI,
-    )
-
-    token_data = await auth_service.exchange_code(code)
-    if not token_data or "access_token" not in token_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to exchange authorization code",
-        )
-
-    access_token = token_data["access_token"]
-    profile = await auth_service.get_user_profile(access_token)
-    if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to fetch user profile",
-        )
-
-    oauth_id = profile.get("sub", profile.get("id", ""))
-    email = profile.get("email", "")
-    name = profile.get("name", "")
-
-    result = await db.execute(select(User).where(User.oauth_id == oauth_id))
-    user = result.scalar_one_or_none()
-
+def _issue_tokens(user: User, response: Response, settings: Settings):
+    """Create JWT + CSRF tokens and set cookies. Returns the JWT token."""
     session_manager = get_session_manager()
-
-    if user is None:
-        user = User(
-            oauth_id=oauth_id,
-            name=name,
-            email=email,
-            headline=profile.get("headline", ""),
-            location=profile.get("location", ""),
-            profile_data=profile,
-        )
-        db.add(user)
-        await db.flush()
-    else:
-        user.name = name
-        user.email = email
-        user.profile_data = profile
-        if profile.get("headline"):
-            user.headline = profile["headline"]
-        if profile.get("location"):
-            user.location = profile["location"]
-
-    encrypted_session = session_manager.create_session_token(user.id, oauth_id)
+    encrypted_session = session_manager.create_session_token(user.id, str(user.id))
     user.encrypted_session_token = encrypted_session
-    await db.commit()
-    await db.refresh(user)
 
     jwt_manager = get_jwt_manager()
     jwt_token = jwt_manager.create_access_token(
-        data={"sub": str(user.id), "oauth_id": oauth_id}
+        data={"sub": str(user.id)}
     )
 
     csrf = get_csrf_protection()
@@ -196,6 +111,75 @@ async def callback(
         samesite="lax",
         max_age=settings.SESSION_EXPIRY_HOURS * 3600,
     )
+
+    return jwt_token
+
+
+@router.post("/register")
+@limiter.limit(RateLimitConfig.AUTH_LIMIT)
+async def register(
+    data: RegisterRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    """Register a new user with email and password."""
+    result = await db.execute(select(User).where(User.email == data.email))
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    user = User(
+        email=data.email,
+        name=data.name,
+        password_hash="placeholder",
+    )
+    user.set_password(data.password)
+    db.add(user)
+    await db.flush()
+
+    _issue_tokens(user, response, settings)
+
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+        },
+    }
+
+
+@router.post("/login")
+@limiter.limit(RateLimitConfig.AUTH_LIMIT)
+async def login(
+    data: LoginRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    """Authenticate a user with email and password."""
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
+
+    if user is None or not user.verify_password(data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    _issue_tokens(user, response, settings)
+
+    await db.commit()
+    await db.refresh(user)
 
     return {
         "token_type": "bearer",

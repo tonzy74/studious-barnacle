@@ -9,7 +9,8 @@ This Privacy Policy describes how the JobPilot application ("the App", "we", "ou
 ## 2. Information We Collect
 
 ### Information You Provide
-- **OAuth Profile Data**: When you authenticate via OAuth (currently LinkedIn as the provider), we receive your name, email address, headline, location, profile picture URL, and OAuth ID as authorized by the provider's API.
+- **Account Data**: When you register, we collect your name, email address, and a hashed version of your password.
+- **Profile Data**: You may optionally provide a headline, location, skills, experience, education, and certifications.
 - **Search Criteria**: Job titles, preferred locations, salary preferences, and other search filters you configure.
 - **Job Interaction Data**: Your approve/reject decisions on job listings.
 
@@ -23,7 +24,7 @@ This Privacy Policy describes how the JobPilot application ("the App", "we", "ou
 ## 3. How We Use Your Information
 
 We use your information solely to:
-- Authenticate you via OAuth.
+- Authenticate you via email and password.
 - Search for job listings matching your criteria across supported job boards.
 - Score and rank job listings based on your profile and preferences.
 - Display your job pipeline and application history.
@@ -38,7 +39,7 @@ We do **not**:
 
 - All data is stored locally in a SQLite database on the server where the App is deployed.
 - Sensitive data (session tokens, encryption keys) is encrypted at rest using Fernet symmetric encryption.
-- Passwords and secrets are never stored in plaintext.
+- Passwords are hashed using bcrypt and are never stored in plaintext.
 - HTTPS is required for all communications in production.
 - CSRF protection, rate limiting, and input sanitization are enforced on all endpoints.
 
@@ -54,7 +55,6 @@ The App integrates with the following third-party services via their official pu
 
 | Service | Data Shared | Purpose |
 |---------|-------------|---------|
-| **OAuth Provider (LinkedIn)** | OAuth tokens (not stored long-term) | User authentication |
 | **RemoteOK API** | Search queries (job titles) | Job search |
 | **Arbeitnow API** | Search queries (job titles) | Job search |
 | **The Muse API** | Search queries (job categories, location) | Job search |

@@ -11,9 +11,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 
 # Set test environment variables before importing app modules
 os.environ["SECRET_KEY"] = "a" * 64
-os.environ["OAUTH_CLIENT_ID"] = "test_client_id"
-os.environ["OAUTH_CLIENT_SECRET"] = "test_client_secret"
-os.environ["OAUTH_REDIRECT_URI"] = "http://localhost:8000/auth/callback"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
 os.environ["ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 os.environ["ALLOWED_ORIGINS"] = "http://localhost:3000"
@@ -110,19 +107,20 @@ async def test_user(db_session):
     session_mgr = get_session_manager()
 
     user = User(
-        oauth_id="test_oauth_123",
-        name="Test User",
         email="test@example.com",
+        password_hash="placeholder",
+        name="Test User",
         headline="Software Engineer",
         location="San Francisco, CA",
         profile_data={"skills": ["Python", "FastAPI"], "experience": []},
     )
+    user.set_password("testpassword123")
     db_session.add(user)
     await db_session.flush()
 
     # Create valid session token
     user.encrypted_session_token = session_mgr.create_session_token(
-        user.id, user.oauth_id
+        user.id, str(user.id)
     )
     await db_session.commit()
     await db_session.refresh(user)
@@ -136,7 +134,7 @@ async def auth_headers(test_user):
     csrf = get_csrf_protection()
 
     token = jwt_manager.create_access_token(
-        data={"sub": str(test_user.id), "oauth_id": test_user.oauth_id}
+        data={"sub": str(test_user.id)}
     )
     csrf_token = csrf.generate_token(str(test_user.id))
 

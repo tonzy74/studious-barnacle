@@ -113,7 +113,7 @@ class JobScheduler:
             "email": user.email,
             "headline": user.headline or "",
             "location": user.location or "",
-            "oauth_id": user.oauth_id,
+            "user_id": user.id,
             "skills": profile_data.get("skills", []),
             "experience": profile_data.get("experience", []),
             "education": profile_data.get("education", []),

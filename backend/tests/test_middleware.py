@@ -62,7 +62,10 @@ class TestCSRFMiddleware:
         assert resp.status_code != 403
 
     async def test_csrf_exempt_paths(self, client):
-        """OAuth callback paths should be CSRF-exempt."""
-        # /api/auth/login is GET so it bypasses CSRF anyway
-        resp = await client.get("/api/auth/login")
+        """Auth paths (login, register) should be CSRF-exempt."""
+        # POST to /api/auth/login without CSRF should not get 403
+        resp = await client.post(
+            "/api/auth/login",
+            json={"email": "nobody@example.com", "password": "password123"},
+        )
         assert resp.status_code != 403

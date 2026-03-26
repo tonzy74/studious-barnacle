@@ -1,11 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -13,15 +19,36 @@ export default function LandingPage() {
     }
   }, [router]);
 
-  const handleLogin = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
+    const body = isLoginMode
+      ? { email, password }
+      : { email, password, name };
+
     try {
-      const response = await fetch('/api/auth/login');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+
       const data = await response.json();
-      if (data.authorization_url) {
-        window.location.href = data.authorization_url;
+
+      if (!response.ok) {
+        setError(data.detail || 'An error occurred');
+        return;
       }
-    } catch (error) {
-      console.error('Login failed:', error);
+
+      router.push('/dashboard');
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,10 +59,16 @@ export default function LandingPage() {
           <div className="mx-auto w-16 h-16 bg-brand-blue rounded-2xl flex items-center justify-center">
             <svg
               className="w-10 h-10 text-white"
-              fill="currentColor"
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -76,19 +109,79 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleLogin}
-          className="w-full flex items-center justify-center gap-3 bg-brand-blue hover:bg-brand-dark text-white font-semibold py-3.5 px-6 rounded-xl transition-colors duration-200 shadow-lg shadow-brand-blue/25"
-        >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-          </svg>
-          Sign in with OAuth
-        </button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLoginMode && (
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none"
+                placeholder="Your full name"
+              />
+            </div>
+          )}
 
-        <p className="text-xs text-center text-gray-500 dark:text-gray-500">
-          By signing in, you agree to sign in to get started
-          with job matching and applications.
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              minLength={isLoginMode ? 1 : 8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none"
+              placeholder={isLoginMode ? 'Your password' : 'Min 8 characters'}
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 bg-brand-blue hover:bg-brand-dark text-white font-semibold py-3.5 px-6 rounded-xl transition-colors duration-200 shadow-lg shadow-brand-blue/25 disabled:opacity-50"
+          >
+            {loading ? 'Please wait...' : isLoginMode ? 'Sign In' : 'Create Account'}
+          </button>
+        </form>
+
+        <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+          {isLoginMode ? "Don't have an account?" : 'Already have an account?'}{' '}
+          <button
+            onClick={() => {
+              setIsLoginMode(!isLoginMode);
+              setError('');
+            }}
+            className="text-brand-blue hover:underline font-medium"
+          >
+            {isLoginMode ? 'Register' : 'Sign In'}
+          </button>
         </p>
       </div>
     </div>

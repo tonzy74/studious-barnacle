@@ -136,7 +136,7 @@ async def apply_to_job(
         "email": current_user.email,
         "headline": current_user.headline or "",
         "location": current_user.location or "",
-        "oauth_id": current_user.oauth_id,
+        "user_id": current_user.id,
         "phone": profile_data.get("phone", ""),
         "skills": profile_data.get("skills", []),
         "experience": profile_data.get("experience", []),

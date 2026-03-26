@@ -59,7 +59,6 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "headline": current_user.headline,
         "location": current_user.location,
-        "oauth_id": current_user.oauth_id,
         "experience": profile_data.get("experience", []),
         "skills": profile_data.get("skills", []),
         "education": profile_data.get("education", []),

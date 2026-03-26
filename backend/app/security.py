@@ -94,8 +94,8 @@ class SessionManager:
     def __init__(self, encryption_key: str):
         self.fernet = Fernet(encryption_key.encode())
 
-    def create_session_token(self, user_id: int, oauth_id: str) -> str:
-        session_data = f"{user_id}:{oauth_id}:{secrets.token_hex(16)}:{int(datetime.now(timezone.utc).timestamp())}"
+    def create_session_token(self, user_id: int, identifier: str = "") -> str:
+        session_data = f"{user_id}:{identifier}:{secrets.token_hex(16)}:{int(datetime.now(timezone.utc).timestamp())}"
         return self.fernet.encrypt(session_data.encode()).decode()
 
     def decrypt_session_token(self, encrypted_token: str) -> Optional[dict]:
@@ -106,7 +106,7 @@ class SessionManager:
                 return None
             return {
                 "user_id": int(parts[0]),
-                "oauth_id": parts[1],
+                "identifier": parts[1],
                 "nonce": parts[2],
                 "created_at": int(parts[3]),
             }
@@ -220,7 +220,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     """Middleware to validate CSRF tokens on mutating requests."""
 
     SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-    CSRF_EXEMPT_PATHS = {"/api/auth/login", "/api/auth/callback"}
+    CSRF_EXEMPT_PATHS = {"/api/auth/login", "/api/auth/register"}
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

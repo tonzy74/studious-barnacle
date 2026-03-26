@@ -102,11 +102,11 @@ class TestSessionManager:
         self.session_mgr = SessionManager(self.key)
 
     def test_create_and_decrypt(self):
-        token = self.session_mgr.create_session_token(1, "oauth_abc")
+        token = self.session_mgr.create_session_token(1, "user_1")
         data = self.session_mgr.decrypt_session_token(token)
         assert data is not None
         assert data["user_id"] == 1
-        assert data["oauth_id"] == "oauth_abc"
+        assert data["identifier"] == "user_1"
         assert len(data["nonce"]) == 32  # hex(16 bytes)
         assert isinstance(data["created_at"], int)
 
@@ -115,11 +115,11 @@ class TestSessionManager:
         assert self.session_mgr.decrypt_session_token("") is None
 
     def test_session_valid(self):
-        token = self.session_mgr.create_session_token(1, "oauth_abc")
+        token = self.session_mgr.create_session_token(1, "user_1")
         assert self.session_mgr.is_session_valid(token) is True
 
     def test_session_expired(self):
-        token = self.session_mgr.create_session_token(1, "oauth_abc")
+        token = self.session_mgr.create_session_token(1, "user_1")
         assert self.session_mgr.is_session_valid(token, expiry_hours=0) is False
 
     def test_different_key_cannot_decrypt(self):
