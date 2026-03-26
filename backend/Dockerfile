@@ -22,8 +22,9 @@ COPY --from=builder /install /usr/local
 RUN playwright install chromium --with-deps \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+# Create non-root user and data directory
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser \
+    && mkdir -p /app/data && chown -R appuser:appuser /app
 
 COPY . .
 
@@ -31,7 +32,7 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-EXPOSE 8000
-
 ENV PORT=8000
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+EXPOSE ${PORT}
+
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]

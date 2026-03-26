@@ -1,14 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/:path*`,
+        destination: `${backendUrl}/:path*`,
       },
     ];
   },
   async headers() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
     return [
       {
         source: '/(.*)',
@@ -24,7 +26,7 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}; frame-ancestors 'none';`,
+              `default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' ${backendUrl}; frame-ancestors 'none';`,
           },
         ],
       },

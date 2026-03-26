@@ -7,7 +7,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     SECRET_KEY: str = Field(..., min_length=32)
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./jobpilot.db")
-    REDIS_URL: str = Field(default="redis://localhost:6379")
+    REDIS_URL: str = Field(default="")
     ENCRYPTION_KEY: str = Field(...)
     ALLOWED_ORIGINS: str = Field(default="http://localhost:3000")
     SESSION_EXPIRY_HOURS: int = Field(default=24)
