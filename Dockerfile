@@ -4,7 +4,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /frontend
 
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN npm ci --ignore-scripts 2>/dev/null || npm install
 
 COPY frontend/ .
 
@@ -29,16 +29,22 @@ WORKDIR /app
 
 COPY --from=backend-builder /install /usr/local
 
-RUN playwright install chromium --with-deps \
-    && rm -rf /var/lib/apt/lists/*
+# Install Playwright Chromium (needed for auto-apply feature)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 libxdamage1 \
+    libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
+    libasound2 libatspi2.0-0 libwayland-client0 \
+    && playwright install chromium \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser \
     && mkdir -p /app/data && chown appuser:appuser /app/data
 
-# Copy backend code (only what's needed)
+# Copy backend source code
 COPY backend/app ./app
 
-# Copy built frontend static export
+# Copy frontend static export
 COPY --from=frontend-builder /frontend/out ./static
 
 RUN chown -R appuser:appuser /app
