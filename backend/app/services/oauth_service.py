@@ -5,8 +5,8 @@ from urllib.parse import urlencode
 import httpx
 
 
-class LinkedInAuthService:
-    """LinkedIn OAuth 2.0 authentication service."""
+class OAuthService:
+    """OAuth 2.0 authentication service (LinkedIn provider)."""
 
     AUTHORIZATION_URL = "https://www.linkedin.com/oauth/v2/authorization"
     TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
@@ -24,7 +24,7 @@ class LinkedInAuthService:
         self.redirect_uri = redirect_uri
 
     def get_authorization_url(self, state: Optional[str] = None) -> str:
-        """Generate the LinkedIn OAuth authorization URL."""
+        """Generate the OAuth authorization URL."""
         if state is None:
             state = secrets.token_urlsafe(32)
 
@@ -58,7 +58,7 @@ class LinkedInAuthService:
             return response.json()
 
     async def get_user_profile(self, access_token: str) -> Optional[dict]:
-        """Fetch the user's LinkedIn profile using the access token."""
+        """Fetch the user's profile using the access token."""
         headers = {"Authorization": f"Bearer {access_token}"}
 
         async with httpx.AsyncClient(timeout=30.0) as client:

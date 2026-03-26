@@ -220,7 +220,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     """Middleware to validate CSRF tokens on mutating requests."""
 
     SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-    CSRF_EXEMPT_PATHS = {"/api/auth/linkedin", "/api/auth/callback"}
+    CSRF_EXEMPT_PATHS = {"/api/auth/login", "/api/auth/callback"}
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

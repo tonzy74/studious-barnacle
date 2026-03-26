@@ -7,7 +7,7 @@ from sqlalchemy import select
 from app.database import get_db
 from app.config import get_settings, Settings
 from app.security import get_jwt_manager, get_session_manager, get_csrf_protection, JWTManager, SessionManager, RateLimitConfig
-from app.services.linkedin_auth import LinkedInAuthService
+from app.services.oauth_service import OAuthService
 from app.models.user import User
 
 from slowapi import Limiter
@@ -72,19 +72,19 @@ async def get_current_user(
     return user
 
 
-@router.get("/linkedin")
+@router.get("/login")
 @limiter.limit(RateLimitConfig.AUTH_LIMIT)
-async def linkedin_login(
+async def oauth_login(
     request: Request,
     response: Response,
     settings: Settings = Depends(get_settings),
 ):
-    """Redirect the user to LinkedIn OAuth authorization page."""
+    """Redirect the user to OAuth authorization page."""
     state = secrets.token_urlsafe(32)
-    auth_service = LinkedInAuthService(
-        client_id=settings.LINKEDIN_CLIENT_ID,
-        client_secret=settings.LINKEDIN_CLIENT_SECRET,
-        redirect_uri=settings.LINKEDIN_REDIRECT_URI,
+    auth_service = OAuthService(
+        client_id=settings.OAUTH_CLIENT_ID,
+        client_secret=settings.OAUTH_CLIENT_SECRET,
+        redirect_uri=settings.OAUTH_REDIRECT_URI,
     )
     auth_url = auth_service.get_authorization_url(state=state)
     response.set_cookie(
@@ -100,7 +100,7 @@ async def linkedin_login(
 
 @router.get("/callback")
 @limiter.limit(RateLimitConfig.AUTH_LIMIT)
-async def linkedin_callback(
+async def callback(
     code: str,
     state: str,
     request: Request,
@@ -108,7 +108,7 @@ async def linkedin_callback(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
-    """Handle LinkedIn OAuth callback, create/update user, and return JWT."""
+    """Handle OAuth callback, create/update user, and return JWT."""
     stored_state = request.cookies.get("oauth_state")
     if not stored_state or not secrets.compare_digest(state, stored_state):
         raise HTTPException(
@@ -117,10 +117,10 @@ async def linkedin_callback(
         )
     response.delete_cookie("oauth_state")
 
-    auth_service = LinkedInAuthService(
-        client_id=settings.LINKEDIN_CLIENT_ID,
-        client_secret=settings.LINKEDIN_CLIENT_SECRET,
-        redirect_uri=settings.LINKEDIN_REDIRECT_URI,
+    auth_service = OAuthService(
+        client_id=settings.OAUTH_CLIENT_ID,
+        client_secret=settings.OAUTH_CLIENT_SECRET,
+        redirect_uri=settings.OAUTH_REDIRECT_URI,
     )
 
     token_data = await auth_service.exchange_code(code)
@@ -135,7 +135,7 @@ async def linkedin_callback(
     if not profile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to fetch LinkedIn profile",
+            detail="Failed to fetch user profile",
         )
 
     oauth_id = profile.get("sub", profile.get("id", ""))

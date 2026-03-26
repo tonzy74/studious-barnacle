@@ -63,6 +63,6 @@ class TestCSRFMiddleware:
 
     async def test_csrf_exempt_paths(self, client):
         """OAuth callback paths should be CSRF-exempt."""
-        # /api/auth/linkedin is GET so it bypasses CSRF anyway
-        resp = await client.get("/api/auth/linkedin")
+        # /api/auth/login is GET so it bypasses CSRF anyway
+        resp = await client.get("/api/auth/login")
         assert resp.status_code != 403

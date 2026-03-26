@@ -9,7 +9,7 @@ This Privacy Policy describes how the JobPilot application ("the App", "we", "ou
 ## 2. Information We Collect
 
 ### Information You Provide
-- **LinkedIn Profile Data**: When you authenticate via LinkedIn OAuth, we receive your name, email address, headline, location, profile picture URL, and LinkedIn ID as authorized by LinkedIn's API.
+- **OAuth Profile Data**: When you authenticate via OAuth (currently LinkedIn as the provider), we receive your name, email address, headline, location, profile picture URL, and OAuth ID as authorized by the provider's API.
 - **Search Criteria**: Job titles, preferred locations, salary preferences, and other search filters you configure.
 - **Job Interaction Data**: Your approve/reject decisions on job listings.
 
@@ -23,7 +23,7 @@ This Privacy Policy describes how the JobPilot application ("the App", "we", "ou
 ## 3. How We Use Your Information
 
 We use your information solely to:
-- Authenticate you via LinkedIn OAuth.
+- Authenticate you via OAuth.
 - Search for job listings matching your criteria across supported job boards.
 - Score and rank job listings based on your profile and preferences.
 - Display your job pipeline and application history.
@@ -54,7 +54,7 @@ The App integrates with the following third-party services via their official pu
 
 | Service | Data Shared | Purpose |
 |---------|-------------|---------|
-| **LinkedIn OAuth** | OAuth tokens (not stored long-term) | User authentication |
+| **OAuth Provider (LinkedIn)** | OAuth tokens (not stored long-term) | User authentication |
 | **RemoteOK API** | Search queries (job titles) | Job search |
 | **Arbeitnow API** | Search queries (job titles) | Job search |
 | **The Muse API** | Search queries (job categories, location) | Job search |

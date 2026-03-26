@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 
 # Set test environment variables before importing app modules
 os.environ["SECRET_KEY"] = "a" * 64
-os.environ["LINKEDIN_CLIENT_ID"] = "test_client_id"
-os.environ["LINKEDIN_CLIENT_SECRET"] = "test_client_secret"
-os.environ["LINKEDIN_REDIRECT_URI"] = "http://localhost:8000/auth/callback"
+os.environ["OAUTH_CLIENT_ID"] = "test_client_id"
+os.environ["OAUTH_CLIENT_SECRET"] = "test_client_secret"
+os.environ["OAUTH_REDIRECT_URI"] = "http://localhost:8000/auth/callback"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
 os.environ["ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 os.environ["ALLOWED_ORIGINS"] = "http://localhost:3000"
