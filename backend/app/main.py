@@ -1,11 +1,13 @@
 import logging
 import os
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -89,6 +91,33 @@ def create_app() -> FastAPI:
     @application.get("/api/health")
     async def health_check():
         return {"status": "healthy"}
+
+    # Serve the Next.js static export if the /static directory exists
+    static_dir = Path(__file__).resolve().parent.parent / "static"
+    if static_dir.is_dir():
+        # Serve static assets (_next, images, etc.)
+        application.mount("/_next", StaticFiles(directory=static_dir / "_next"), name="nextjs_assets")
+        if (static_dir / "manifest.json").exists():
+            @application.get("/manifest.json")
+            async def manifest():
+                return FileResponse(static_dir / "manifest.json")
+
+        # Catch-all: serve the appropriate HTML page or fall back to index
+        @application.get("/{full_path:path}")
+        async def serve_frontend(full_path: str):
+            # Try exact page match (e.g. /dashboard -> /dashboard/index.html)
+            page_file = static_dir / full_path / "index.html"
+            if page_file.is_file():
+                return FileResponse(page_file, media_type="text/html")
+            # Try as direct file (e.g. /favicon.ico)
+            direct_file = static_dir / full_path
+            if direct_file.is_file():
+                return FileResponse(direct_file)
+            # Fall back to root index.html
+            index = static_dir / "index.html"
+            if index.is_file():
+                return FileResponse(index, media_type="text/html")
+            return JSONResponse(status_code=404, content={"detail": "Not found"})
 
     return application
 
