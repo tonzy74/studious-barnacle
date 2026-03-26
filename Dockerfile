@@ -8,7 +8,6 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY frontend/ .
 
-# Static export — produces /frontend/out with plain HTML/JS/CSS
 RUN npm run build
 
 # ---- Stage 2: Build Python dependencies ----
@@ -28,22 +27,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy Python packages
 COPY --from=backend-builder /install /usr/local
 
-# Install Playwright browser deps
 RUN playwright install chromium --with-deps \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user and data directory
 RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser \
     && mkdir -p /app/data && chown appuser:appuser /app/data
 
-# Copy backend code
-COPY backend/ .
+# Copy backend code (only what's needed)
+COPY backend/app ./app
 
-# Copy built frontend static files
-COPY --from=frontend-builder /frontend/.next/static ./.next/static
+# Copy built frontend static export
 COPY --from=frontend-builder /frontend/out ./static
 
 RUN chown -R appuser:appuser /app
