@@ -9,6 +9,7 @@ import {
   scaleProfileForProof,
   toVector,
 } from '../src/lib/flavor';
+import { cleanExternalText } from '../src/lib/barcodeLookup';
 import { buildLearnedRecord } from '../src/lib/library';
 import { fairPrice } from '../src/lib/pricing';
 import { Bottle } from '../src/types';
@@ -368,5 +369,18 @@ describe('learned library', () => {
     expect(findWhiskeyByName('mystery craft deluxe', learned)?.id).toBe('learned-mystery');
     expect(findWhiskeyByBarcode('099999999999', learned)?.id).toBe('learned-mystery');
     expect(findWhiskeyByBarcode('099999999999')).toBeUndefined();
+  });
+});
+
+describe('cleanExternalText', () => {
+  it('strips control characters and collapses whitespace', () => {
+    expect(cleanExternalText('Evil Name \n\n  Bourbon')).toBe('Evil Name Bourbon');
+  });
+
+  it('caps length and rejects non-strings', () => {
+    expect(cleanExternalText('x'.repeat(500))!.length).toBe(120);
+    expect(cleanExternalText(42)).toBeUndefined();
+    expect(cleanExternalText('   ')).toBeUndefined();
+    expect(cleanExternalText(undefined)).toBeUndefined();
   });
 });

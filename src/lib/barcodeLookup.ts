@@ -9,6 +9,22 @@ export interface BarcodeLookupResult {
 }
 
 /**
+ * Sanitize a string from an external, publicly editable source (Open Food
+ * Facts) before it enters the learned library: strip control characters,
+ * collapse whitespace, and cap the length.
+ */
+export function cleanExternalText(value: unknown, maxLength = 120): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const cleaned = value
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+  return cleaned || undefined;
+}
+
+/**
  * Resolve a scanned UPC/EAN to a product name. Checks the built-in whiskey
  * database first, then falls back to the free Open Food Facts API. Anything
  * unresolved drops the user into manual entry with the barcode pre-filled.
@@ -29,10 +45,11 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
         status?: number;
         product?: { product_name?: string; brands?: string };
       };
-      if (data.status === 1 && data.product?.product_name) {
+      const name = cleanExternalText(data.product?.product_name);
+      if (data.status === 1 && name) {
         return {
-          name: data.product.product_name,
-          brand: data.product.brands?.split(',')[0]?.trim(),
+          name,
+          brand: cleanExternalText(data.product?.brands?.split(',')[0], 60),
           source: 'openfoodfacts',
         };
       }
