@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Whiskey Vault",
+    "slug": "whiskey-vault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#1a120b"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.whiskeyvault.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Whiskey Vault uses the camera to scan bottle barcodes for your inventory."
+      }
+    },
+    "android": {
+      "package": "com.whiskeyvault.app",
+      "permissions": ["CAMERA"]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Whiskey Vault uses the camera to scan bottle barcodes for your inventory."
+        }
+      ]
+    ]
+  }
+}
