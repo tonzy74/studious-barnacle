@@ -1,30 +1,14 @@
 import { FlavorProfile, WhiskeyRecord, WhiskeyType } from '../types';
+import { expandHouses } from './generator';
+import { AMERICAN_MAJORS } from './houses/americanMajors';
+import { AMERICAN_CRAFT } from './houses/americanCraft';
+import { SCOTCH_SPEYSIDE_HIGHLAND } from './houses/scotchSpeysideHighland';
+import { SCOTCH_ISLAY_ISLANDS } from './houses/scotchIslayIslands';
+import { SCOTCH_BLENDS } from './houses/scotchBlends';
+import { WORLD_WHISKEYS } from './houses/worldWhiskeys';
+import { EXTRA_HOUSES } from './houses/extraHouses';
 
-export const FLAVOR_AXES: (keyof FlavorProfile)[] = [
-  'sweet',
-  'oak',
-  'vanilla',
-  'caramel',
-  'spice',
-  'fruit',
-  'floral',
-  'smoke',
-  'nutty',
-  'earthy',
-];
-
-export const FLAVOR_LABELS: Record<keyof FlavorProfile, string> = {
-  sweet: 'Sweetness',
-  oak: 'Oak',
-  vanilla: 'Vanilla',
-  caramel: 'Caramel',
-  spice: 'Spice',
-  fruit: 'Fruit',
-  floral: 'Floral',
-  smoke: 'Smoke',
-  nutty: 'Nutty',
-  earthy: 'Earthy',
-};
+export { FLAVOR_AXES, FLAVOR_LABELS } from './flavorAxes';
 
 function fp(
   sweet: number,
@@ -55,11 +39,12 @@ function rec(
 }
 
 /**
- * Reference database of widely reviewed whiskeys. Flavor vectors and note
- * summaries are aggregated from the common language of professional reviews
+ * Hand-curated flagship bottlings with individually written note summaries,
+ * aggregated from the common language of professional reviews
  * (Whisky Advocate, Breaking Bourbon, Distiller, Whiskey Raiders).
+ * These take precedence over generated entries with the same name.
  */
-export const WHISKEY_DB: WhiskeyRecord[] = [
+const CURATED_DB: WhiskeyRecord[] = [
   // ── Bourbons ────────────────────────────────────────────────
   rec('buffalo-trace', 'Buffalo Trace', 'Buffalo Trace', 'bourbon', 90,
     fp(7, 5, 7, 6, 4, 4, 2, 1, 3, 2),
@@ -235,6 +220,38 @@ export const WHISKEY_DB: WhiskeyRecord[] = [
     fp(7, 3, 5, 6, 3, 4, 3, 0, 2, 1),
     'Soft and sweet blend: vanilla cream, caramel, light fruit and gentle spice.'),
 ];
+
+const GENERATED_DB: WhiskeyRecord[] = expandHouses([
+  ...AMERICAN_MAJORS,
+  ...AMERICAN_CRAFT,
+  ...SCOTCH_SPEYSIDE_HIGHLAND,
+  ...SCOTCH_ISLAY_ISLANDS,
+  ...SCOTCH_BLENDS,
+  ...WORLD_WHISKEYS,
+  ...EXTRA_HOUSES,
+]);
+
+function normKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+/**
+ * Full reference database: curated flagships (richer hand-written notes)
+ * merged with the generated house/expression catalog. Curated entries win
+ * on name collisions.
+ */
+export const WHISKEY_DB: WhiskeyRecord[] = (() => {
+  const seen = new Set(CURATED_DB.map((r) => normKey(r.name)));
+  const merged = [...CURATED_DB];
+  for (const record of GENERATED_DB) {
+    const key = normKey(record.name);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(record);
+    }
+  }
+  return merged;
+})();
 
 /** Default flavor profiles used when a bottle isn't in the reference DB. */
 export const TYPE_DEFAULTS: Record<WhiskeyType, FlavorProfile> = {

@@ -36,14 +36,28 @@ The pairing chat calls the Claude API directly from your device using your own k
 
 The key is stored only on your device (AsyncStorage) and sent only to Anthropic's API.
 
+## The reference database (1,100+ bottlings)
+
+The reference database covers **1,100+ real bottlings** across bourbon, rye, Tennessee,
+scotch, Irish, Japanese, Canadian, and world whiskeys. It's built in two layers
+(`src/data/`):
+
+- **Curated flagships** (~55) with individually written tasting-note summaries.
+- **A house/expression generator**: every distillery gets a hand-written base flavor
+  profile and house-character line; each of its real expressions is listed compactly with
+  modifiers (barrel proof, sherry/port/PX/rum/wine/mizunara casks, wheated/high-rye
+  mashbills, peat levels, toasted barrels, age statements…) that adjust the base vector.
+  Tasting notes are synthesized from the resulting profile using a professional-review
+  descriptor vocabulary.
+
+Adding a missing bottle is a one-line change in the relevant `src/data/houses/*.ts` file.
+
 ## How matching works
 
-Each whiskey in the reference database (~55 widely reviewed bottlings) carries a 10-axis
-flavor vector — sweetness, oak, vanilla, caramel, spice, fruit, floral, smoke, nutty,
-earthy — distilled from the common language of professional reviews. Guest Match averages
-the vectors of the favorites you enter and ranks your collection by cosine similarity.
-Bottles not in the database get a style-typical default profile, which you can see flagged
-on the bottle's detail page.
+Each whiskey carries a 10-axis flavor vector — sweetness, oak, vanilla, caramel, spice,
+fruit, floral, smoke, nutty, earthy. Guest Match averages the vectors of the favorites you
+enter and ranks your collection by cosine similarity. Bottles not in the database get a
+style-typical default profile, which you can see flagged on the bottle's detail page.
 
 ## Tests
 

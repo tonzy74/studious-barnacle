@@ -29,6 +29,13 @@ function bottleFrom(recordId: string, overrides: Partial<Bottle> = {}): Bottle {
 }
 
 describe('whiskey database', () => {
+  it('has expanded to a large catalog', () => {
+    const byType: Record<string, number> = {};
+    for (const r of WHISKEY_DB) byType[r.type] = (byType[r.type] ?? 0) + 1;
+    console.log(`WHISKEY_DB total: ${WHISKEY_DB.length}`, byType);
+    expect(WHISKEY_DB.length).toBeGreaterThanOrEqual(1000);
+  });
+
   it('has valid flavor values on every record', () => {
     for (const record of WHISKEY_DB) {
       for (const axis of FLAVOR_AXES) {
@@ -40,9 +47,41 @@ describe('whiskey database', () => {
     }
   });
 
-  it('has unique ids', () => {
+  it('has unique ids and no duplicate names', () => {
     const ids = WHISKEY_DB.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
+    const names = WHISKEY_DB.map((r) => r.name.toLowerCase().replace(/[^a-z0-9]+/g, ''));
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('resolves a broad set of popular bottles by casual name', () => {
+    const expectations: [string, string][] = [
+      ['weller full proof', 'W.L. Weller Full Proof'],
+      ['stagg', 'Stagg'],
+      ['george t stagg', 'George T. Stagg'],
+      ['pappy 15', 'Pappy Van Winkle 15 Year'],
+      ['larceny barrel proof', 'Larceny Barrel Proof'],
+      ['old grand dad 114', 'Old Grand-Dad 114'],
+      ['rare breed', 'Wild Turkey Rare Breed'],
+      ['old forester 1910', 'Old Forester 1910 Old Fine Whisky'],
+      ['makers cask strength', "Maker's Mark Cask Strength"],
+      ['michters toasted bourbon', "Michter's Toasted Barrel Finish Bourbon"],
+      ['smoke wagon uncut', 'Smoke Wagon Uncut Unfiltered'],
+      ['whistlepig boss hog', 'WhistlePig The Boss Hog'],
+      ['glenfiddich 15', 'Glenfiddich 15 Solera'],
+      ['macallan 18', 'The Macallan 18 Sherry Oak'],
+      ['abunadh', "Aberlour A'bunadh"],
+      ['octomore', 'Octomore 14.1'],
+      ['springbank 10', 'Springbank 10'],
+      ['redbreast 15', 'Redbreast 15'],
+      ['yamazaki 18', 'Yamazaki 18'],
+      ['nikka coffey grain', 'Nikka Coffey Grain'],
+      ['lot 40 cask strength', 'Lot No. 40 Cask Strength'],
+      ['kavalan solist sherry', 'Kavalan Solist Oloroso Sherry'],
+    ];
+    for (const [query, expected] of expectations) {
+      expect(findWhiskeyByName(query)?.name).toBe(expected);
+    }
   });
 
   it('has defaults for every whiskey type', () => {

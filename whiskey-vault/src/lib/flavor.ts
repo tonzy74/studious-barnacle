@@ -35,6 +35,23 @@ function normalizeName(s: string): string {
     .trim();
 }
 
+/** Generic words that shouldn't count as evidence of a specific bottle. */
+const STOPWORDS = new Set([
+  'whiskey',
+  'whisky',
+  'bourbon',
+  'straight',
+  'single',
+  'malt',
+  'the',
+  'and',
+  'of',
+  'aged',
+  'year',
+  'years',
+  'yr',
+]);
+
 /**
  * Fuzzy-match a user-typed whiskey name against the reference database.
  * Scores on shared word overlap so "weller" finds W.L. Weller Special Reserve
@@ -52,8 +69,14 @@ export function findWhiskeyByName(query: string): WhiskeyRecord | undefined {
     const targetWords = new Set(target.split(' '));
     let score = 0;
     for (const w of qWords) {
-      if (targetWords.has(w)) score += 2;
-      else if (w.length >= 4 && target.includes(w)) score += 1;
+      if (STOPWORDS.has(w)) {
+        // Generic words only break ties, they can't establish a match.
+        if (targetWords.has(w)) score += 0.25;
+      } else if (targetWords.has(w)) {
+        score += 2;
+      } else if (w.length >= 4 && target.includes(w)) {
+        score += 1;
+      }
     }
     // Exact full-name containment is a strong signal.
     if (normalizeName(record.name).includes(q) || q.includes(normalizeName(record.name))) {
