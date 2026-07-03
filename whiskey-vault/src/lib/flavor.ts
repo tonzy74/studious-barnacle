@@ -35,6 +35,56 @@ function normalizeName(s: string): string {
     .trim();
 }
 
+/**
+ * Words that describe a batch/pick rather than the bottling itself:
+ * mixed letter-digit codes ("C923", "B524", "23A"), and pick vocabulary.
+ * Pure numbers are kept — they're often part of the real name ("1792",
+ * "Weller 107", "Eagle Rare 10").
+ */
+const VARIANT_WORDS = new Set(['batch', 'pick', 'picked', 'bbl', 'store']);
+
+/** Collector shorthand → full bottling names. */
+const ALIASES: Record<string, string> = {
+  ecbp: 'elijah craig barrel proof',
+  gts: 'george t stagg',
+  wlw: 'william larue weller',
+  thh: 'thomas h handy sazerac rye',
+  sftb: 'blantons straight from the barrel',
+  owa: 'old weller antique 107',
+  jd: 'jack daniels',
+  wt: 'wild turkey',
+  ofbb: 'old fitzgerald bottled in bond',
+  mm: 'makers mark',
+  ehtaylor: 'e h taylor',
+};
+
+function isBatchCode(word: string): boolean {
+  return /^[a-z]\d{2,}$/i.test(word) || /^\d{2,}[a-z]$/i.test(word) || /^\d{4}-\d{2}$/.test(word);
+}
+
+/**
+ * Scale a flavor profile for a proof different from the reference bottling —
+ * store picks and barrel-proof batches run hotter or softer than the base
+ * expression. Intensity-driven axes shift ~0.25 points per 10 proof.
+ */
+export function scaleProfileForProof(
+  profile: FlavorProfile,
+  fromProof: number,
+  toProof: number
+): FlavorProfile {
+  const delta = (toProof - fromProof) / 10;
+  if (Math.abs(delta) < 0.2) return { ...profile };
+  const bump = (v: number, factor: number) =>
+    Math.round(Math.min(10, Math.max(0, v + delta * factor)) * 10) / 10;
+  return {
+    ...profile,
+    oak: bump(profile.oak, 0.3),
+    caramel: bump(profile.caramel, 0.25),
+    spice: bump(profile.spice, 0.3),
+    smoke: bump(profile.smoke, 0.1),
+  };
+}
+
 /** Generic words that shouldn't count as evidence of a specific bottle. */
 const STOPWORDS = new Set([
   'whiskey',
@@ -60,7 +110,14 @@ const STOPWORDS = new Set([
 export function findWhiskeyByName(query: string): WhiskeyRecord | undefined {
   const q = normalizeName(query);
   if (!q) return undefined;
-  const qWords = q.split(' ');
+  // Drop batch codes and pick vocabulary so "ECBP batch C923" or
+  // "Blanton's Total Wine pick" still resolve to the base bottling,
+  // and expand collector shorthand ("ecbp", "gts", "wlw").
+  const qWords = q
+    .split(' ')
+    .filter((w) => !isBatchCode(w) && !VARIANT_WORDS.has(w))
+    .flatMap((w) => (ALIASES[w] ? ALIASES[w].split(' ') : [w]));
+  if (qWords.length === 0) return undefined;
 
   let best: WhiskeyRecord | undefined;
   let bestScore = 0;

@@ -38,6 +38,9 @@ export interface WhiskeyRecord {
   barcodes?: string[];
 }
 
+/** Where a bottle's flavor profile came from. */
+export type FlavorSource = 'db' | 'ai' | 'default' | 'user';
+
 export interface Bottle {
   id: string;
   name: string;
@@ -48,7 +51,14 @@ export interface Bottle {
   /** Matched record from the reference database, if identified. */
   refId?: string;
   flavor: FlavorProfile;
+  flavorSource?: FlavorSource;
   notes: string;
+  /** Batch code for batch-released expressions (e.g. "C923", "2023-02"). */
+  batch?: string;
+  /** Store/club pick name (e.g. "Total Wine", "Lincoln Road pick"). */
+  pickName?: string;
+  /** Single-barrel number, when known. */
+  barrelNo?: string;
   opened: boolean;
   quantity: number;
   addedAt: number;

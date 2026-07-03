@@ -30,6 +30,17 @@ export default function InventoryScreen() {
         {item.distillery} · {item.proof} proof · {item.opened ? 'Open' : 'Sealed'}
         {item.quantity > 1 ? ` · x${item.quantity}` : ''}
       </Text>
+      {(item.batch || item.pickName || item.barrelNo) && (
+        <Text style={styles.variant}>
+          {[
+            item.batch ? `Batch ${item.batch}` : '',
+            item.barrelNo ? `Barrel #${item.barrelNo}` : '',
+            item.pickName ? `${item.pickName} pick` : '',
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </Text>
+      )}
       <Text style={styles.notes} numberOfLines={2}>
         {item.notes}
       </Text>
@@ -102,6 +113,7 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { color: colors.text, fontSize: 17, fontWeight: '700', flex: 1, marginRight: 8 },
   sub: { color: colors.amberBright, marginTop: 4, fontSize: 13 },
+  variant: { color: colors.amber, marginTop: 3, fontSize: 12, fontWeight: '700' },
   notes: { color: colors.textDim, marginTop: 6, fontSize: 13, lineHeight: 18 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
   emptyTitle: { color: colors.text, fontSize: 20, fontWeight: '700' },

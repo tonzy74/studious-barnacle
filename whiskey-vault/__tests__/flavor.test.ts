@@ -6,6 +6,7 @@ import {
   findWhiskeyByName,
   matchCollection,
   randomPour,
+  scaleProfileForProof,
   toVector,
 } from '../src/lib/flavor';
 import { Bottle } from '../src/types';
@@ -120,6 +121,49 @@ describe('findWhiskeyByName', () => {
   it('rejects nonsense', () => {
     expect(findWhiskeyByName('zzzz qqqq')).toBeUndefined();
     expect(findWhiskeyByName('')).toBeUndefined();
+    expect(findWhiskeyByName('some random whiskey')).toBeUndefined();
+  });
+
+  it('ignores batch codes and pick vocabulary', () => {
+    expect(findWhiskeyByName('elijah craig barrel proof C923')?.name).toBe(
+      'Elijah Craig Barrel Proof'
+    );
+    expect(findWhiskeyByName("blanton's total wine pick")?.id).toBe('blantons');
+    expect(findWhiskeyByName('four roses single barrel store pick')?.name).toBe(
+      'Four Roses Single Barrel'
+    );
+  });
+
+  it('expands collector shorthand aliases', () => {
+    expect(findWhiskeyByName('ecbp')?.name).toBe('Elijah Craig Barrel Proof');
+    expect(findWhiskeyByName('gts')?.name).toBe('George T. Stagg');
+    expect(findWhiskeyByName('wlw')?.name).toBe('William Larue Weller');
+    expect(findWhiskeyByName('sftb')?.name).toBe("Blanton's Straight From The Barrel");
+  });
+});
+
+describe('scaleProfileForProof', () => {
+  const base = WHISKEY_DB.find((r) => r.id === 'ecbp')!;
+
+  it('intensifies oak/spice/caramel for hotter picks', () => {
+    const scaled = scaleProfileForProof(base.flavor, 124, 134);
+    expect(scaled.oak).toBeGreaterThan(base.flavor.oak);
+    expect(scaled.spice).toBeGreaterThan(base.flavor.spice);
+    expect(scaled.caramel).toBeGreaterThan(base.flavor.caramel);
+    expect(scaled.fruit).toBe(base.flavor.fruit);
+  });
+
+  it('softens for lower-proof variants and clamps to range', () => {
+    const scaled = scaleProfileForProof(base.flavor, 124, 94);
+    expect(scaled.oak).toBeLessThan(base.flavor.oak);
+    for (const axis of FLAVOR_AXES) {
+      expect(scaled[axis]).toBeGreaterThanOrEqual(0);
+      expect(scaled[axis]).toBeLessThanOrEqual(10);
+    }
+  });
+
+  it('is a no-op for equal proof', () => {
+    expect(scaleProfileForProof(base.flavor, 124, 124)).toEqual(base.flavor);
   });
 });
 

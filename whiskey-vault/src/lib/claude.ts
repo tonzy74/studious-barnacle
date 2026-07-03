@@ -1,15 +1,23 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-import { Bottle, ChatMsg } from '../types';
-import { FLAVOR_LABELS } from '../data/whiskeyDatabase';
+import { Bottle, ChatMsg, FlavorProfile, WhiskeyType } from '../types';
+import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 
 function describeBottle(b: Bottle): string {
   const flavorSummary = (Object.keys(FLAVOR_LABELS) as (keyof typeof FLAVOR_LABELS)[])
     .filter((axis) => b.flavor[axis] >= 6)
     .map((axis) => FLAVOR_LABELS[axis].toLowerCase())
     .join(', ');
+  const variant = [
+    b.batch ? `batch ${b.batch}` : '',
+    b.pickName ? `${b.pickName} pick` : '',
+    b.barrelNo ? `barrel #${b.barrelNo}` : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
   return [
     `- ${b.name} (${b.distillery}, ${b.type}, ${b.proof} proof, ${b.opened ? 'open' : 'sealed'})`,
+    variant ? `  Variant: ${variant}` : '',
     `  Tasting notes: ${b.notes || 'n/a'}`,
     flavorSummary ? `  Dominant traits: ${flavorSummary}` : '',
   ]
@@ -75,4 +83,85 @@ export async function askSommelier(
     .trim();
 
   return text || "I couldn't come up with a response — try rephrasing that.";
+}
+
+const PROFILE_SCHEMA = {
+  type: 'object',
+  properties: {
+    ...Object.fromEntries(
+      FLAVOR_AXES.map((axis) => [
+        axis,
+        { type: 'number', description: `${FLAVOR_LABELS[axis]} intensity 0-10` },
+      ])
+    ),
+    notes: {
+      type: 'string',
+      description:
+        'Two-sentence tasting-note summary reflecting the consensus of professional reviews',
+    },
+    known: {
+      type: 'boolean',
+      description:
+        'true if you recognize this specific bottling; false if you are estimating from its style',
+    },
+  },
+  required: [...FLAVOR_AXES, 'notes', 'known'],
+  additionalProperties: false,
+} as const;
+
+export interface EstimatedProfile {
+  flavor: FlavorProfile;
+  notes: string;
+  known: boolean;
+}
+
+/**
+ * Ask Claude to profile a bottle that isn't in the local reference database,
+ * drawing on its knowledge of professional tasting notes. Returns a clamped
+ * 10-axis flavor vector, a note summary, and whether the bottling was
+ * actually recognized (vs. estimated from style).
+ */
+export async function estimateFlavorProfile(
+  apiKey: string,
+  bottle: { name: string; distillery?: string; type: WhiskeyType; proof?: number }
+): Promise<EstimatedProfile> {
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  const response = await client.messages.create({
+    model: 'claude-opus-4-8',
+    max_tokens: 1024,
+    system:
+      'You are a whiskey expert. Rate flavor intensities on a 0-10 scale reflecting the ' +
+      'consensus of professional reviews (Whisky Advocate, Breaking Bourbon, Distiller). ' +
+      'If you do not recognize the exact bottling, estimate from its distillery house style, ' +
+      'category, and proof, and set "known" to false.',
+    messages: [
+      {
+        role: 'user',
+        content: `Profile this whiskey: ${bottle.name}${
+          bottle.distillery ? ` from ${bottle.distillery}` : ''
+        } (${bottle.type}${bottle.proof ? `, ${bottle.proof} proof` : ''}).`,
+      },
+    ],
+    output_config: {
+      format: { type: 'json_schema', schema: PROFILE_SCHEMA },
+    },
+  });
+
+  const text = response.content.find(
+    (block): block is Anthropic.TextBlock => block.type === 'text'
+  )?.text;
+  if (!text) throw new Error('Empty response from profile estimation');
+
+  const raw = JSON.parse(text) as Record<string, unknown>;
+  const flavor = {} as FlavorProfile;
+  for (const axis of FLAVOR_AXES) {
+    const v = typeof raw[axis] === 'number' ? (raw[axis] as number) : 5;
+    flavor[axis] = Math.round(Math.min(10, Math.max(0, v)) * 10) / 10;
+  }
+  return {
+    flavor,
+    notes: typeof raw.notes === 'string' ? raw.notes : '',
+    known: raw.known === true,
+  };
 }

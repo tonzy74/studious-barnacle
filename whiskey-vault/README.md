@@ -52,6 +52,26 @@ scotch, Irish, Japanese, Canadian, and world whiskeys. It's built in two layers
 
 Adding a missing bottle is a one-line change in the relevant `src/data/houses/*.ts` file.
 
+## Store picks, batches, and missing bottles
+
+**Store picks & batch variants** are first-class: every bottle can carry a batch code
+("C923"), a store/club pick name, and a barrel number — shown throughout the app and fed
+to the AI Sommelier. When your pick or batch runs at a different proof than the base
+expression, the flavor profile is automatically scaled (hotter picks skew oakier and
+spicier). The name matcher ignores batch codes and pick vocabulary, and understands
+collector shorthand (ECBP, GTS, WLW, SFTB…), so "ECBP batch C923" resolves to Elijah
+Craig Barrel Proof.
+
+**When a bottle isn't in the database**, there are three fallbacks, and the app always
+shows you which one produced the profile:
+
+1. **AI profiling** — one tap asks Claude to build the 10-axis profile and tasting notes
+   from its knowledge of professional reviews (it reports whether it recognized the exact
+   bottling or estimated from style). Requires your API key.
+2. **Style-typical default** — a sensible profile for the whiskey's category.
+3. **Your palate** — every profile is hand-editable on the bottle page ("Adjust"), and
+   Guest Match uses your adjusted values.
+
 ## How matching works
 
 Each whiskey carries a 10-axis flavor vector — sweetness, oak, vanilla, caramel, spice,

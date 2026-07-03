@@ -2,6 +2,7 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,7 +15,8 @@ import {
 
 import { Button } from '../components';
 import { WHISKEY_DB } from '../data/whiskeyDatabase';
-import { defaultProfileFor, findWhiskeyByName } from '../lib/flavor';
+import { EstimatedProfile, estimateFlavorProfile } from '../lib/claude';
+import { defaultProfileFor, findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
 import { RootStackParamList } from '../navigation';
 import { newBottleId, useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -38,6 +40,7 @@ export default function AddBottleScreen() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Route>();
   const addBottle = useStore((s) => s.addBottle);
+  const apiKey = useStore((s) => s.apiKey);
 
   const prefillRef = params.refId ? WHISKEY_DB.find((r) => r.id === params.refId) : undefined;
 
@@ -46,10 +49,20 @@ export default function AddBottleScreen() {
   const [type, setType] = useState<WhiskeyType>(prefillRef?.type ?? 'bourbon');
   const [proof, setProof] = useState(prefillRef ? String(prefillRef.proof) : '');
   const [notes, setNotes] = useState(prefillRef?.notes ?? '');
+  const [batch, setBatch] = useState('');
+  const [pickName, setPickName] = useState('');
+  const [barrelNo, setBarrelNo] = useState('');
+  const [estimate, setEstimate] = useState<EstimatedProfile | undefined>();
+  const [estimating, setEstimating] = useState(false);
+  const [estimateError, setEstimateError] = useState('');
 
   // Live-match the typed name against the reference DB so known bottles pick
   // up professional tasting notes and a real flavor profile automatically.
-  const dbMatch = useMemo(() => (prefillRef ? prefillRef : findWhiskeyByName(name)), [name, prefillRef]);
+  const dbMatch = useMemo(
+    () => (prefillRef ? prefillRef : findWhiskeyByName(name)),
+    [name, prefillRef]
+  );
+  const matched = !!dbMatch && dbMatch.name === name;
 
   const applyMatch = () => {
     if (!dbMatch) return;
@@ -58,21 +71,62 @@ export default function AddBottleScreen() {
     setType(dbMatch.type);
     setProof(String(dbMatch.proof));
     setNotes(dbMatch.notes);
+    setEstimate(undefined);
+  };
+
+  const runEstimate = async () => {
+    if (!name.trim() || estimating) return;
+    setEstimating(true);
+    setEstimateError('');
+    try {
+      const result = await estimateFlavorProfile(apiKey, {
+        name: name.trim(),
+        distillery: distillery.trim() || undefined,
+        type,
+        proof: parseFloat(proof) || undefined,
+      });
+      setEstimate(result);
+      if (!notes.trim() && result.notes) setNotes(result.notes);
+    } catch (err) {
+      setEstimateError(`Estimation failed: ${(err as Error).message}`);
+    } finally {
+      setEstimating(false);
+    }
   };
 
   const save = () => {
     if (!name.trim()) return;
-    const matched = dbMatch && dbMatch.name === name ? dbMatch : undefined;
+    const enteredProof = parseFloat(proof) || 80;
+
+    let flavor;
+    let flavorSource: 'db' | 'ai' | 'default';
+    if (matched && dbMatch) {
+      // Store picks and batches often run at a different proof than the base
+      // bottling — scale the reference profile to the proof on the label.
+      flavor = scaleProfileForProof(dbMatch.flavor, dbMatch.proof, enteredProof);
+      flavorSource = 'db';
+    } else if (estimate) {
+      flavor = estimate.flavor;
+      flavorSource = 'ai';
+    } else {
+      flavor = defaultProfileFor(type);
+      flavorSource = 'default';
+    }
+
     addBottle({
       id: newBottleId(),
       name: name.trim(),
       distillery: distillery.trim() || 'Unknown',
       type,
-      proof: parseFloat(proof) || 80,
+      proof: enteredProof,
       barcode: params.barcode,
-      refId: matched?.id,
-      flavor: matched ? { ...matched.flavor } : defaultProfileFor(type),
-      notes: notes.trim() || (matched?.notes ?? ''),
+      refId: matched ? dbMatch?.id : undefined,
+      flavor,
+      flavorSource,
+      notes: notes.trim() || (matched ? (dbMatch?.notes ?? '') : (estimate?.notes ?? '')),
+      batch: batch.trim() || undefined,
+      pickName: pickName.trim() || undefined,
+      barrelNo: barrelNo.trim() || undefined,
       opened: false,
       quantity: 1,
       addedAt: Date.now(),
@@ -86,25 +140,69 @@ export default function AddBottleScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        {params.barcode && (
-          <Text style={styles.barcode}>Scanned barcode: {params.barcode}</Text>
-        )}
+        {params.barcode && <Text style={styles.barcode}>Scanned barcode: {params.barcode}</Text>}
 
         <Text style={styles.label}>Name</Text>
         <TextInput
           style={styles.input}
           value={name}
-          onChangeText={setName}
+          onChangeText={(v) => {
+            setName(v);
+            setEstimate(undefined);
+          }}
           placeholder="e.g. Eagle Rare 10 Year"
           placeholderTextColor={colors.textDim}
         />
 
-        {dbMatch && dbMatch.name !== name && (
+        {dbMatch && !matched && (
           <TouchableOpacity style={styles.matchBanner} onPress={applyMatch}>
             <Text style={styles.matchText}>
               Found in database: {dbMatch.name} — tap to use its tasting profile
             </Text>
           </TouchableOpacity>
+        )}
+
+        {matched && (
+          <Text style={styles.sourceNote}>
+            ✓ Matched to reference database{' '}
+            {proof && parseFloat(proof) !== dbMatch?.proof
+              ? '(profile will be scaled to your proof)'
+              : ''}
+          </Text>
+        )}
+
+        {!dbMatch && name.trim().length >= 4 && (
+          <View style={styles.estimateBox}>
+            <Text style={styles.estimateTitle}>Not in the reference database</Text>
+            {estimate ? (
+              <Text style={styles.sourceNote}>
+                {estimate.known
+                  ? '✨ AI profile ready — Claude recognized this bottling.'
+                  : '✨ AI estimate ready — Claude estimated from style (it didn\'t know this exact bottle).'}
+              </Text>
+            ) : apiKey ? (
+              <>
+                <Text style={styles.estimateText}>
+                  Ask the AI sommelier to build its flavor profile from professional reviews, or
+                  save with a style-typical profile.
+                </Text>
+                <Button
+                  title={estimating ? 'Estimating…' : '✨ Estimate profile with AI'}
+                  variant="secondary"
+                  onPress={runEstimate}
+                  disabled={estimating}
+                  style={{ marginTop: 10 }}
+                />
+                {estimating && <ActivityIndicator color={colors.amber} style={{ marginTop: 8 }} />}
+                {!!estimateError && <Text style={styles.errorText}>{estimateError}</Text>}
+              </>
+            ) : (
+              <Text style={styles.estimateText}>
+                It will get a style-typical profile — you can fine-tune it on the bottle page, or
+                add an API key in Settings to enable AI profiling.
+              </Text>
+            )}
+          </View>
         )}
 
         <Text style={styles.label}>Distillery</Text>
@@ -137,7 +235,40 @@ export default function AddBottleScreen() {
           value={proof}
           onChangeText={setProof}
           keyboardType="decimal-pad"
-          placeholder="e.g. 90"
+          placeholder="e.g. 90 — use the proof on YOUR label for picks/batches"
+          placeholderTextColor={colors.textDim}
+        />
+
+        <Text style={styles.section}>Batch / store pick (optional)</Text>
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Batch</Text>
+            <TextInput
+              style={styles.input}
+              value={batch}
+              onChangeText={setBatch}
+              placeholder="C923"
+              placeholderTextColor={colors.textDim}
+              autoCapitalize="characters"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Barrel #</Text>
+            <TextInput
+              style={styles.input}
+              value={barrelNo}
+              onChangeText={setBarrelNo}
+              placeholder="1234"
+              placeholderTextColor={colors.textDim}
+            />
+          </View>
+        </View>
+        <Text style={styles.label}>Picked by</Text>
+        <TextInput
+          style={styles.input}
+          value={pickName}
+          onChangeText={setPickName}
+          placeholder="e.g. Total Wine, r/bourbon, your whiskey club"
           placeholderTextColor={colors.textDim}
         />
 
@@ -151,7 +282,12 @@ export default function AddBottleScreen() {
           placeholderTextColor={colors.textDim}
         />
 
-        <Button title="Add to my bar" onPress={save} disabled={!name.trim()} style={{ marginTop: 20 }} />
+        <Button
+          title="Add to my bar"
+          onPress={save}
+          disabled={!name.trim()}
+          style={{ marginTop: 20 }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -161,6 +297,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   barcode: { color: colors.textDim, marginBottom: 12, fontSize: 13 },
   label: { color: colors.amberBright, marginTop: 14, marginBottom: 6, fontWeight: '600' },
+  section: {
+    color: colors.text,
+    marginTop: 22,
+    fontWeight: '800',
+    fontSize: 15,
+  },
   input: {
     backgroundColor: colors.card,
     color: colors.text,
@@ -180,6 +322,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   matchText: { color: colors.amberBright, fontSize: 13 },
+  sourceNote: { color: colors.success, fontSize: 13, marginTop: 8 },
+  estimateBox: {
+    backgroundColor: colors.cardAlt,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  estimateTitle: { color: colors.text, fontWeight: '700' },
+  estimateText: { color: colors.textDim, fontSize: 13, marginTop: 6, lineHeight: 18 },
+  errorText: { color: colors.danger, fontSize: 13, marginTop: 8 },
+  row: { flexDirection: 'row', gap: 10 },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   typeChip: {
     paddingHorizontal: 12,
