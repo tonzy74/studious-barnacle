@@ -107,7 +107,7 @@ const STOPWORDS = new Set([
  * Scores on shared word overlap so "weller" finds W.L. Weller Special Reserve
  * and "elijah craig bp" finds Elijah Craig Barrel Proof.
  */
-export function findWhiskeyByName(query: string): WhiskeyRecord | undefined {
+export function findWhiskeyByName(query: string, extraDb: WhiskeyRecord[] = []): WhiskeyRecord | undefined {
   const q = normalizeName(query);
   if (!q) return undefined;
   // Drop batch codes and pick vocabulary so "ECBP batch C923" or
@@ -121,7 +121,7 @@ export function findWhiskeyByName(query: string): WhiskeyRecord | undefined {
 
   let best: WhiskeyRecord | undefined;
   let bestScore = 0;
-  for (const record of WHISKEY_DB) {
+  for (const record of [...WHISKEY_DB, ...extraDb]) {
     const target = normalizeName(`${record.name} ${record.distillery}`);
     const targetWords = new Set(target.split(' '));
     let score = 0;
@@ -148,8 +148,14 @@ export function findWhiskeyByName(query: string): WhiskeyRecord | undefined {
   return bestScore >= 2 ? best : undefined;
 }
 
-export function findWhiskeyByBarcode(barcode: string): WhiskeyRecord | undefined {
-  return WHISKEY_DB.find((r) => r.barcodes?.includes(barcode));
+export function findWhiskeyByBarcode(
+  barcode: string,
+  extraDb: WhiskeyRecord[] = []
+): WhiskeyRecord | undefined {
+  return (
+    WHISKEY_DB.find((r) => r.barcodes?.includes(barcode)) ??
+    extraDb.find((r) => r.barcodes?.includes(barcode))
+  );
 }
 
 export function defaultProfileFor(type: WhiskeyType): FlavorProfile {
@@ -163,12 +169,13 @@ export function defaultProfileFor(type: WhiskeyType): FlavorProfile {
  */
 export function matchCollection(
   favorites: string[],
-  collection: Bottle[]
+  collection: Bottle[],
+  extraDb: WhiskeyRecord[] = []
 ): { results: MatchResult[]; unrecognized: string[]; recognized: WhiskeyRecord[] } {
   const recognized: WhiskeyRecord[] = [];
   const unrecognized: string[] = [];
   for (const fav of favorites) {
-    const record = findWhiskeyByName(fav);
+    const record = findWhiskeyByName(fav, extraDb);
     if (record) recognized.push(record);
     else unrecognized.push(fav);
   }
@@ -191,7 +198,14 @@ export function matchCollection(
 /** Pick a random bottle, optionally filtered. */
 export function randomPour(
   collection: Bottle[],
-  opts: { type?: WhiskeyType | 'any'; openedOnly?: boolean; minProof?: number; maxProof?: number } = {}
+  opts: {
+    type?: WhiskeyType | 'any';
+    openedOnly?: boolean;
+    minProof?: number;
+    maxProof?: number;
+    /** Exclude S/A-tier allocated bottles — don't burn unicorns on a Tuesday. */
+    protectAllocated?: boolean;
+  } = {}
 ): Bottle | undefined {
   const pool = collection.filter((b) => {
     if (b.quantity <= 0) return false;
@@ -199,6 +213,7 @@ export function randomPour(
     if (opts.type && opts.type !== 'any' && b.type !== opts.type) return false;
     if (opts.minProof !== undefined && b.proof < opts.minProof) return false;
     if (opts.maxProof !== undefined && b.proof > opts.maxProof) return false;
+    if (opts.protectAllocated && (b.rarity === 'S' || b.rarity === 'A')) return false;
     return true;
   });
   if (pool.length === 0) return undefined;

@@ -1,9 +1,19 @@
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { Button, FlavorBars, TypeBadge } from '../components';
+import { Button, FlavorBars, RarityBadge, TypeBadge } from '../components';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
+import { fairPrice, formatUsd } from '../lib/pricing';
+import { RARITY_COLORS, RARITY_LABELS, RARITY_ORDER } from '../lib/rarity';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -69,12 +79,86 @@ export default function BottleDetailScreen() {
       <View style={styles.headerRow}>
         <Text style={styles.name}>{bottle.name}</Text>
         <TypeBadge type={bottle.type} />
+        <RarityBadge rarity={bottle.rarity} />
       </View>
       <Text style={styles.sub}>
         {bottle.distillery} · {bottle.proof} proof
         {bottle.barcode ? ` · UPC ${bottle.barcode}` : ''}
       </Text>
       {!!variantLine && <Text style={styles.variant}>{variantLine}</Text>}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Rarity tier</Text>
+        <View style={styles.rarityRow}>
+          {RARITY_ORDER.map((tier) => (
+            <TouchableOpacity
+              key={tier}
+              style={[
+                styles.rarityChip,
+                { borderColor: RARITY_COLORS[tier] },
+                bottle.rarity === tier && { backgroundColor: RARITY_COLORS[tier] },
+              ]}
+              onPress={() => updateBottle(bottle.id, { rarity: tier })}
+            >
+              <Text
+                style={[
+                  styles.rarityChipText,
+                  { color: bottle.rarity === tier ? '#1a120b' : RARITY_COLORS[tier] },
+                ]}
+              >
+                {tier}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.estimate}>
+          {bottle.rarity ? RARITY_LABELS[bottle.rarity] : 'Tap a tier to set rarity.'}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Value (estimates — tap to edit)</Text>
+        <View style={styles.valueRow}>
+          <View style={styles.valueCol}>
+            <Text style={styles.valueLabel}>Retail</Text>
+            <TextInput
+              style={styles.valueInput}
+              defaultValue={bottle.msrp !== undefined ? String(bottle.msrp) : ''}
+              placeholder="—"
+              placeholderTextColor={colors.textDim}
+              keyboardType="decimal-pad"
+              onEndEditing={(e) => {
+                const v = parseFloat(e.nativeEvent.text);
+                updateBottle(bottle.id, { msrp: isNaN(v) ? undefined : v });
+              }}
+            />
+          </View>
+          <View style={styles.valueCol}>
+            <Text style={styles.valueLabel}>Secondary</Text>
+            <TextInput
+              style={styles.valueInput}
+              defaultValue={bottle.secondary !== undefined ? String(bottle.secondary) : ''}
+              placeholder="—"
+              placeholderTextColor={colors.textDim}
+              keyboardType="decimal-pad"
+              onEndEditing={(e) => {
+                const v = parseFloat(e.nativeEvent.text);
+                updateBottle(bottle.id, { secondary: isNaN(v) ? undefined : v });
+              }}
+            />
+          </View>
+          <View style={styles.valueCol}>
+            <Text style={styles.valueLabel}>Fair price</Text>
+            <Text style={styles.fairPrice}>
+              {formatUsd(fairPrice(bottle.msrp, bottle.secondary, bottle.rarity))}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.estimate}>
+          Fair price blends retail and secondary based on rarity — what a reasonable buyer pays
+          without getting fleeced. Prices are estimates and vary by market.
+        </Text>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tasting notes</Text>
@@ -191,6 +275,34 @@ const styles = StyleSheet.create({
   },
   stepText: { color: colors.amber, fontSize: 18, fontWeight: '800' },
   editValue: { color: colors.text, width: 44, textAlign: 'center', fontWeight: '700' },
+  rarityRow: { flexDirection: 'row', gap: 8 },
+  rarityChip: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rarityChipText: { fontWeight: '900', fontSize: 16 },
+  valueRow: { flexDirection: 'row', gap: 10 },
+  valueCol: { flex: 1 },
+  valueLabel: { color: colors.textDim, fontSize: 12, marginBottom: 4 },
+  valueInput: {
+    backgroundColor: colors.cardAlt,
+    color: colors.text,
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    fontWeight: '700',
+  },
+  fairPrice: {
+    color: colors.amberBright,
+    fontWeight: '800',
+    fontSize: 16,
+    paddingVertical: 9,
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   qty: { color: colors.text, fontWeight: '700', paddingHorizontal: 8 },
 });

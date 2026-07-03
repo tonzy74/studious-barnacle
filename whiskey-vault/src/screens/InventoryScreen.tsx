@@ -3,7 +3,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { Button, TypeBadge } from '../components';
+import { Button, RarityBadge, TypeBadge } from '../components';
+import { fairPrice, formatUsd } from '../lib/pricing';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -14,6 +15,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function InventoryScreen() {
   const navigation = useNavigation<Nav>();
   const bottles = useStore((s) => s.bottles);
+  const collectionValue = bottles.reduce((sum, b) => {
+    const fair = fairPrice(b.msrp, b.secondary, b.rarity);
+    return sum + (fair ?? 0) * Math.max(1, b.quantity);
+  }, 0);
 
   const renderItem = ({ item }: { item: Bottle }) => (
     <TouchableOpacity
@@ -25,6 +30,7 @@ export default function InventoryScreen() {
           {item.name}
         </Text>
         <TypeBadge type={item.type} />
+        <RarityBadge rarity={item.rarity} />
       </View>
       <Text style={styles.sub}>
         {item.distillery} · {item.proof} proof · {item.opened ? 'Open' : 'Sealed'}
@@ -54,6 +60,7 @@ export default function InventoryScreen() {
           <Text style={styles.title}>My Bar</Text>
           <Text style={styles.count}>
             {bottles.length} bottle{bottles.length === 1 ? '' : 's'}
+            {collectionValue > 0 ? ` · est. value ${formatUsd(collectionValue)}` : ''}
           </Text>
         </View>
         <TouchableOpacity onPress={() => navigation.navigate('Settings')}>

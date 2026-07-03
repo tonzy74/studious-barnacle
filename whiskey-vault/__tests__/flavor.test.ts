@@ -9,6 +9,8 @@ import {
   scaleProfileForProof,
   toVector,
 } from '../src/lib/flavor';
+import { buildLearnedRecord } from '../src/lib/library';
+import { fairPrice } from '../src/lib/pricing';
 import { Bottle } from '../src/types';
 
 function bottleFrom(recordId: string, overrides: Partial<Bottle> = {}): Bottle {
@@ -261,5 +263,110 @@ describe('averageProfiles / toVector', () => {
     const a = WHISKEY_DB[0].flavor;
     const avg = averageProfiles([a, a]);
     expect(toVector(avg)).toEqual(toVector(a));
+  });
+});
+
+describe('rarity tiers', () => {
+  it('assigns every record a tier', () => {
+    for (const r of WHISKEY_DB) {
+      expect(['S', 'A', 'B', 'C', 'D']).toContain(r.rarity);
+    }
+  });
+
+  it('assigns allocation-aware tiers', () => {
+    const byName = (q: string) => findWhiskeyByName(q)?.rarity;
+    expect(byName('Pappy Van Winkle 15 Year')).toBe('S');
+    expect(byName('George T. Stagg')).toBe('S');
+    expect(byName('William Larue Weller')).toBe('S');
+    expect(byName("Blanton's Original Single Barrel")).toBe('A');
+    expect(byName('W.L. Weller 12 Year')).toBe('A');
+    expect(byName('E.H. Taylor Small Batch')).toBe('A');
+    expect(byName('Elijah Craig Barrel Proof')).toBe('B');
+    expect(byName('Buffalo Trace')).toBe('B');
+    expect(byName('Woodford Reserve')).toBe('C');
+    expect(byName('Jim Beam White Label')).toBe('D');
+    expect(byName('Old Crow')).toBe('D');
+  });
+
+  it('protects allocated bottles in random pours', () => {
+    const collection = [
+      bottleFrom('pappy-van-winkle-15-year', { rarity: 'S' }),
+      bottleFrom('buffalo-trace', { rarity: 'B' }),
+    ];
+    for (let i = 0; i < 30; i++) {
+      expect(randomPour(collection, { protectAllocated: true })?.rarity).toBe('B');
+    }
+    // Without protection, both can come up.
+    const seen = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      seen.add(randomPour(collection)!.rarity!);
+    }
+    expect(seen.has('S')).toBe(true);
+  });
+});
+
+describe('pricing', () => {
+  it('anchors famous bottles', () => {
+    const pappy = findWhiskeyByName('Pappy Van Winkle 15 Year')!;
+    expect(pappy.msrp).toBeDefined();
+    expect(pappy.secondary).toBeGreaterThan(pappy.msrp!);
+    const bt = findWhiskeyByName('Buffalo Trace')!;
+    expect(bt.msrp).toBeLessThan(50);
+  });
+
+  it('computes fair price by rarity drift', () => {
+    // Shelf bottle: fair ≈ MSRP.
+    expect(fairPrice(30, 40, 'C')).toBe(31);
+    // Allocated: drifts toward secondary.
+    expect(fairPrice(100, 1100, 'S')).toBe(650);
+    expect(fairPrice(50, 280, 'A')).toBe(142);
+    // Secondary below retail: retail wins.
+    expect(fairPrice(100, 80, 'A')).toBe(100);
+    // Missing data degrades gracefully.
+    expect(fairPrice(undefined, undefined, 'C')).toBeUndefined();
+    expect(fairPrice(undefined, 200, 'A')).toBe(200);
+    expect(fairPrice(40, undefined, 'C')).toBe(40);
+  });
+});
+
+describe('learned library', () => {
+  it('builds a full record from partial info without an API key', async () => {
+    const record = await buildLearnedRecord({
+      name: 'Mystery Craft Kentucky Straight Bourbon',
+      brand: 'Mystery Distilling',
+      barcode: '012345678905',
+    });
+    expect(record.learned).toBe(true);
+    expect(record.type).toBe('bourbon');
+    expect(record.barcodes).toEqual(['012345678905']);
+    expect(record.rarity).toBe('C');
+    expect(record.flavor.sweet).toBeGreaterThan(0);
+  });
+
+  it('guesses types from names', async () => {
+    expect((await buildLearnedRecord({ name: 'Foobar Straight Rye Whiskey' })).type).toBe('rye');
+    expect((await buildLearnedRecord({ name: 'Glen Foobar Islay Single Malt Scotch' })).type).toBe(
+      'scotch'
+    );
+    expect((await buildLearnedRecord({ name: 'Foobar Irish Whiskey' })).type).toBe('irish');
+  });
+
+  it('searches learned records alongside the built-in DB', () => {
+    const learned = [
+      {
+        id: 'learned-mystery',
+        name: 'Mystery Craft Bourbon Deluxe',
+        distillery: 'Mystery Distilling',
+        type: 'bourbon' as const,
+        proof: 100,
+        flavor: WHISKEY_DB[0].flavor,
+        notes: 'A learned record.',
+        barcodes: ['099999999999'],
+        learned: true,
+      },
+    ];
+    expect(findWhiskeyByName('mystery craft deluxe', learned)?.id).toBe('learned-mystery');
+    expect(findWhiskeyByBarcode('099999999999', learned)?.id).toBe('learned-mystery');
+    expect(findWhiskeyByBarcode('099999999999')).toBeUndefined();
   });
 });

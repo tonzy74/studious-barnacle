@@ -5,8 +5,9 @@ import React, { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../components';
-import { lookupBarcode } from '../lib/barcodeLookup';
+import { resolveBarcodeAndLearn } from '../lib/library';
 import { RootStackParamList } from '../navigation';
+import { useStore } from '../store/useStore';
 import { colors } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -17,19 +18,28 @@ export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [busy, setBusy] = useState(false);
   const lastScanned = useRef<string>('');
+  const learned = useStore((s) => s.learned);
+  const learnRecord = useStore((s) => s.learnRecord);
+  const apiKey = useStore((s) => s.apiKey);
 
   const onScan = async (result: BarcodeScanningResult) => {
     const code = result.data;
     if (busy || !code || code === lastScanned.current) return;
     lastScanned.current = code;
     setBusy(true);
-    const lookup = await lookupBarcode(code);
+    // Resolves through built-in DB → learned library → live lookup + AI
+    // profiling, teaching the library as it goes.
+    const resolved = await resolveBarcodeAndLearn(code, {
+      learned,
+      apiKey: apiKey || undefined,
+      onLearn: learnRecord,
+    });
     setBusy(false);
     navigation.navigate('AddBottle', {
       barcode: code,
-      name: lookup.name,
-      brand: lookup.brand,
-      refId: lookup.refId,
+      name: resolved.record?.name ?? resolved.name,
+      brand: resolved.record?.distillery ?? resolved.brand,
+      refId: resolved.record?.id,
     });
     // Allow re-scanning the same code after returning to this screen.
     setTimeout(() => {

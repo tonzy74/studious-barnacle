@@ -36,10 +36,24 @@ export interface WhiskeyRecord {
   notes: string;
   /** Known UPC/EAN barcodes for this bottling, when available. */
   barcodes?: string[];
+  rarity?: Rarity;
+  /** Estimated retail price (MSRP), USD. */
+  msrp?: number;
+  /** Estimated secondary-market price, USD. */
+  secondary?: number;
+  /** True for records learned at runtime (scans, AI profiling, manual adds). */
+  learned?: boolean;
 }
 
 /** Where a bottle's flavor profile came from. */
 export type FlavorSource = 'db' | 'ai' | 'default' | 'user';
+
+/**
+ * Gaming-style rarity tier based on allocation and overall scarcity.
+ * S = unicorns (Pappy, BTAC), A = allocated, B = semi-allocated / limited,
+ * C = shelf availability, D = bottom-shelf everywhere.
+ */
+export type Rarity = 'S' | 'A' | 'B' | 'C' | 'D';
 
 export interface Bottle {
   id: string;
@@ -59,6 +73,11 @@ export interface Bottle {
   pickName?: string;
   /** Single-barrel number, when known. */
   barrelNo?: string;
+  rarity?: Rarity;
+  /** Estimated retail price (MSRP), USD. */
+  msrp?: number;
+  /** Estimated secondary-market price, USD. */
+  secondary?: number;
   opened: boolean;
   quantity: number;
   addedAt: number;

@@ -65,12 +65,38 @@ Craig Barrel Proof.
 **When a bottle isn't in the database**, there are three fallbacks, and the app always
 shows you which one produced the profile:
 
-1. **AI profiling** — one tap asks Claude to build the 10-axis profile and tasting notes
-   from its knowledge of professional reviews (it reports whether it recognized the exact
-   bottling or estimated from style). Requires your API key.
+1. **AI profiling** — one tap asks Claude to build the 10-axis profile, tasting notes,
+   rarity tier, and pricing from its knowledge of professional reviews (it reports whether
+   it recognized the exact bottling or estimated from style). Requires your API key.
 2. **Style-typical default** — a sensible profile for the whiskey's category.
 3. **Your palate** — every profile is hand-editable on the bottle page ("Adjust"), and
    Guest Match uses your adjusted values.
+
+## The self-improving library
+
+On top of the built-in database sits an on-device **learned library**. A scanned barcode
+resolves through: built-in DB → learned library → **Open Food Facts (live)** → AI
+profiling — and whatever is learned is **saved back with its barcode**, so the next scan
+resolves instantly and the bottle becomes searchable in Guest Match and manual entry like
+any built-in record. Manual adds teach the library too, and new barcode → known-bottling
+mappings are remembered. The learned library persists on-device and is structured so a
+shared sync backend (e.g. Supabase) can be layered on later to make the library grow
+across all users.
+
+## Rarity tiers & pricing
+
+Every bottle carries a gaming-style **rarity tier** — **S** (unicorn / lottery-only),
+**A** (allocated), **B** (limited), **C** (shelf), **D** (bottom-shelf) — assigned from an
+allocation-aware override list plus heuristics, editable per bottle, and shown as badges
+throughout the app. Random Pour has a **"Protect allocated bottles"** toggle (on by
+default) that keeps S/A bottles out of the random pool, and the AI Sommelier is told to
+save S/A pours for occasions.
+
+Bottles also carry **retail (MSRP)** and **estimated secondary-market** prices (anchored
+for ~110 famous bottlings, AI-estimated for learned bottles, editable everywhere), and the
+app computes a **fair price** — MSRP for shelf bottles, drifting partway toward secondary
+as rarity climbs. The Bar header shows your collection's total estimated value. All prices
+are estimates and vary by market.
 
 ## How matching works
 

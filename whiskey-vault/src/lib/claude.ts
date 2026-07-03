@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-import { Bottle, ChatMsg, FlavorProfile, WhiskeyType } from '../types';
+import { Bottle, ChatMsg, FlavorProfile, Rarity, WhiskeyType } from '../types';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
+import { fairPrice, formatUsd } from './pricing';
 
 function describeBottle(b: Bottle): string {
   const flavorSummary = (Object.keys(FLAVOR_LABELS) as (keyof typeof FLAVOR_LABELS)[])
@@ -15,11 +16,19 @@ function describeBottle(b: Bottle): string {
   ]
     .filter(Boolean)
     .join(', ');
+  const fair = fairPrice(b.msrp, b.secondary, b.rarity);
+  const value =
+    b.msrp !== undefined || b.secondary !== undefined
+      ? `  Value: retail ~${formatUsd(b.msrp)}, secondary ~${formatUsd(b.secondary)}, fair ~${formatUsd(fair)}`
+      : '';
   return [
-    `- ${b.name} (${b.distillery}, ${b.type}, ${b.proof} proof, ${b.opened ? 'open' : 'sealed'})`,
+    `- ${b.name} (${b.distillery}, ${b.type}, ${b.proof} proof, ${b.opened ? 'open' : 'sealed'}${
+      b.rarity ? `, rarity tier ${b.rarity}` : ''
+    })`,
     variant ? `  Variant: ${variant}` : '',
     `  Tasting notes: ${b.notes || 'n/a'}`,
     flavorSummary ? `  Dominant traits: ${flavorSummary}` : '',
+    value,
   ]
     .filter(Boolean)
     .join('\n');
@@ -41,6 +50,8 @@ Rules:
 - Keep answers conversational and reasonably short (2-4 paragraphs max). Offer one primary pick and one alternate when it makes sense.
 - If asked for a random or surprise pour, pick one and build a little ritual around it.
 - You may discuss general whiskey knowledge, but always tie back to the collection.
+- Respect rarity tiers: S and A bottles are allocated treasures — suggest them for milestones and special guests, not casual weeknight pours, unless the owner insists. C/D bottles are the everyday workhorses.
+- You may reference value (retail vs secondary) when it's relevant, e.g. suggesting an affordable pour for a big party vs a trophy pour for an occasion.
 
 Current collection:
 ${inventory}`;
@@ -104,8 +115,23 @@ const PROFILE_SCHEMA = {
       description:
         'true if you recognize this specific bottling; false if you are estimating from its style',
     },
+    rarity: {
+      type: 'string',
+      enum: ['S', 'A', 'B', 'C', 'D'],
+      description:
+        'Allocation/rarity tier: S=lottery-only unicorn, A=allocated, B=limited/semi-allocated, C=shelf, D=bottom-shelf staple',
+    },
+    msrp: {
+      type: 'number',
+      description: 'Approximate US retail price (MSRP) in dollars',
+    },
+    secondary: {
+      type: 'number',
+      description:
+        'Approximate US secondary-market price in dollars (equal to msrp if it trades at retail)',
+    },
   },
-  required: [...FLAVOR_AXES, 'notes', 'known'],
+  required: [...FLAVOR_AXES, 'notes', 'known', 'rarity', 'msrp', 'secondary'],
   additionalProperties: false,
 } as const;
 
@@ -113,6 +139,9 @@ export interface EstimatedProfile {
   flavor: FlavorProfile;
   notes: string;
   known: boolean;
+  rarity?: Rarity;
+  msrp?: number;
+  secondary?: number;
 }
 
 /**
@@ -159,9 +188,19 @@ export async function estimateFlavorProfile(
     const v = typeof raw[axis] === 'number' ? (raw[axis] as number) : 5;
     flavor[axis] = Math.round(Math.min(10, Math.max(0, v)) * 10) / 10;
   }
+  const rarity =
+    typeof raw.rarity === 'string' && ['S', 'A', 'B', 'C', 'D'].includes(raw.rarity)
+      ? (raw.rarity as Rarity)
+      : undefined;
   return {
     flavor,
     notes: typeof raw.notes === 'string' ? raw.notes : '',
     known: raw.known === true,
+    rarity,
+    msrp: typeof raw.msrp === 'number' && raw.msrp > 0 ? Math.round(raw.msrp) : undefined,
+    secondary:
+      typeof raw.secondary === 'number' && raw.secondary > 0
+        ? Math.round(raw.secondary)
+        : undefined,
   };
 }

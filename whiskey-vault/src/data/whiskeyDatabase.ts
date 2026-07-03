@@ -1,4 +1,6 @@
 import { FlavorProfile, WhiskeyRecord, WhiskeyType } from '../types';
+import { assignRarity } from '../lib/rarity';
+import { lookupPricing } from '../lib/pricing';
 import { expandHouses } from './generator';
 import { AMERICAN_MAJORS } from './houses/americanMajors';
 import { AMERICAN_CRAFT } from './houses/americanCraft';
@@ -250,7 +252,12 @@ export const WHISKEY_DB: WhiskeyRecord[] = (() => {
       merged.push(record);
     }
   }
-  return merged;
+  // Attach rarity tiers and pricing anchors to every record.
+  return merged.map((r) => ({
+    ...r,
+    rarity: r.rarity ?? assignRarity(r),
+    ...(lookupPricing(r.name) ?? {}),
+  }));
 })();
 
 /** Default flavor profiles used when a bottle isn't in the reference DB. */

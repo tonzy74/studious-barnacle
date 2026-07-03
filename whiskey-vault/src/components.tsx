@@ -3,7 +3,8 @@ import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-nativ
 
 import { colors, typeColors } from './theme';
 import { FLAVOR_AXES, FLAVOR_LABELS } from './data/whiskeyDatabase';
-import { FlavorProfile } from './types';
+import { RARITY_COLORS } from './lib/rarity';
+import { FlavorProfile, Rarity } from './types';
 
 export function Button({
   title,
@@ -47,6 +48,15 @@ export function TypeBadge({ type }: { type: string }) {
   );
 }
 
+export function RarityBadge({ rarity }: { rarity?: Rarity }) {
+  if (!rarity) return null;
+  return (
+    <View style={[styles.rarityBadge, { borderColor: RARITY_COLORS[rarity] }]}>
+      <Text style={[styles.rarityText, { color: RARITY_COLORS[rarity] }]}>{rarity}</Text>
+    </View>
+  );
+}
+
 export function FlavorBars({ profile }: { profile: FlavorProfile }) {
   return (
     <View>
@@ -78,6 +88,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   badgeText: { color: '#1a120b', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  rarityBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  rarityText: { fontSize: 13, fontWeight: '900' },
   barRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 3 },
   barLabel: { color: colors.textDim, width: 82, fontSize: 12 },
   barTrack: {

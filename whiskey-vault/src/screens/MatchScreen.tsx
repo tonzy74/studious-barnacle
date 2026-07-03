@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 
-import { Button, TypeBadge } from '../components';
+import { Button, RarityBadge, TypeBadge } from '../components';
 import { matchCollection } from '../lib/flavor';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -21,6 +21,7 @@ function percentColor(p: number): string {
 
 export default function MatchScreen() {
   const bottles = useStore((s) => s.bottles);
+  const learned = useStore((s) => s.learned);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [input, setInput] = useState('');
   const [computed, setComputed] = useState(false);
@@ -39,8 +40,8 @@ export default function MatchScreen() {
   };
 
   const match = useMemo(
-    () => (computed ? matchCollection(favorites, bottles) : undefined),
-    [computed, favorites, bottles]
+    () => (computed ? matchCollection(favorites, bottles, learned) : undefined),
+    [computed, favorites, bottles, learned]
   );
 
   return (
@@ -108,6 +109,7 @@ export default function MatchScreen() {
                   </Text>
                 </View>
                 <TypeBadge type={bottle.type} />
+                <RarityBadge rarity={bottle.rarity} />
               </View>
               <View style={styles.percentTrack}>
                 <View

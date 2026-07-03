@@ -17,6 +17,7 @@ import { Button } from '../components';
 import { WHISKEY_DB } from '../data/whiskeyDatabase';
 import { EstimatedProfile, estimateFlavorProfile } from '../lib/claude';
 import { defaultProfileFor, findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
+import { buildLearnedRecord } from '../lib/library';
 import { RootStackParamList } from '../navigation';
 import { newBottleId, useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -41,8 +42,12 @@ export default function AddBottleScreen() {
   const { params } = useRoute<Route>();
   const addBottle = useStore((s) => s.addBottle);
   const apiKey = useStore((s) => s.apiKey);
+  const learned = useStore((s) => s.learned);
+  const learnRecord = useStore((s) => s.learnRecord);
 
-  const prefillRef = params.refId ? WHISKEY_DB.find((r) => r.id === params.refId) : undefined;
+  const prefillRef = params.refId
+    ? [...WHISKEY_DB, ...learned].find((r) => r.id === params.refId)
+    : undefined;
 
   const [name, setName] = useState(prefillRef?.name ?? params.name ?? '');
   const [distillery, setDistillery] = useState(prefillRef?.distillery ?? params.brand ?? '');
@@ -59,8 +64,8 @@ export default function AddBottleScreen() {
   // Live-match the typed name against the reference DB so known bottles pick
   // up professional tasting notes and a real flavor profile automatically.
   const dbMatch = useMemo(
-    () => (prefillRef ? prefillRef : findWhiskeyByName(name)),
-    [name, prefillRef]
+    () => (prefillRef ? prefillRef : findWhiskeyByName(name, learned)),
+    [name, prefillRef, learned]
   );
   const matched = !!dbMatch && dbMatch.name === name;
 
@@ -94,7 +99,7 @@ export default function AddBottleScreen() {
     }
   };
 
-  const save = () => {
+  const save = async () => {
     if (!name.trim()) return;
     const enteredProof = parseFloat(proof) || 80;
 
@@ -127,10 +132,43 @@ export default function AddBottleScreen() {
       batch: batch.trim() || undefined,
       pickName: pickName.trim() || undefined,
       barrelNo: barrelNo.trim() || undefined,
+      rarity: matched ? dbMatch?.rarity : estimate?.rarity,
+      msrp: matched ? dbMatch?.msrp : estimate?.msrp,
+      secondary: matched ? dbMatch?.secondary : estimate?.secondary,
       opened: false,
       quantity: 1,
       addedAt: Date.now(),
     });
+
+    // Self-improving library: a manual add of an unknown bottle teaches the
+    // library, so it's searchable/matchable next time (with its barcode).
+    if (!matched) {
+      // No API key passed — we reuse the estimate we already have (below)
+      // instead of re-calling the API.
+      const record = await buildLearnedRecord({
+        name: name.trim(),
+        brand: distillery.trim() || undefined,
+        type,
+        proof: enteredProof,
+        barcode: params.barcode,
+      });
+      if (estimate) {
+        record.flavor = estimate.flavor;
+        record.notes = estimate.notes || record.notes;
+        if (estimate.rarity) record.rarity = estimate.rarity;
+        if (estimate.msrp !== undefined) record.msrp = estimate.msrp;
+        if (estimate.secondary !== undefined) record.secondary = estimate.secondary;
+      }
+      learnRecord(record);
+    } else if (matched && dbMatch && params.barcode && !dbMatch.barcodes?.includes(params.barcode)) {
+      // Learn new barcode → known bottling mappings too.
+      learnRecord({
+        ...dbMatch,
+        id: dbMatch.learned ? dbMatch.id : `learned-${dbMatch.id}`,
+        barcodes: [...new Set([...(dbMatch.barcodes ?? []), params.barcode])],
+        learned: true,
+      });
+    }
     navigation.goBack();
   };
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
-import { Button, TypeBadge } from '../components';
+import { Button, RarityBadge, TypeBadge } from '../components';
 import { randomPour } from '../lib/flavor';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -22,11 +22,12 @@ export default function RandomPourScreen() {
   const bottles = useStore((s) => s.bottles);
   const [type, setType] = useState<WhiskeyType | 'any'>('any');
   const [openedOnly, setOpenedOnly] = useState(false);
+  const [protectAllocated, setProtectAllocated] = useState(true);
   const [pick, setPick] = useState<Bottle | undefined>();
   const [rolled, setRolled] = useState(false);
 
   const roll = () => {
-    setPick(randomPour(bottles, { type, openedOnly }));
+    setPick(randomPour(bottles, { type, openedOnly, protectAllocated }));
     setRolled(true);
   };
 
@@ -58,6 +59,19 @@ export default function RandomPourScreen() {
         />
       </View>
 
+      <View style={styles.switchRow}>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <Text style={styles.switchLabel}>Protect allocated bottles</Text>
+          <Text style={styles.switchHint}>Keeps S and A tier out of the random pool</Text>
+        </View>
+        <Switch
+          value={protectAllocated}
+          onValueChange={setProtectAllocated}
+          trackColor={{ true: colors.amber, false: colors.cardAlt }}
+          thumbColor={colors.text}
+        />
+      </View>
+
       <Button title="🥃  Pour me something" onPress={roll} style={{ marginTop: 24 }} />
 
       {rolled && !pick && (
@@ -72,6 +86,7 @@ export default function RandomPourScreen() {
           <View style={styles.resultHeader}>
             <Text style={styles.resultName}>{pick.name}</Text>
             <TypeBadge type={pick.type} />
+            <RarityBadge rarity={pick.rarity} />
           </View>
           <Text style={styles.resultSub}>
             {pick.distillery} · {pick.proof} proof · {pick.opened ? 'already open' : 'crack it open'}
@@ -108,6 +123,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   switchLabel: { color: colors.text, fontSize: 16 },
+  switchHint: { color: colors.textDim, fontSize: 12, marginTop: 2 },
   noMatch: { color: colors.textDim, textAlign: 'center', marginTop: 24, lineHeight: 20 },
   resultCard: {
     backgroundColor: colors.card,
