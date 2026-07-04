@@ -372,6 +372,57 @@ describe('learned library', () => {
   });
 });
 
+describe('validateIdentifiedBottles (shelf-photo vision output)', () => {
+  const { validateIdentifiedBottles } = require('../src/lib/claude');
+
+  it('normalizes valid entries and dedupes', () => {
+    const out = validateIdentifiedBottles({
+      bottles: [
+        { name: 'Eagle Rare 10 Year', distillery: 'Buffalo Trace', type: 'bourbon', proof: 90, confidence: 'high' },
+        { name: 'Eagle Rare 10 Year!', distillery: 'Buffalo Trace', type: 'bourbon', proof: 90, confidence: 'high' },
+        { name: 'Laphroaig 10', distillery: 'Laphroaig', type: 'scotch', proof: 0, confidence: 'medium' },
+      ],
+    });
+    expect(out).toHaveLength(2);
+    expect(out[0].name).toBe('Eagle Rare 10 Year');
+    expect(out[1].proof).toBeUndefined();
+  });
+
+  it('rejects malformed entries, bad types, and absurd proofs', () => {
+    const out = validateIdentifiedBottles({
+      bottles: [
+        { name: '', distillery: 'X', type: 'bourbon', proof: 90, confidence: 'high' },
+        { name: 'Okay Bottle', distillery: 'X', type: 'vodka', proof: 900, confidence: 'wat' },
+        'not-an-object',
+        null,
+      ],
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toEqual({
+      name: 'Okay Bottle',
+      distillery: 'X',
+      type: 'other',
+      proof: undefined,
+      confidence: 'low',
+    });
+  });
+
+  it('handles garbage payloads and caps at 40', () => {
+    expect(validateIdentifiedBottles({})).toEqual([]);
+    expect(validateIdentifiedBottles({ bottles: 'nope' })).toEqual([]);
+    const many = {
+      bottles: Array.from({ length: 60 }, (_, i) => ({
+        name: `Bottle ${i}`,
+        distillery: 'D',
+        type: 'bourbon',
+        proof: 90,
+        confidence: 'high',
+      })),
+    };
+    expect(validateIdentifiedBottles(many)).toHaveLength(40);
+  });
+});
+
 describe('analytics privacy rules', () => {
   const { buildEvent, sanitizeEventProps } = require('../src/lib/analyticsCore');
 

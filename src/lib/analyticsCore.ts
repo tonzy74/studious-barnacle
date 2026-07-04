@@ -18,6 +18,7 @@ export const ANALYTICS_EVENTS = [
   'match_computed',
   'ai_profile_estimated',
   'sign_in',
+  'bulk_add_completed',
   'sign_out',
 ] as const;
 

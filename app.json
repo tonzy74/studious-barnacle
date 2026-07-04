@@ -35,6 +35,13 @@
           "userTrackingPermission": "This lets Whiskey Vault share anonymized usage statistics with partners. Your collection, name, and email are never shared."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Whiskey Vault uses your photos so you can bulk-add bottles from a picture of your shelf.",
+          "cameraPermission": "Whiskey Vault uses the camera to photograph your shelf for bulk adding."
+        }
+      ],
       "expo-secure-store"
     ]
   }

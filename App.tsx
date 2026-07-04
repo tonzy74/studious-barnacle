@@ -8,6 +8,7 @@ import { Text } from 'react-native';
 import { RootStackParamList, TabParamList } from './src/navigation';
 import AddBottleScreen from './src/screens/AddBottleScreen';
 import BottleDetailScreen from './src/screens/BottleDetailScreen';
+import BulkAddScreen from './src/screens/BulkAddScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import MatchScreen from './src/screens/MatchScreen';
@@ -86,6 +87,11 @@ export default function App() {
           name="BottleDetail"
           component={BottleDetailScreen}
           options={{ title: 'Bottle' }}
+        />
+        <Stack.Screen
+          name="BulkAdd"
+          component={BulkAddScreen}
+          options={{ title: 'Bulk Add from Photo' }}
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       </Stack.Navigator>

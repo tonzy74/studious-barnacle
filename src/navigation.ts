@@ -7,6 +7,7 @@ export type RootStackParamList = {
     refId?: string;
   };
   BottleDetail: { id: string };
+  BulkAdd: undefined;
   Settings: undefined;
 };
 

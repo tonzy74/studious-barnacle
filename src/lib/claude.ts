@@ -204,3 +204,136 @@ export async function estimateFlavorProfile(
         : undefined,
   };
 }
+
+// ── Bulk add: identify bottles from a shelf photo ─────────────────────────
+
+const WHISKEY_TYPES: WhiskeyType[] = [
+  'bourbon',
+  'rye',
+  'tennessee',
+  'scotch',
+  'irish',
+  'japanese',
+  'canadian',
+  'other',
+];
+
+export interface IdentifiedBottle {
+  name: string;
+  distillery: string;
+  type: WhiskeyType;
+  proof?: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+const SHELF_SCHEMA = {
+  type: 'object',
+  properties: {
+    bottles: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Exact bottling name as it would appear on a menu, e.g. "Eagle Rare 10 Year"',
+          },
+          distillery: { type: 'string', description: 'Producer/distillery, empty string if unknown' },
+          type: { type: 'string', enum: WHISKEY_TYPES },
+          proof: {
+            type: 'number',
+            description: 'Proof if readable on the label or known for this bottling; 0 if unknown',
+          },
+          confidence: {
+            type: 'string',
+            enum: ['high', 'medium', 'low'],
+            description: 'high = label clearly readable; medium = mostly sure; low = guessing from bottle shape/partial label',
+          },
+        },
+        required: ['name', 'distillery', 'type', 'proof', 'confidence'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['bottles'],
+  additionalProperties: false,
+} as const;
+
+/** Validate/normalize the vision output: exported separately for testing. */
+export function validateIdentifiedBottles(raw: unknown): IdentifiedBottle[] {
+  const bottles = (raw as { bottles?: unknown }).bottles;
+  if (!Array.isArray(bottles)) return [];
+  const seen = new Set<string>();
+  const out: IdentifiedBottle[] = [];
+  for (const item of bottles) {
+    if (typeof item !== 'object' || item === null) continue;
+    const b = item as Record<string, unknown>;
+    const name = typeof b.name === 'string' ? b.name.trim().slice(0, 120) : '';
+    if (!name) continue;
+    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const type = WHISKEY_TYPES.includes(b.type as WhiskeyType) ? (b.type as WhiskeyType) : 'other';
+    const proofNum = typeof b.proof === 'number' && b.proof > 1 && b.proof <= 200 ? b.proof : undefined;
+    const confidence =
+      b.confidence === 'high' || b.confidence === 'medium' || b.confidence === 'low'
+        ? b.confidence
+        : 'low';
+    out.push({
+      name,
+      distillery: typeof b.distillery === 'string' ? b.distillery.trim().slice(0, 80) : '',
+      type,
+      proof: proofNum,
+      confidence,
+    });
+    if (out.length >= 40) break;
+  }
+  return out;
+}
+
+/**
+ * Read a shelf/bar photo and identify every whiskey bottle visible.
+ * Returns a validated, deduplicated list (max 40) for user review —
+ * nothing is added to the collection without confirmation.
+ */
+export async function identifyBottlesFromPhoto(
+  apiKey: string,
+  base64Image: string,
+  mediaType: 'image/jpeg' | 'image/png' = 'image/jpeg'
+): Promise<IdentifiedBottle[]> {
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  const response = await client.messages.create({
+    model: 'claude-opus-4-8',
+    max_tokens: 4096,
+    system:
+      'You are a whiskey identification expert. Identify every distinct whiskey bottle ' +
+      'visible in the photo from its label, bottle shape, and any readable text. Use exact ' +
+      'bottling names (e.g. "Elijah Craig Barrel Proof", not "Elijah Craig"). Skip bottles ' +
+      'that are not whiskey (wine, gin, mixers). If a label is partially hidden, still ' +
+      'identify it when reasonably confident and mark confidence accordingly. Do not invent ' +
+      'bottles that are not visible.',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType, data: base64Image },
+          },
+          {
+            type: 'text',
+            text: 'Identify all whiskey bottles on this shelf/bar.',
+          },
+        ],
+      },
+    ],
+    output_config: { format: { type: 'json_schema', schema: SHELF_SCHEMA } },
+  });
+
+  const text = response.content.find(
+    (block): block is Anthropic.TextBlock => block.type === 'text'
+  )?.text;
+  if (!text) return [];
+  return validateIdentifiedBottles(JSON.parse(text));
+}

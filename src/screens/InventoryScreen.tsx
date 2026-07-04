@@ -75,9 +75,15 @@ export default function InventoryScreen() {
             Scan a bottle's barcode or add one manually to start building your collection.
           </Text>
           <Button
-            title="Add a bottle manually"
-            onPress={() => navigation.navigate('AddBottle', {})}
+            title="📸 Bulk add from a shelf photo"
+            onPress={() => navigation.navigate('BulkAdd')}
             style={{ marginTop: 20 }}
+          />
+          <Button
+            title="Add a bottle manually"
+            variant="secondary"
+            onPress={() => navigation.navigate('AddBottle', {})}
+            style={{ marginTop: 10 }}
           />
         </View>
       ) : (
@@ -89,7 +95,19 @@ export default function InventoryScreen() {
             contentContainerStyle={{ paddingBottom: 90 }}
           />
           <View style={styles.fabWrap}>
-            <Button title="+ Add manually" onPress={() => navigation.navigate('AddBottle', {})} />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Button
+                title="📸 Bulk add"
+                onPress={() => navigation.navigate('BulkAdd')}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="+ Add manually"
+                variant="secondary"
+                onPress={() => navigation.navigate('AddBottle', {})}
+                style={{ flex: 1 }}
+              />
+            </View>
           </View>
         </>
       )}
