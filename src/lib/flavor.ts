@@ -118,10 +118,36 @@ function queryWordsFor(query: string): { q: string; words: string[] } {
   return { q, words };
 }
 
+/**
+ * Per-record normalized search text, computed once and cached. Without this,
+ * every keystroke re-runs the normalize regex over every record — the single
+ * biggest cost as the database grows. Keyed by record identity so both the
+ * static DB and the runtime-learned library are covered, and entries are
+ * garbage-collected with their records.
+ */
+interface RecordSearchText {
+  full: string;
+  fullWords: Set<string>;
+  nameNorm: string;
+}
+const searchTextCache = new WeakMap<WhiskeyRecord, RecordSearchText>();
+
+function searchTextFor(record: WhiskeyRecord): RecordSearchText {
+  const cached = searchTextCache.get(record);
+  if (cached) return cached;
+  const full = normalizeName(`${record.name} ${record.distillery}`);
+  const value: RecordSearchText = {
+    full,
+    fullWords: new Set(full.split(' ')),
+    nameNorm: normalizeName(record.name),
+  };
+  searchTextCache.set(record, value);
+  return value;
+}
+
 /** Score one reference record against pre-computed query words. */
 function scoreRecord(record: WhiskeyRecord, q: string, qWords: string[]): number {
-  const target = normalizeName(`${record.name} ${record.distillery}`);
-  const targetWords = new Set(target.split(' '));
+  const { full: target, fullWords: targetWords, nameNorm } = searchTextFor(record);
   let score = 0;
   for (const w of qWords) {
     if (STOPWORDS.has(w)) {
@@ -134,7 +160,7 @@ function scoreRecord(record: WhiskeyRecord, q: string, qWords: string[]): number
     }
   }
   // Exact full-name containment is a strong signal.
-  if (normalizeName(record.name).includes(q) || q.includes(normalizeName(record.name))) {
+  if (nameNorm.includes(q) || q.includes(nameNorm)) {
     score += 3;
   }
   return score;
