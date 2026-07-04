@@ -10,13 +10,22 @@ import {
   View,
 } from 'react-native';
 
-import { Button, FlavorBars, RarityBadge, TypeBadge } from '../components';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import {
+  Button,
+  FlavorBars,
+  FlavorRadar,
+  RarityBadge,
+  TypeBadge,
+  TypeIcon,
+} from '../components';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_COLORS, RARITY_LABELS, RARITY_ORDER } from '../lib/rarity';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
-import { colors } from '../theme';
+import { colors, gradients, radius, spacing } from '../theme';
 import { FlavorSource } from '../types';
 
 type Route = RouteProp<RootStackParamList, 'BottleDetail'>;
@@ -79,17 +88,27 @@ export default function BottleDetailScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <View style={styles.headerRow}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <LinearGradient colors={gradients.hero} style={styles.hero}>
+        <View style={styles.heroTopRow}>
+          <TypeIcon type={bottle.type} size={52} />
+          <View style={styles.heroBadges}>
+            <TypeBadge type={bottle.type} />
+            <RarityBadge rarity={bottle.rarity} size={30} />
+          </View>
+        </View>
         <Text style={styles.name}>{bottle.name}</Text>
-        <TypeBadge type={bottle.type} />
-        <RarityBadge rarity={bottle.rarity} />
-      </View>
-      <Text style={styles.sub}>
-        {bottle.distillery} · {bottle.proof} proof
-        {bottle.barcode ? ` · UPC ${bottle.barcode}` : ''}
-      </Text>
-      {!!variantLine && <Text style={styles.variant}>{variantLine}</Text>}
+        <Text style={styles.sub}>
+          {bottle.distillery} · {bottle.proof} proof
+          {bottle.barcode ? ` · UPC ${bottle.barcode}` : ''}
+        </Text>
+        {!!variantLine && <Text style={styles.variant}>{variantLine}</Text>}
+      </LinearGradient>
+      <View style={{ paddingHorizontal: spacing.lg }}>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Rarity tier</Text>
@@ -234,7 +253,10 @@ export default function BottleDetailScreen() {
           </View>
         ) : (
           <>
-            <FlavorBars profile={bottle.flavor} />
+            <FlavorRadar profile={bottle.flavor} size={260} />
+            <View style={{ marginTop: spacing.md }}>
+              <FlavorBars profile={bottle.flavor} />
+            </View>
             <Text style={styles.estimate}>{SOURCE_LABELS[bottle.flavorSource ?? (bottle.refId ? 'db' : 'default')]}</Text>
           </>
         )}
@@ -267,21 +289,36 @@ export default function BottleDetailScreen() {
         </View>
       </View>
 
-      <Button
-        title="Remove from bar"
-        variant="danger"
-        onPress={confirmDelete}
-        style={{ marginTop: 8 }}
-      />
+        <Button
+          title="Remove from bar"
+          icon="trash"
+          variant="danger"
+          onPress={confirmDelete}
+          style={{ marginTop: spacing.md }}
+        />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { color: colors.text, fontSize: 24, fontWeight: '800', flex: 1, marginRight: 10 },
-  sub: { color: colors.amberBright, marginTop: 6 },
+  hero: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  heroBadges: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  name: { color: colors.text, fontSize: 25, fontWeight: '800', letterSpacing: 0.2 },
+  sub: { color: colors.amberBright, marginTop: 6, fontSize: 13.5 },
   variant: { color: colors.amber, marginTop: 4, fontWeight: '700', fontSize: 13 },
   section: {
     backgroundColor: colors.card,

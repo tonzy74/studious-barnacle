@@ -1,9 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { Text } from 'react-native';
 
 import { RootStackParamList, TabParamList } from './src/navigation';
 import AddBottleScreen from './src/screens/AddBottleScreen';
@@ -21,13 +21,13 @@ import { colors } from './src/theme';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const TAB_ICONS: Record<keyof TabParamList, string> = {
-  Bar: '🥃',
-  Scan: '📷',
-  Pour: '🎲',
-  Pair: '💬',
-  Match: '🤝',
-  Trade: '🔁',
+const TAB_ICONS: Record<keyof TabParamList, keyof typeof Ionicons.glyphMap> = {
+  Bar: 'wine',
+  Scan: 'scan',
+  Pour: 'shuffle',
+  Pair: 'chatbubbles',
+  Match: 'people',
+  Trade: 'swap-horizontal',
 };
 
 function Tabs() {
@@ -36,15 +36,21 @@ function Tabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.card,
+          backgroundColor: colors.bgElevated,
           borderTopColor: colors.border,
+          height: 60,
+          paddingTop: 6,
+          paddingBottom: 8,
         },
-        tabBarActiveTintColor: colors.amber,
-        tabBarInactiveTintColor: colors.textDim,
-        tabBarIcon: ({ focused }) => (
-          <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.5 }}>
-            {TAB_ICONS[route.name as keyof TabParamList]}
-          </Text>
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.3 },
+        tabBarActiveTintColor: colors.amberBright,
+        tabBarInactiveTintColor: colors.textFaint,
+        tabBarIcon: ({ focused, color }) => (
+          <Ionicons
+            name={TAB_ICONS[route.name as keyof TabParamList]}
+            size={focused ? 24 : 22}
+            color={color}
+          />
         ),
       })}
     >

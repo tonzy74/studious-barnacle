@@ -1,89 +1,130 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, RarityBadge, TypeBadge } from '../components';
+import { Button, Card, RarityBadge, StatTile, TypeBadge, TypeIcon } from '../components';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
-import { colors } from '../theme';
+import { colors, gradients, radius, spacing, type as typo } from '../theme';
 import { Bottle } from '../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function InventoryScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const collectionValue = bottles.reduce((sum, b) => {
     const fair = fairPrice(b.msrp, b.secondary, b.rarity);
     return sum + (fair ?? 0) * Math.max(1, b.quantity);
   }, 0);
+  const openCount = bottles.filter((b) => b.opened).length;
 
-  const renderItem = ({ item }: { item: Bottle }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('BottleDetail', { id: item.id })}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.name} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <TypeBadge type={item.type} />
-        <RarityBadge rarity={item.rarity} />
-      </View>
-      <Text style={styles.sub}>
-        {item.distillery} · {item.proof} proof · {item.opened ? 'Open' : 'Sealed'}
-        {item.quantity > 1 ? ` · x${item.quantity}` : ''}
-      </Text>
-      {(item.batch || item.pickName || item.barrelNo) && (
-        <Text style={styles.variant}>
-          {[
-            item.batch ? `Batch ${item.batch}` : '',
-            item.barrelNo ? `Barrel #${item.barrelNo}` : '',
-            item.pickName ? `${item.pickName} pick` : '',
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </Text>
-      )}
-      <Text style={styles.notes} numberOfLines={2}>
-        {item.notes}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: { item: Bottle }) => {
+    const fair = fairPrice(item.msrp, item.secondary, item.rarity);
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('BottleDetail', { id: item.id })}
+      >
+        <Card style={styles.card}>
+          <View style={styles.cardRow}>
+            <TypeIcon type={item.type} size={44} />
+            <View style={{ flex: 1, marginLeft: spacing.md }}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <RarityBadge rarity={item.rarity} size={26} />
+              </View>
+              <Text style={styles.sub} numberOfLines={1}>
+                {item.distillery} · {item.proof} proof
+                {item.quantity > 1 ? ` · x${item.quantity}` : ''}
+              </Text>
+              <View style={styles.metaRow}>
+                <TypeBadge type={item.type} />
+                <View style={styles.openChip}>
+                  <Ionicons
+                    name={item.opened ? 'ellipse-outline' : 'lock-closed'}
+                    size={10}
+                    color={item.opened ? colors.textDim : colors.success}
+                  />
+                  <Text style={styles.openChipText}>{item.opened ? 'Open' : 'Sealed'}</Text>
+                </View>
+                {fair !== undefined && <Text style={styles.value}>{formatUsd(fair)}</Text>}
+              </View>
+            </View>
+          </View>
+          {(item.batch || item.pickName || item.barrelNo) && (
+            <Text style={styles.variant} numberOfLines={1}>
+              {[
+                item.batch ? `Batch ${item.batch}` : '',
+                item.barrelNo ? `Barrel #${item.barrelNo}` : '',
+                item.pickName ? `${item.pickName} pick` : '',
+              ]
+                .filter(Boolean)
+                .join('  ·  ')}
+            </Text>
+          )}
+        </Card>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <LinearGradient colors={gradients.screen} style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <View>
+          <Text style={styles.eyebrow}>WHISKEY VAULT</Text>
           <Text style={styles.title}>My Bar</Text>
-          <Text style={styles.count}>
-            {bottles.length} bottle{bottles.length === 1 ? '' : 's'}
-            {collectionValue > 0 ? ` · est. value ${formatUsd(collectionValue)}` : ''}
-          </Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-          <Text style={styles.settings}>⚙︎</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Settings')}
+          style={styles.gearButton}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="settings-outline" size={20} color={colors.amberBright} />
         </TouchableOpacity>
       </View>
 
+      {bottles.length > 0 && (
+        <View style={styles.statsRow}>
+          <StatTile label="Bottles" value={String(bottles.length)} icon="wine" />
+          <StatTile
+            label="Est. Value"
+            value={collectionValue > 0 ? formatUsd(collectionValue) : '—'}
+            icon="pricetag"
+          />
+          <StatTile label="Open" value={String(openCount)} icon="ellipse-outline" />
+        </View>
+      )}
+
       {bottles.length === 0 ? (
         <View style={styles.empty}>
+          <View style={styles.emptyGlyph}>
+            <Ionicons name="wine-outline" size={44} color={colors.amber} />
+          </View>
           <Text style={styles.emptyTitle}>Your bar is empty</Text>
           <Text style={styles.emptyText}>
-            Scan a bottle's barcode or add one manually to start building your collection.
+            Scan a bottle's barcode or snap your whole shelf to start building your collection.
           </Text>
           <Button
-            title="📸 Bulk add from a shelf photo"
+            title="Bulk add from a shelf photo"
+            icon="camera"
             onPress={() => navigation.navigate('BulkAdd')}
-            style={{ marginTop: 20 }}
+            style={{ marginTop: spacing.xl, alignSelf: 'stretch' }}
           />
           <Button
             title="Add a bottle manually"
+            icon="add"
             variant="secondary"
             onPress={() => navigation.navigate('AddBottle', {})}
-            style={{ marginTop: 10 }}
+            style={{ marginTop: spacing.md, alignSelf: 'stretch' }}
           />
         </View>
       ) : (
@@ -92,56 +133,86 @@ export default function InventoryScreen() {
             data={bottles}
             keyExtractor={(b) => b.id}
             renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 90 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 100, paddingTop: spacing.xs }}
           />
-          <View style={styles.fabWrap}>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Button
-                title="📸 Bulk add"
-                onPress={() => navigation.navigate('BulkAdd')}
-                style={{ flex: 1 }}
-              />
-              <Button
-                title="+ Add manually"
-                variant="secondary"
-                onPress={() => navigation.navigate('AddBottle', {})}
-                style={{ flex: 1 }}
-              />
-            </View>
+          <View style={[styles.fabWrap, { bottom: spacing.lg }]}>
+            <Button
+              title="Bulk add"
+              icon="camera"
+              onPress={() => navigation.navigate('BulkAdd')}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Add"
+              icon="add"
+              variant="secondary"
+              onPress={() => navigation.navigate('AddBottle', {})}
+              style={{ flex: 1 }}
+            />
           </View>
         </>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
+  container: { flex: 1, paddingHorizontal: spacing.lg },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 8,
+    alignItems: 'flex-end',
+    marginBottom: spacing.md,
   },
-  title: { color: colors.text, fontSize: 28, fontWeight: '800' },
-  count: { color: colors.textDim, marginTop: 2 },
-  settings: { color: colors.textDim, fontSize: 26 },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
+  eyebrow: { ...typo.overline, color: colors.amberDeep },
+  title: { ...typo.display, color: colors.text, marginTop: 2 },
+  gearButton: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  card: { marginBottom: spacing.md, padding: spacing.md },
+  cardRow: { flexDirection: 'row', alignItems: 'center' },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { color: colors.text, fontSize: 17, fontWeight: '700', flex: 1, marginRight: 8 },
-  sub: { color: colors.amberBright, marginTop: 4, fontSize: 13 },
-  variant: { color: colors.amber, marginTop: 3, fontSize: 12, fontWeight: '700' },
-  notes: { color: colors.textDim, marginTop: 6, fontSize: 13, lineHeight: 18 },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
-  emptyTitle: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  emptyText: { color: colors.textDim, textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  fabWrap: { position: 'absolute', bottom: 16, left: 16, right: 16 },
+  name: { color: colors.text, fontSize: 16, fontWeight: '700', flex: 1, marginRight: spacing.sm },
+  sub: { color: colors.textDim, marginTop: 3, fontSize: 12.5 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  openChip: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  openChipText: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
+  value: { color: colors.amberBright, fontSize: 13, fontWeight: '800', marginLeft: 'auto' },
+  variant: {
+    color: colors.amber,
+    marginTop: spacing.sm,
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg },
+  emptyGlyph: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: { ...typo.title, color: colors.text },
+  emptyText: { color: colors.textDim, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 },
+  fabWrap: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
 });
