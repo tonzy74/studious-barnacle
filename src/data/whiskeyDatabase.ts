@@ -2,6 +2,7 @@ import { FlavorProfile, WhiskeyRecord, WhiskeyType } from '../types';
 import { assignRarity } from '../lib/rarity';
 import { lookupPricing } from '../lib/pricing';
 import { expandHouses } from './generator';
+import { generatePicks } from './picks';
 import { AMERICAN_MAJORS } from './houses/americanMajors';
 import { AMERICAN_CRAFT } from './houses/americanCraft';
 import { SCOTCH_SPEYSIDE_HIGHLAND } from './houses/scotchSpeysideHighland';
@@ -245,7 +246,8 @@ function normKey(name: string): string {
 export const WHISKEY_DB: WhiskeyRecord[] = (() => {
   const seen = new Set(CURATED_DB.map((r) => normKey(r.name)));
   const merged = [...CURATED_DB];
-  for (const record of GENERATED_DB) {
+  // Generated houses first, then the large single-barrel / store-pick catalog.
+  for (const record of [...GENERATED_DB, ...generatePicks()]) {
     const key = normKey(record.name);
     if (!seen.has(key)) {
       seen.add(key);

@@ -135,11 +135,15 @@ const searchTextCache = new WeakMap<WhiskeyRecord, RecordSearchText>();
 function searchTextFor(record: WhiskeyRecord): RecordSearchText {
   const cached = searchTextCache.get(record);
   if (cached) return cached;
-  const full = normalizeName(`${record.name} ${record.distillery}`);
+  // Store picks carry a "— Retailer Pick #1234" suffix that identifies the
+  // barrel, not the whiskey. Match only on the base bottling name (before the
+  // em-dash) so retailer words never create spurious matches.
+  const baseName = record.name.split('—')[0];
+  const full = normalizeName(`${baseName} ${record.distillery}`);
   const value: RecordSearchText = {
     full,
     fullWords: new Set(full.split(' ')),
-    nameNorm: normalizeName(record.name),
+    nameNorm: normalizeName(baseName),
   };
   searchTextCache.set(record, value);
   return value;

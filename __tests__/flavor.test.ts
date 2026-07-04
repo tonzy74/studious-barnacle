@@ -34,11 +34,14 @@ function bottleFrom(recordId: string, overrides: Partial<Bottle> = {}): Bottle {
 }
 
 describe('whiskey database', () => {
-  it('has expanded to a large catalog', () => {
+  it('has expanded to a large, American-skewed catalog', () => {
     const byType: Record<string, number> = {};
     for (const r of WHISKEY_DB) byType[r.type] = (byType[r.type] ?? 0) + 1;
     console.log(`WHISKEY_DB total: ${WHISKEY_DB.length}`, byType);
-    expect(WHISKEY_DB.length).toBeGreaterThanOrEqual(1000);
+    expect(WHISKEY_DB.length).toBeGreaterThanOrEqual(10000);
+    const american = (byType.bourbon ?? 0) + (byType.rye ?? 0) + (byType.tennessee ?? 0);
+    // American whiskeys should dominate the catalog.
+    expect(american / WHISKEY_DB.length).toBeGreaterThan(0.7);
   });
 
   it('has valid flavor values on every record', () => {
