@@ -69,7 +69,7 @@ export default function TradeScreen() {
   const setTheirValue = (index: number, text: string) => {
     const v = parseFloat(text);
     setTheirItems((prev) =>
-      prev.map((it, i) => (i === index ? { ...it, value: isNaN(v) ? 0 : v } : it))
+      prev.map((it, i) => (i === index ? { ...it, value: Number.isFinite(v) ? Math.max(0, v) : 0 } : it))
     );
     setShowVerdict(false);
   };

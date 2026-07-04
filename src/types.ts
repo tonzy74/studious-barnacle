@@ -18,6 +18,9 @@ export interface ConsentSettings {
   /**
    * Sharing/sale of data to third parties. Requires the iOS App Tracking
    * Transparency prompt to have been granted — both must be true.
+   * IMPORTANT: any future flush/share implementation must re-check
+   * getTrackingPermissionsAsync() at send time — the user can revoke
+   * tracking in iOS Settings without this flag updating.
    */
   sellShare: boolean;
   /** When the user last made a consent choice (for audit). */

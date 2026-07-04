@@ -39,7 +39,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Whiskey Vault uses your photos so you can bulk-add bottles from a picture of your shelf.",
-          "cameraPermission": "Whiskey Vault uses the camera to photograph your shelf for bulk adding."
+          "cameraPermission": "Whiskey Vault uses the camera to photograph your shelf for bulk adding.",
+          "microphonePermission": false
         }
       ],
       "expo-secure-store"

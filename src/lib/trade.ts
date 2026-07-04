@@ -66,9 +66,10 @@ export function evaluateTrade(opts: {
   myCash?: number;
   theirCash?: number;
 }): TradeEvaluation {
-  const sum = (xs: number[]) => xs.reduce((a, b) => a + (isFinite(b) ? Math.max(0, b) : 0), 0);
-  const myTotal = Math.round(sum(opts.myBottleValues) + Math.max(0, opts.myCash ?? 0));
-  const theirTotal = Math.round(sum(opts.theirBottleValues) + Math.max(0, opts.theirCash ?? 0));
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + (Number.isFinite(b) ? Math.max(0, b) : 0), 0);
+  const cash = (c?: number) => (Number.isFinite(c ?? 0) ? Math.max(0, c ?? 0) : 0);
+  const myTotal = Math.round(sum(opts.myBottleValues) + cash(opts.myCash));
+  const theirTotal = Math.round(sum(opts.theirBottleValues) + cash(opts.theirCash));
   const delta = theirTotal - myTotal;
   const band = Math.max(myTotal, theirTotal, 1) * FAIRNESS_BAND;
 

@@ -92,7 +92,19 @@ export const useStore = create<VaultState>()(
         }),
       setProfile: (profile) => set({ profile }),
       setConsent: (patch) =>
-        set((s) => ({ consent: { ...s.consent, ...patch, decidedAt: Date.now() } })),
+        set((s) => {
+          const next: Partial<VaultState> = {
+            consent: { ...s.consent, ...patch, decidedAt: Date.now() },
+          };
+          // Withdrawing consent stops processing of what was collected:
+          // purge the queue and rotate the anon ID so a later re-opt-in
+          // isn't linkable to the prior corpus (GDPR withdrawal semantics).
+          if (patch.analytics === false) {
+            next.events = [];
+            next.anonId = newAnonId();
+          }
+          return next;
+        }),
       track: (name, props = {}) =>
         set((s) => {
           if (!s.consent.analytics) return s;
@@ -151,9 +163,13 @@ async function restoreApiKey(legacyKey?: string): Promise<void> {
     // plaintext key out of AsyncStorage.
     useStore.setState({ apiKey: stored });
   } catch {
-    // Keychain unavailable (rare) — fall back to what the old blob had so
-    // the feature keeps working; it will migrate on a later launch.
-    if (legacyKey) useStore.setState({ apiKey: legacyKey });
+    // Keychain unavailable (rare). Keep the key working in memory and retry
+    // the Keychain write once — if that also fails, the worst case is the
+    // user re-enters the key (never silent plaintext retention).
+    if (legacyKey) {
+      SecureStore.setItemAsync(API_KEY_KEYCHAIN_ID, legacyKey).catch(() => {});
+      useStore.setState({ apiKey: legacyKey });
+    }
   }
 }
 

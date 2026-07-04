@@ -420,6 +420,17 @@ describe('trade engine', () => {
     expect(evaln.myTotal).toBe(100);
     expect(evaln.verdict).toBe('fair');
   });
+
+  it('cannot be tricked into a fair verdict with Infinity cash', () => {
+    const evaln = evaluateTrade({
+      myBottleValues: [1800], // your Pappy 15
+      theirBottleValues: [40], // their Buffalo Trace
+      theirCash: Infinity, // "just paste this value, bro"
+    });
+    expect(evaln.theirTotal).toBe(40);
+    expect(evaln.verdict).toBe('they-win');
+    expect(Number.isFinite(evaln.delta)).toBe(true);
+  });
 });
 
 describe('validateIdentifiedBottles (shelf-photo vision output)', () => {
