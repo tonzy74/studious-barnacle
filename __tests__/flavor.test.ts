@@ -4,6 +4,7 @@ import {
   cosineSimilarity,
   findWhiskeyByBarcode,
   findWhiskeyByName,
+  findWhiskeyCandidates,
   matchCollection,
   randomPour,
   scaleProfileForProof,
@@ -142,6 +143,31 @@ describe('findWhiskeyByName', () => {
     expect(findWhiskeyByName('gts')?.name).toBe('George T. Stagg');
     expect(findWhiskeyByName('wlw')?.name).toBe('William Larue Weller');
     expect(findWhiskeyByName('sftb')?.name).toBe("Blanton's Straight From The Barrel");
+  });
+});
+
+describe('findWhiskeyCandidates', () => {
+  it('returns a ranked list, best match first', () => {
+    const c = findWhiskeyCandidates('weller');
+    expect(c.length).toBeGreaterThan(1);
+    // Sorted by descending score.
+    for (let i = 1; i < c.length; i++) {
+      expect(c[i - 1].score).toBeGreaterThanOrEqual(c[i].score);
+    }
+    // The single-best helper agrees with candidates[0].
+    expect(findWhiskeyByName('weller')?.id).toBe(c[0].record.id);
+  });
+
+  it('offers multiple Weller expressions to correct a wrong guess', () => {
+    const ids = findWhiskeyCandidates('weller').map((c) => c.record.id);
+    expect(new Set(ids).size).toBe(ids.length); // no duplicates
+    expect(ids.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('respects the limit and rejects nonsense', () => {
+    expect(findWhiskeyCandidates('bourbon', [], 3).length).toBeLessThanOrEqual(3);
+    expect(findWhiskeyCandidates('zzzz qqqq')).toHaveLength(0);
+    expect(findWhiskeyCandidates('')).toHaveLength(0);
   });
 });
 

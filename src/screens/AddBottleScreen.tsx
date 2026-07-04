@@ -16,12 +16,17 @@ import {
 import { Button } from '../components';
 import { WHISKEY_DB } from '../data/whiskeyDatabase';
 import { EstimatedProfile, estimateFlavorProfile } from '../lib/claude';
-import { defaultProfileFor, findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
+import {
+  defaultProfileFor,
+  findWhiskeyByName,
+  findWhiskeyCandidates,
+  scaleProfileForProof,
+} from '../lib/flavor';
 import { buildLearnedRecord } from '../lib/library';
 import { RootStackParamList } from '../navigation';
 import { newBottleId, useStore } from '../store/useStore';
 import { colors } from '../theme';
-import { WhiskeyType } from '../types';
+import { WhiskeyRecord, WhiskeyType } from '../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'AddBottle'>;
@@ -65,19 +70,24 @@ export default function AddBottleScreen() {
 
   // Live-match the typed name against the reference DB so known bottles pick
   // up professional tasting notes and a real flavor profile automatically.
-  const dbMatch = useMemo(
-    () => (prefillRef ? prefillRef : findWhiskeyByName(name, learned)),
-    [name, prefillRef, learned]
+  // We keep the full ranked list so the user can correct a wrong guess by
+  // picking a different candidate ("what else it could be").
+  const candidates = useMemo(
+    () => (name.trim().length >= 3 ? findWhiskeyCandidates(name, learned) : []),
+    [name, learned]
   );
+  const dbMatch = prefillRef ?? candidates[0]?.record;
   const matched = !!dbMatch && dbMatch.name === name;
+  // Alternate bottlings other than the one currently applied.
+  const alternates = candidates.filter((c) => c.record.id !== dbMatch?.id).slice(0, 5);
 
-  const applyMatch = () => {
-    if (!dbMatch) return;
-    setName(dbMatch.name);
-    setDistillery(dbMatch.distillery);
-    setType(dbMatch.type);
-    setProof(String(dbMatch.proof));
-    setNotes(dbMatch.notes);
+  const applyMatch = (record: WhiskeyRecord | undefined = dbMatch) => {
+    if (!record) return;
+    setName(record.name);
+    setDistillery(record.distillery);
+    setType(record.type);
+    setProof(String(record.proof));
+    setNotes(record.notes);
     setEstimate(undefined);
   };
 
@@ -202,9 +212,9 @@ export default function AddBottleScreen() {
         />
 
         {dbMatch && !matched && (
-          <TouchableOpacity style={styles.matchBanner} onPress={applyMatch}>
+          <TouchableOpacity style={styles.matchBanner} onPress={() => applyMatch()}>
             <Text style={styles.matchText}>
-              Found in database: {dbMatch.name} — tap to use its tasting profile
+              Best match: {dbMatch.name} — tap to use its tasting profile
             </Text>
           </TouchableOpacity>
         )}
@@ -216,6 +226,28 @@ export default function AddBottleScreen() {
               ? '(profile will be scaled to your proof)'
               : ''}
           </Text>
+        )}
+
+        {alternates.length > 0 && (
+          <View style={styles.alternatesBox}>
+            <Text style={styles.alternatesTitle}>Not the right bottle? Pick the correct one:</Text>
+            {alternates.map((c) => (
+              <TouchableOpacity
+                key={c.record.id}
+                style={styles.alternateRow}
+                onPress={() => applyMatch(c.record)}
+              >
+                <Text style={styles.alternateName}>{c.record.name}</Text>
+                <Text style={styles.alternateMeta}>
+                  {c.record.distillery} · {c.record.proof} proof
+                  {c.record.rarity ? ` · ${c.record.rarity}-tier` : ''}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <Text style={styles.alternatesHint}>
+              …or just edit the fields below — anything you type is saved as-is.
+            </Text>
+          </View>
         )}
 
         {!dbMatch && name.trim().length >= 4 && (
@@ -380,6 +412,23 @@ const styles = StyleSheet.create({
   },
   matchText: { color: colors.amberBright, fontSize: 13 },
   sourceNote: { color: colors.success, fontSize: 13, marginTop: 8 },
+  alternatesBox: {
+    backgroundColor: colors.cardAlt,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  alternatesTitle: { color: colors.text, fontWeight: '700', fontSize: 13, marginBottom: 4 },
+  alternateRow: {
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  alternateName: { color: colors.amberBright, fontSize: 14, fontWeight: '600' },
+  alternateMeta: { color: colors.textDim, fontSize: 12, marginTop: 2 },
+  alternatesHint: { color: colors.textDim, fontSize: 12, marginTop: 8, fontStyle: 'italic' },
   estimateBox: {
     backgroundColor: colors.cardAlt,
     borderRadius: 10,

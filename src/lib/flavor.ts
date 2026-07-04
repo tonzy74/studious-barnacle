@@ -103,49 +103,78 @@ const STOPWORDS = new Set([
 ]);
 
 /**
+ * Reduce a raw query to the significant words used for matching: drop batch
+ * codes and pick vocabulary so "ECBP batch C923" or "Blanton's Total Wine
+ * pick" still resolve to the base bottling, and expand collector shorthand
+ * ("ecbp", "gts", "wlw").
+ */
+function queryWordsFor(query: string): { q: string; words: string[] } {
+  const q = normalizeName(query);
+  if (!q) return { q, words: [] };
+  const words = q
+    .split(' ')
+    .filter((w) => !isBatchCode(w) && !VARIANT_WORDS.has(w))
+    .flatMap((w) => (ALIASES[w] ? ALIASES[w].split(' ') : [w]));
+  return { q, words };
+}
+
+/** Score one reference record against pre-computed query words. */
+function scoreRecord(record: WhiskeyRecord, q: string, qWords: string[]): number {
+  const target = normalizeName(`${record.name} ${record.distillery}`);
+  const targetWords = new Set(target.split(' '));
+  let score = 0;
+  for (const w of qWords) {
+    if (STOPWORDS.has(w)) {
+      // Generic words only break ties, they can't establish a match.
+      if (targetWords.has(w)) score += 0.25;
+    } else if (targetWords.has(w)) {
+      score += 2;
+    } else if (w.length >= 4 && target.includes(w)) {
+      score += 1;
+    }
+  }
+  // Exact full-name containment is a strong signal.
+  if (normalizeName(record.name).includes(q) || q.includes(normalizeName(record.name))) {
+    score += 3;
+  }
+  return score;
+}
+
+/** A ranked reference match with its raw relevance score. */
+export interface WhiskeyCandidate {
+  record: WhiskeyRecord;
+  score: number;
+}
+
+/**
+ * Rank the reference database against a query, best first. Powers the "not
+ * the right bottle?" corrections list — the scanner's single best guess is
+ * just candidates[0], and the user can pick any of the alternates.
+ */
+export function findWhiskeyCandidates(
+  query: string,
+  extraDb: WhiskeyRecord[] = [],
+  limit = 6
+): WhiskeyCandidate[] {
+  const { q, words } = queryWordsFor(query);
+  if (words.length === 0) return [];
+  const scored: WhiskeyCandidate[] = [];
+  for (const record of [...WHISKEY_DB, ...extraDb]) {
+    const score = scoreRecord(record, q, words);
+    // Require at least one solid word match to avoid nonsense matches.
+    if (score >= 2) scored.push({ record, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit);
+}
+
+/**
  * Fuzzy-match a user-typed whiskey name against the reference database.
  * Scores on shared word overlap so "weller" finds W.L. Weller Special Reserve
  * and "elijah craig bp" finds Elijah Craig Barrel Proof.
  */
 export function findWhiskeyByName(query: string, extraDb: WhiskeyRecord[] = []): WhiskeyRecord | undefined {
-  const q = normalizeName(query);
-  if (!q) return undefined;
-  // Drop batch codes and pick vocabulary so "ECBP batch C923" or
-  // "Blanton's Total Wine pick" still resolve to the base bottling,
-  // and expand collector shorthand ("ecbp", "gts", "wlw").
-  const qWords = q
-    .split(' ')
-    .filter((w) => !isBatchCode(w) && !VARIANT_WORDS.has(w))
-    .flatMap((w) => (ALIASES[w] ? ALIASES[w].split(' ') : [w]));
-  if (qWords.length === 0) return undefined;
-
-  let best: WhiskeyRecord | undefined;
-  let bestScore = 0;
-  for (const record of [...WHISKEY_DB, ...extraDb]) {
-    const target = normalizeName(`${record.name} ${record.distillery}`);
-    const targetWords = new Set(target.split(' '));
-    let score = 0;
-    for (const w of qWords) {
-      if (STOPWORDS.has(w)) {
-        // Generic words only break ties, they can't establish a match.
-        if (targetWords.has(w)) score += 0.25;
-      } else if (targetWords.has(w)) {
-        score += 2;
-      } else if (w.length >= 4 && target.includes(w)) {
-        score += 1;
-      }
-    }
-    // Exact full-name containment is a strong signal.
-    if (normalizeName(record.name).includes(q) || q.includes(normalizeName(record.name))) {
-      score += 3;
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      best = record;
-    }
-  }
-  // Require at least one solid word match to avoid nonsense matches.
-  return bestScore >= 2 ? best : undefined;
+  return findWhiskeyCandidates(query, extraDb, 1)[0]?.record;
 }
 
 export function findWhiskeyByBarcode(
