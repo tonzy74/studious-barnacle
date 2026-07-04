@@ -21,6 +21,7 @@ export default function ScanScreen() {
   const learned = useStore((s) => s.learned);
   const learnRecord = useStore((s) => s.learnRecord);
   const apiKey = useStore((s) => s.apiKey);
+  const model = useStore((s) => s.model);
   const track = useStore((s) => s.track);
 
   const onScan = async (result: BarcodeScanningResult) => {
@@ -33,6 +34,7 @@ export default function ScanScreen() {
     const resolved = await resolveBarcodeAndLearn(code, {
       learned,
       apiKey: apiKey || undefined,
+      model,
       onLearn: learnRecord,
     });
     setBusy(false);

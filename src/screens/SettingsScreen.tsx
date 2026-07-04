@@ -1,15 +1,28 @@
 import * as TrackingTransparency from 'expo-tracking-transparency';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { Button } from '../components';
 import { appleSignInAvailable, signInWithApple, signOut } from '../lib/auth';
+import { CLAUDE_MODELS } from '../lib/models';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme';
 
 export default function SettingsScreen() {
   const apiKey = useStore((s) => s.apiKey);
   const setApiKey = useStore((s) => s.setApiKey);
+  const model = useStore((s) => s.model);
+  const setModel = useStore((s) => s.setModel);
   const profile = useStore((s) => s.profile);
   const setProfile = useStore((s) => s.setProfile);
   const consent = useStore((s) => s.consent);
@@ -155,6 +168,29 @@ export default function SettingsScreen() {
       />
       <Button title={saved ? 'Saved ✓' : 'Save key'} onPress={saveKey} style={{ marginTop: 10 }} />
 
+      <Text style={styles.label}>AI model</Text>
+      <Text style={styles.help}>
+        The Claude model used for profiling, vision, and chat. Opus is the most accurate for
+        reading labels and shelf photos; switch to Sonnet or Haiku if your API tier rate-limits
+        Opus or you want lower cost.
+      </Text>
+      {CLAUDE_MODELS.map((m) => {
+        const active = m.id === model;
+        return (
+          <TouchableOpacity
+            key={m.id}
+            style={[styles.modelRow, active && styles.modelRowActive]}
+            onPress={() => setModel(m.id)}
+          >
+            <Text style={[styles.modelName, active && styles.modelNameActive]}>
+              {active ? '● ' : '○ '}
+              {m.label}
+            </Text>
+            <Text style={styles.modelNote}>{m.note}</Text>
+          </TouchableOpacity>
+        );
+      })}
+
       <Text style={styles.section}>Privacy & Data</Text>
 
       <View style={styles.toggleRow}>
@@ -222,7 +258,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   body: { color: colors.text, fontSize: 15 },
+  label: { color: colors.amberBright, marginTop: 18, marginBottom: 2, fontWeight: '600' },
   help: { color: colors.textDim, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  modelRow: {
+    backgroundColor: colors.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginTop: 8,
+  },
+  modelRowActive: { borderColor: colors.amber, backgroundColor: colors.cardAlt },
+  modelName: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  modelNameActive: { color: colors.amberBright },
+  modelNote: { color: colors.textDim, fontSize: 12, marginTop: 3, lineHeight: 17 },
   input: {
     backgroundColor: colors.card,
     color: colors.text,

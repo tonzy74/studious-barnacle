@@ -16,6 +16,7 @@ import {
   MAX_QUEUED_EVENTS,
   newAnonId,
 } from '../lib/analyticsCore';
+import { DEFAULT_MODEL } from '../lib/models';
 
 /**
  * The Anthropic API key lives in the platform secure enclave (iOS Keychain /
@@ -27,6 +28,8 @@ const API_KEY_KEYCHAIN_ID = 'whiskey-vault.anthropic-key';
 interface VaultState {
   bottles: Bottle[];
   apiKey: string;
+  /** Which Claude model the AI features call (see src/lib/models.ts). */
+  model: string;
   /**
    * The self-improving library: records learned at runtime from barcode
    * scans, AI profiling, and manual adds. Searched and matched alongside the
@@ -43,6 +46,7 @@ interface VaultState {
   updateBottle: (id: string, patch: Partial<Bottle>) => void;
   removeBottle: (id: string) => void;
   setApiKey: (key: string) => void;
+  setModel: (model: string) => void;
   learnRecord: (record: WhiskeyRecord) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
@@ -57,6 +61,7 @@ export const useStore = create<VaultState>()(
     (set) => ({
       bottles: [],
       apiKey: '',
+      model: DEFAULT_MODEL,
       learned: [],
       profile: null,
       consent: { analytics: false, sellShare: false },
@@ -78,6 +83,7 @@ export const useStore = create<VaultState>()(
         }
         set({ apiKey });
       },
+      setModel: (model) => set({ model }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -118,6 +124,7 @@ export const useStore = create<VaultState>()(
         set({
           bottles: [],
           apiKey: '',
+          model: DEFAULT_MODEL,
           learned: [],
           profile: null,
           consent: { analytics: false, sellShare: false, decidedAt: Date.now() },
@@ -134,6 +141,7 @@ export const useStore = create<VaultState>()(
       partialize: (s) =>
         ({
           bottles: s.bottles,
+          model: s.model,
           learned: s.learned,
           profile: s.profile,
           consent: s.consent,

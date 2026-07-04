@@ -34,6 +34,7 @@ const CONFIDENCE_COLORS = { high: colors.success, medium: colors.amber, low: col
 export default function BulkAddScreen() {
   const navigation = useNavigation<Nav>();
   const apiKey = useStore((s) => s.apiKey);
+  const model = useStore((s) => s.model);
   const learned = useStore((s) => s.learned);
   const addBottle = useStore((s) => s.addBottle);
   const learnRecord = useStore((s) => s.learnRecord);
@@ -65,7 +66,8 @@ export default function BulkAddScreen() {
       const identified = await identifyBottlesFromPhoto(
         apiKey,
         result.assets[0].base64,
-        result.assets[0].mimeType === 'image/png' ? 'image/png' : 'image/jpeg'
+        result.assets[0].mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
+        model
       );
       if (identified.length === 0) {
         setError('No whiskey bottles identified — try a closer shot with labels facing the camera.');

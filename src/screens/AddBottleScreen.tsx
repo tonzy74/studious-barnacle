@@ -47,6 +47,7 @@ export default function AddBottleScreen() {
   const { params } = useRoute<Route>();
   const addBottle = useStore((s) => s.addBottle);
   const apiKey = useStore((s) => s.apiKey);
+  const model = useStore((s) => s.model);
   const learned = useStore((s) => s.learned);
   const learnRecord = useStore((s) => s.learnRecord);
   const track = useStore((s) => s.track);
@@ -96,12 +97,16 @@ export default function AddBottleScreen() {
     setEstimating(true);
     setEstimateError('');
     try {
-      const result = await estimateFlavorProfile(apiKey, {
-        name: name.trim(),
-        distillery: distillery.trim() || undefined,
-        type,
-        proof: parseFloat(proof) || undefined,
-      });
+      const result = await estimateFlavorProfile(
+        apiKey,
+        {
+          name: name.trim(),
+          distillery: distillery.trim() || undefined,
+          type,
+          proof: parseFloat(proof) || undefined,
+        },
+        model
+      );
       setEstimate(result);
       if (!notes.trim() && result.notes) setNotes(result.notes);
     } catch (err) {

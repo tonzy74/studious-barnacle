@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import { Bottle, ChatMsg, FlavorProfile, Rarity, WhiskeyType } from '../types';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
+import { DEFAULT_MODEL } from './models';
 import { fairPrice, formatUsd } from './pricing';
 
 function describeBottle(b: Bottle): string {
@@ -68,7 +69,8 @@ export interface ClaudeError extends Error {
 export async function askSommelier(
   apiKey: string,
   collection: Bottle[],
-  history: ChatMsg[]
+  history: ChatMsg[],
+  model: string = DEFAULT_MODEL
 ): Promise<string> {
   const client = new Anthropic({
     apiKey,
@@ -78,7 +80,7 @@ export async function askSommelier(
   });
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model,
     max_tokens: 1024,
     system: buildSystemPrompt(collection),
     messages: history.map((m) => ({
@@ -152,12 +154,13 @@ export interface EstimatedProfile {
  */
 export async function estimateFlavorProfile(
   apiKey: string,
-  bottle: { name: string; distillery?: string; type: WhiskeyType; proof?: number }
+  bottle: { name: string; distillery?: string; type: WhiskeyType; proof?: number },
+  model: string = DEFAULT_MODEL
 ): Promise<EstimatedProfile> {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model,
     max_tokens: 1024,
     system:
       'You are a whiskey expert. Rate flavor intensities on a 0-10 scale reflecting the ' +
@@ -299,12 +302,13 @@ export function validateIdentifiedBottles(raw: unknown): IdentifiedBottle[] {
 export async function identifyBottlesFromPhoto(
   apiKey: string,
   base64Image: string,
-  mediaType: 'image/jpeg' | 'image/png' = 'image/jpeg'
+  mediaType: 'image/jpeg' | 'image/png' = 'image/jpeg',
+  model: string = DEFAULT_MODEL
 ): Promise<IdentifiedBottle[]> {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model,
     max_tokens: 4096,
     system:
       'You are a whiskey identification expert. Identify every distinct whiskey bottle ' +

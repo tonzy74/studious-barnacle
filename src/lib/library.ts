@@ -35,7 +35,8 @@ function guessType(name: string, brand?: string): WhiskeyType {
  */
 export async function buildLearnedRecord(
   info: { name: string; brand?: string; type?: WhiskeyType; proof?: number; barcode?: string },
-  apiKey?: string
+  apiKey?: string,
+  model?: string
 ): Promise<WhiskeyRecord> {
   const type = info.type ?? guessType(info.name, info.brand);
   const base: WhiskeyRecord = {
@@ -54,12 +55,16 @@ export async function buildLearnedRecord(
 
   if (apiKey) {
     try {
-      const est = await estimateFlavorProfile(apiKey, {
-        name: info.name,
-        distillery: info.brand,
-        type,
-        proof: info.proof,
-      });
+      const est = await estimateFlavorProfile(
+        apiKey,
+        {
+          name: info.name,
+          distillery: info.brand,
+          type,
+          proof: info.proof,
+        },
+        model
+      );
       base.flavor = est.flavor;
       base.notes = est.notes;
       if (est.rarity) base.rarity = est.rarity;
@@ -85,6 +90,7 @@ export async function resolveBarcodeAndLearn(
   opts: {
     learned: WhiskeyRecord[];
     apiKey?: string;
+    model?: string;
     onLearn: (record: WhiskeyRecord) => void;
   }
 ): Promise<ResolveResult> {
@@ -112,7 +118,8 @@ export async function resolveBarcodeAndLearn(
 
   const record = await buildLearnedRecord(
     { name: off.name, brand: off.brand, barcode },
-    opts.apiKey
+    opts.apiKey,
+    opts.model
   );
   opts.onLearn(record);
   return { record, source: 'learned-new', name: off.name, brand: off.brand };
