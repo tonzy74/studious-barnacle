@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Whiskey Vault",
+    "slug": "whiskey-vault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#1a120b"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.whiskeyvault.app",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Whiskey Vault uses the camera to scan bottle barcodes for your inventory."
+      }
+    },
+    "android": {
+      "package": "com.whiskeyvault.app",
+      "permissions": ["CAMERA"]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Whiskey Vault uses the camera to scan bottle barcodes for your inventory."
+        }
+      ],
+      "expo-apple-authentication",
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This lets Whiskey Vault share anonymized usage statistics with partners. Your collection, name, and email are never shared."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Whiskey Vault uses your photos so you can bulk-add bottles from a picture of your shelf.",
+          "cameraPermission": "Whiskey Vault uses the camera to photograph your shelf for bulk adding."
+        }
+      ],
+      "expo-secure-store"
+    ]
+  }
+}

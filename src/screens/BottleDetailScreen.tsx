@@ -1,0 +1,308 @@
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import { Button, FlavorBars, RarityBadge, TypeBadge } from '../components';
+import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
+import { fairPrice, formatUsd } from '../lib/pricing';
+import { RARITY_COLORS, RARITY_LABELS, RARITY_ORDER } from '../lib/rarity';
+import { RootStackParamList } from '../navigation';
+import { useStore } from '../store/useStore';
+import { colors } from '../theme';
+import { FlavorSource } from '../types';
+
+type Route = RouteProp<RootStackParamList, 'BottleDetail'>;
+
+const SOURCE_LABELS: Record<FlavorSource, string> = {
+  db: 'Profile from the reference database (aggregated professional reviews).',
+  ai: 'Profile estimated by AI from professional-review knowledge.',
+  default: 'Style-typical estimate — this bottle isn\'t in the reference database.',
+  user: 'Profile customized by you.',
+};
+
+export default function BottleDetailScreen() {
+  const navigation = useNavigation();
+  const { params } = useRoute<Route>();
+  const bottle = useStore((s) => s.bottles.find((b) => b.id === params.id));
+  const updateBottle = useStore((s) => s.updateBottle);
+  const removeBottle = useStore((s) => s.removeBottle);
+  const [editing, setEditing] = useState(false);
+
+  if (!bottle) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: colors.textDim }}>Bottle not found.</Text>
+      </View>
+    );
+  }
+
+  const variantLine = [
+    bottle.batch ? `Batch ${bottle.batch}` : '',
+    bottle.barrelNo ? `Barrel #${bottle.barrelNo}` : '',
+    bottle.pickName ? `${bottle.pickName} pick` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const nudge = (axis: (typeof FLAVOR_AXES)[number], delta: number) => {
+    const next = Math.round(Math.min(10, Math.max(0, bottle.flavor[axis] + delta)) * 10) / 10;
+    updateBottle(bottle.id, {
+      flavor: { ...bottle.flavor, [axis]: next },
+      flavorSource: 'user',
+    });
+  };
+
+  const confirmDelete = () => {
+    Alert.alert('Remove bottle', `Remove ${bottle.name} from your bar?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          removeBottle(bottle.id);
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <View style={styles.headerRow}>
+        <Text style={styles.name}>{bottle.name}</Text>
+        <TypeBadge type={bottle.type} />
+        <RarityBadge rarity={bottle.rarity} />
+      </View>
+      <Text style={styles.sub}>
+        {bottle.distillery} · {bottle.proof} proof
+        {bottle.barcode ? ` · UPC ${bottle.barcode}` : ''}
+      </Text>
+      {!!variantLine && <Text style={styles.variant}>{variantLine}</Text>}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Rarity tier</Text>
+        <View style={styles.rarityRow}>
+          {RARITY_ORDER.map((tier) => (
+            <TouchableOpacity
+              key={tier}
+              style={[
+                styles.rarityChip,
+                { borderColor: RARITY_COLORS[tier] },
+                bottle.rarity === tier && { backgroundColor: RARITY_COLORS[tier] },
+              ]}
+              onPress={() => updateBottle(bottle.id, { rarity: tier })}
+            >
+              <Text
+                style={[
+                  styles.rarityChipText,
+                  { color: bottle.rarity === tier ? '#1a120b' : RARITY_COLORS[tier] },
+                ]}
+              >
+                {tier}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.estimate}>
+          {bottle.rarity ? RARITY_LABELS[bottle.rarity] : 'Tap a tier to set rarity.'}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Value (estimates — tap to edit)</Text>
+        <View style={styles.valueRow}>
+          <View style={styles.valueCol}>
+            <Text style={styles.valueLabel}>Retail</Text>
+            <TextInput
+              style={styles.valueInput}
+              defaultValue={bottle.msrp !== undefined ? String(bottle.msrp) : ''}
+              placeholder="—"
+              placeholderTextColor={colors.textDim}
+              keyboardType="decimal-pad"
+              onEndEditing={(e) => {
+                const v = parseFloat(e.nativeEvent.text);
+                updateBottle(bottle.id, { msrp: isNaN(v) ? undefined : v });
+              }}
+            />
+          </View>
+          <View style={styles.valueCol}>
+            <Text style={styles.valueLabel}>Secondary</Text>
+            <TextInput
+              style={styles.valueInput}
+              defaultValue={bottle.secondary !== undefined ? String(bottle.secondary) : ''}
+              placeholder="—"
+              placeholderTextColor={colors.textDim}
+              keyboardType="decimal-pad"
+              onEndEditing={(e) => {
+                const v = parseFloat(e.nativeEvent.text);
+                updateBottle(bottle.id, { secondary: isNaN(v) ? undefined : v });
+              }}
+            />
+          </View>
+          <View style={styles.valueCol}>
+            <Text style={styles.valueLabel}>Fair price</Text>
+            <Text style={styles.fairPrice}>
+              {formatUsd(fairPrice(bottle.msrp, bottle.secondary, bottle.rarity))}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.estimate}>
+          Fair price blends retail and secondary based on rarity — what a reasonable buyer pays
+          without getting fleeced. Prices are estimates and vary by market.
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Tasting notes</Text>
+        <Text style={styles.notes}>{bottle.notes || 'No notes yet.'}</Text>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Flavor profile</Text>
+          <TouchableOpacity onPress={() => setEditing((e) => !e)}>
+            <Text style={styles.editToggle}>{editing ? 'Done' : 'Adjust'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {editing ? (
+          <View>
+            {FLAVOR_AXES.map((axis) => (
+              <View key={axis} style={styles.editRow}>
+                <Text style={styles.editLabel}>{FLAVOR_LABELS[axis]}</Text>
+                <TouchableOpacity style={styles.stepBtn} onPress={() => nudge(axis, -0.5)}>
+                  <Text style={styles.stepText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.editValue}>{bottle.flavor[axis].toFixed(1)}</Text>
+                <TouchableOpacity style={styles.stepBtn} onPress={() => nudge(axis, 0.5)}>
+                  <Text style={styles.stepText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <Text style={styles.estimate}>
+              Adjust to how this bottle actually tastes to you — picks and batches vary. Matching
+              uses your adjusted values.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <FlavorBars profile={bottle.flavor} />
+            <Text style={styles.estimate}>{SOURCE_LABELS[bottle.flavorSource ?? (bottle.refId ? 'db' : 'default')]}</Text>
+          </>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Status</Text>
+        <View style={styles.row}>
+          <Button
+            title={bottle.opened ? 'Mark sealed' : 'Mark opened'}
+            variant="secondary"
+            onPress={() => updateBottle(bottle.id, { opened: !bottle.opened })}
+            style={{ flex: 1 }}
+          />
+        </View>
+        <View style={[styles.row, { marginTop: 10 }]}>
+          <Button
+            title="−"
+            variant="secondary"
+            onPress={() => updateBottle(bottle.id, { quantity: Math.max(0, bottle.quantity - 1) })}
+            style={{ flex: 1 }}
+          />
+          <Text style={styles.qty}>{bottle.quantity} in stock</Text>
+          <Button
+            title="+"
+            variant="secondary"
+            onPress={() => updateBottle(bottle.id, { quantity: bottle.quantity + 1 })}
+            style={{ flex: 1 }}
+          />
+        </View>
+      </View>
+
+      <Button
+        title="Remove from bar"
+        variant="danger"
+        onPress={confirmDelete}
+        style={{ marginTop: 8 }}
+      />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  name: { color: colors.text, fontSize: 24, fontWeight: '800', flex: 1, marginRight: 10 },
+  sub: { color: colors.amberBright, marginTop: 6 },
+  variant: { color: colors.amber, marginTop: 4, fontWeight: '700', fontSize: 13 },
+  section: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionTitle: { color: colors.text, fontWeight: '700', fontSize: 15 },
+  editToggle: { color: colors.amber, fontWeight: '700' },
+  notes: { color: colors.textDim, lineHeight: 20 },
+  estimate: { color: colors.textDim, fontSize: 12, marginTop: 10, fontStyle: 'italic' },
+  editRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
+  editLabel: { color: colors.textDim, flex: 1, fontSize: 14 },
+  stepBtn: {
+    backgroundColor: colors.cardAlt,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  stepText: { color: colors.amber, fontSize: 18, fontWeight: '800' },
+  editValue: { color: colors.text, width: 44, textAlign: 'center', fontWeight: '700' },
+  rarityRow: { flexDirection: 'row', gap: 8 },
+  rarityChip: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rarityChipText: { fontWeight: '900', fontSize: 16 },
+  valueRow: { flexDirection: 'row', gap: 10 },
+  valueCol: { flex: 1 },
+  valueLabel: { color: colors.textDim, fontSize: 12, marginBottom: 4 },
+  valueInput: {
+    backgroundColor: colors.cardAlt,
+    color: colors.text,
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    fontWeight: '700',
+  },
+  fairPrice: {
+    color: colors.amberBright,
+    fontWeight: '800',
+    fontSize: 16,
+    paddingVertical: 9,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  qty: { color: colors.text, fontWeight: '700', paddingHorizontal: 8 },
+});
