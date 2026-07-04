@@ -44,6 +44,7 @@ export default function AddBottleScreen() {
   const apiKey = useStore((s) => s.apiKey);
   const learned = useStore((s) => s.learned);
   const learnRecord = useStore((s) => s.learnRecord);
+  const track = useStore((s) => s.track);
 
   const prefillRef = params.refId
     ? [...WHISKEY_DB, ...learned].find((r) => r.id === params.refId)
@@ -138,6 +139,12 @@ export default function AddBottleScreen() {
       opened: false,
       quantity: 1,
       addedAt: Date.now(),
+    });
+    track('bottle_added', {
+      type,
+      rarity: (matched ? dbMatch?.rarity : estimate?.rarity) ?? 'C',
+      flavorSource,
+      matched,
     });
 
     // Self-improving library: a manual add of an unknown bottle teaches the

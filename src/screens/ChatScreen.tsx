@@ -33,6 +33,7 @@ export default function ChatScreen() {
   const navigation = useNavigation<Nav>();
   const bottles = useStore((s) => s.bottles);
   const apiKey = useStore((s) => s.apiKey);
+  const track = useStore((s) => s.track);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -45,6 +46,7 @@ export default function ChatScreen() {
     setMessages(history);
     setInput('');
     setBusy(true);
+    track('chat_message_sent', { count: history.length });
     try {
       const reply = await askSommelier(apiKey, bottles, history);
       setMessages([...history, { role: 'assistant', text: reply }]);

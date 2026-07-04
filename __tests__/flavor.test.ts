@@ -372,6 +372,33 @@ describe('learned library', () => {
   });
 });
 
+describe('analytics privacy rules', () => {
+  const { buildEvent, sanitizeEventProps } = require('../src/lib/analyticsCore');
+
+  it('drops non-allowlisted properties (no PII can enter events)', () => {
+    const props = sanitizeEventProps({
+      type: 'bourbon',
+      rarity: 'A',
+      name: 'Secret Bottle Name',
+      email: 'user@example.com',
+      notes: 'personal tasting notes',
+      count: 3,
+    });
+    expect(props).toEqual({ type: 'bourbon', rarity: 'A', count: 3 });
+  });
+
+  it('caps string lengths and rejects non-scalar values', () => {
+    const props = sanitizeEventProps({ type: 'x'.repeat(200), source: { evil: true } });
+    expect((props.type as string).length).toBe(32);
+    expect(props.source).toBeUndefined();
+  });
+
+  it('rejects unknown event names', () => {
+    expect(buildEvent('exfiltrate_everything', {}, 'anon-1')).toBeUndefined();
+    expect(buildEvent('bottle_added', { type: 'rye' }, 'anon-1')?.name).toBe('bottle_added');
+  });
+});
+
 describe('cleanExternalText', () => {
   it('strips control characters and collapses whitespace', () => {
     expect(cleanExternalText('Evil Name \n\n  Bourbon')).toBe('Evil Name Bourbon');

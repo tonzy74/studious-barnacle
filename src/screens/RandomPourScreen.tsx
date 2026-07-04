@@ -20,6 +20,7 @@ const TYPE_FILTERS: (WhiskeyType | 'any')[] = [
 
 export default function RandomPourScreen() {
   const bottles = useStore((s) => s.bottles);
+  const track = useStore((s) => s.track);
   const [type, setType] = useState<WhiskeyType | 'any'>('any');
   const [openedOnly, setOpenedOnly] = useState(false);
   const [protectAllocated, setProtectAllocated] = useState(true);
@@ -29,6 +30,7 @@ export default function RandomPourScreen() {
   const roll = () => {
     setPick(randomPour(bottles, { type, openedOnly, protectAllocated }));
     setRolled(true);
+    track('pour_rolled', { type, protectAllocated });
   };
 
   return (

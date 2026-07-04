@@ -3,7 +3,19 @@ import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { Bottle, WhiskeyRecord } from '../types';
+import {
+  AnalyticsEvent,
+  Bottle,
+  ConsentSettings,
+  UserProfile,
+  WhiskeyRecord,
+} from '../types';
+import {
+  AnalyticsEventName,
+  buildEvent,
+  MAX_QUEUED_EVENTS,
+  newAnonId,
+} from '../lib/analyticsCore';
 
 /**
  * The Anthropic API key lives in the platform secure enclave (iOS Keychain /
@@ -22,11 +34,22 @@ interface VaultState {
    * shared sync backend can be layered on later.)
    */
   learned: WhiskeyRecord[];
+  profile: UserProfile | null;
+  consent: ConsentSettings;
+  /** Anonymized, consent-gated event queue (flushed to a backend one day). */
+  events: AnalyticsEvent[];
+  anonId: string;
   addBottle: (bottle: Bottle) => void;
   updateBottle: (id: string, patch: Partial<Bottle>) => void;
   removeBottle: (id: string) => void;
   setApiKey: (key: string) => void;
   learnRecord: (record: WhiskeyRecord) => void;
+  setProfile: (profile: UserProfile | null) => void;
+  setConsent: (patch: Partial<ConsentSettings>) => void;
+  /** No-op unless the user has opted in to analytics. */
+  track: (name: AnalyticsEventName, props?: Record<string, unknown>) => void;
+  /** GDPR/CCPA erasure: wipes collection, profile, events, learned library. */
+  clearAllData: () => void;
 }
 
 export const useStore = create<VaultState>()(
@@ -35,6 +58,10 @@ export const useStore = create<VaultState>()(
       bottles: [],
       apiKey: '',
       learned: [],
+      profile: null,
+      consent: { analytics: false, sellShare: false },
+      events: [],
+      anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
       updateBottle: (id, patch) =>
         set((s) => ({
@@ -63,13 +90,44 @@ export const useStore = create<VaultState>()(
           };
           return { learned: s.learned.map((r) => (r.id === record.id ? merged : r)) };
         }),
+      setProfile: (profile) => set({ profile }),
+      setConsent: (patch) =>
+        set((s) => ({ consent: { ...s.consent, ...patch, decidedAt: Date.now() } })),
+      track: (name, props = {}) =>
+        set((s) => {
+          if (!s.consent.analytics) return s;
+          const event = buildEvent(name, props, s.anonId);
+          if (!event) return s;
+          return { events: [...s.events.slice(-(MAX_QUEUED_EVENTS - 1)), event] };
+        }),
+      clearAllData: () => {
+        SecureStore.deleteItemAsync(API_KEY_KEYCHAIN_ID).catch(() => {});
+        SecureStore.deleteItemAsync('whiskey-vault.identity-token').catch(() => {});
+        set({
+          bottles: [],
+          apiKey: '',
+          learned: [],
+          profile: null,
+          consent: { analytics: false, sellShare: false, decidedAt: Date.now() },
+          events: [],
+          anonId: newAnonId(),
+        });
+      },
     }),
     {
       name: 'whiskey-vault',
       storage: createJSONStorage(() => AsyncStorage),
       // Secrets are excluded from AsyncStorage persistence — the API key is
       // stored only in the Keychain/Keystore and restored on launch below.
-      partialize: (s) => ({ bottles: s.bottles, learned: s.learned }) as VaultState,
+      partialize: (s) =>
+        ({
+          bottles: s.bottles,
+          learned: s.learned,
+          profile: s.profile,
+          consent: s.consent,
+          events: s.events,
+          anonId: s.anonId,
+        }) as VaultState,
       onRehydrateStorage: () => (state) => {
         void restoreApiKey(state?.apiKey);
       },

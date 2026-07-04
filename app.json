@@ -12,6 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.whiskeyvault.app",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Whiskey Vault uses the camera to scan bottle barcodes for your inventory."
       }
@@ -26,7 +27,15 @@
         {
           "cameraPermission": "Whiskey Vault uses the camera to scan bottle barcodes for your inventory."
         }
-      ]
+      ],
+      "expo-apple-authentication",
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This lets Whiskey Vault share anonymized usage statistics with partners. Your collection, name, and email are never shared."
+        }
+      ],
+      "expo-secure-store"
     ]
   }
 }

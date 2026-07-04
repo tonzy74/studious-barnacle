@@ -1,3 +1,39 @@
+/** Signed-in identity (Sign in with Apple today; Google when backend lands). */
+export interface UserProfile {
+  provider: 'apple' | 'google';
+  userId: string;
+  name?: string;
+  email?: string;
+  signedInAt: number;
+}
+
+/**
+ * Privacy consent state. Everything defaults to OFF (opt-in model) — the
+ * strictest common denominator across GDPR (consent required) and CCPA
+ * (opt-out required), and the only default that never needs geo-detection.
+ */
+export interface ConsentSettings {
+  /** Anonymized product-improvement analytics. */
+  analytics: boolean;
+  /**
+   * Sharing/sale of data to third parties. Requires the iOS App Tracking
+   * Transparency prompt to have been granted — both must be true.
+   */
+  sellShare: boolean;
+  /** When the user last made a consent choice (for audit). */
+  decidedAt?: number;
+}
+
+/** A single anonymized analytics event, queued on-device. */
+export interface AnalyticsEvent {
+  name: string;
+  /** Sanitized, non-PII properties only (enforced at record time). */
+  props: Record<string, string | number | boolean>;
+  /** Random per-install ID — not tied to identity. */
+  anonId: string;
+  at: number;
+}
+
 export type WhiskeyType =
   | 'bourbon'
   | 'rye'

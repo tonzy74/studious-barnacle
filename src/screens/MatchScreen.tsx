@@ -22,6 +22,7 @@ function percentColor(p: number): string {
 export default function MatchScreen() {
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
+  const track = useStore((s) => s.track);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [input, setInput] = useState('');
   const [computed, setComputed] = useState(false);
@@ -77,7 +78,10 @@ export default function MatchScreen() {
 
       <Button
         title="Find matches in my bar"
-        onPress={() => setComputed(true)}
+        onPress={() => {
+          setComputed(true);
+          track('match_computed', { count: favorites.length });
+        }}
         disabled={favorites.length === 0 || bottles.length === 0}
         style={{ marginTop: 12 }}
       />

@@ -21,6 +21,7 @@ export default function ScanScreen() {
   const learned = useStore((s) => s.learned);
   const learnRecord = useStore((s) => s.learnRecord);
   const apiKey = useStore((s) => s.apiKey);
+  const track = useStore((s) => s.track);
 
   const onScan = async (result: BarcodeScanningResult) => {
     const code = result.data;
@@ -35,6 +36,7 @@ export default function ScanScreen() {
       onLearn: learnRecord,
     });
     setBusy(false);
+    track('scan_resolved', { source: resolved.source });
     navigation.navigate('AddBottle', {
       barcode: code,
       name: resolved.record?.name ?? resolved.name,
