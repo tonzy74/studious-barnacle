@@ -37,6 +37,20 @@ The pairing chat calls the Claude API directly from your device using your own k
 
 The key is stored only on your device (AsyncStorage) and sent only to Anthropic's API.
 
+## Trade Analyzer (🔁 tab)
+
+Dynasty-fantasy-style trade evaluation for bourbon. Build both sides of a trade — your
+bottles (tap to select) vs theirs (typed in, matched against the database) — plus a cash
+kicker on either side, and get a verdict: **Fair / You come out ahead / They come out
+ahead** (±10% band), with a "make it fair" suggestion. Values blend market price and
+rarity (the fair-price engine); opened bottles are steeply discounted; **what you paid is
+tracked for gain/loss display but never inflates trade value**. When multi-user trading
+ships (backend), values sharpen with time-decayed comps from accepted in-app trades.
+
+**Compliance by design:** the analyzer is a valuation/negotiation/record tool. It never
+processes bottle payments or shipping — cash kickers are part of the math, settled
+off-app; physical exchange is the users' responsibility under local alcohol laws. 21+.
+
 ## The reference database (1,100+ bottlings)
 
 The reference database covers **1,100+ real bottlings** across bourbon, rye, Tennessee,

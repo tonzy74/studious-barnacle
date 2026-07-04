@@ -19,6 +19,7 @@ export const ANALYTICS_EVENTS = [
   'ai_profile_estimated',
   'sign_in',
   'bulk_add_completed',
+  'trade_evaluated',
   'sign_out',
 ] as const;
 
@@ -35,6 +36,7 @@ const ALLOWED_PROP_KEYS = new Set([
   'known',
   'provider',
   'protectAllocated',
+  'verdict',
 ]);
 
 const MAX_STRING_PROP = 32;

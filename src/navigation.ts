@@ -17,4 +17,5 @@ export type TabParamList = {
   Pour: undefined;
   Pair: undefined;
   Match: undefined;
+  Trade: undefined;
 };

@@ -55,6 +55,7 @@ export default function AddBottleScreen() {
   const [type, setType] = useState<WhiskeyType>(prefillRef?.type ?? 'bourbon');
   const [proof, setProof] = useState(prefillRef ? String(prefillRef.proof) : '');
   const [notes, setNotes] = useState(prefillRef?.notes ?? '');
+  const [pricePaid, setPricePaid] = useState('');
   const [batch, setBatch] = useState('');
   const [pickName, setPickName] = useState('');
   const [barrelNo, setBarrelNo] = useState('');
@@ -133,6 +134,7 @@ export default function AddBottleScreen() {
       batch: batch.trim() || undefined,
       pickName: pickName.trim() || undefined,
       barrelNo: barrelNo.trim() || undefined,
+      pricePaid: pricePaid.trim() ? parseFloat(pricePaid) || undefined : undefined,
       rarity: matched ? dbMatch?.rarity : estimate?.rarity,
       msrp: matched ? dbMatch?.msrp : estimate?.msrp,
       secondary: matched ? dbMatch?.secondary : estimate?.secondary,
@@ -281,6 +283,16 @@ export default function AddBottleScreen() {
           onChangeText={setProof}
           keyboardType="decimal-pad"
           placeholder="e.g. 90 — use the proof on YOUR label for picks/batches"
+          placeholderTextColor={colors.textDim}
+        />
+
+        <Text style={styles.label}>Price you paid (optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={pricePaid}
+          onChangeText={setPricePaid}
+          keyboardType="decimal-pad"
+          placeholder="e.g. 64.99 — used for gain/loss, never for trade value"
           placeholderTextColor={colors.textDim}
         />
 

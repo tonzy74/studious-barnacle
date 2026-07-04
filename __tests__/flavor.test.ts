@@ -372,6 +372,56 @@ describe('learned library', () => {
   });
 });
 
+describe('trade engine', () => {
+  const { bottleTradeValue, evaluateTrade, OPENED_MULTIPLIER } = require('../src/lib/trade');
+
+  it('values sealed bottles at the fair-price anchor and discounts opened ones', () => {
+    const sealed = bottleTradeValue({ msrp: 100, secondary: 1100, rarity: 'S', opened: false });
+    const opened = bottleTradeValue({ msrp: 100, secondary: 1100, rarity: 'S', opened: true });
+    expect(sealed).toEqual({ value: 650, confidence: 'anchor' });
+    expect(opened!.value).toBe(Math.round(650 * OPENED_MULTIPLIER));
+  });
+
+  it('returns undefined without pricing data', () => {
+    expect(bottleTradeValue({ rarity: 'B' })).toBeUndefined();
+  });
+
+  it('judges fairness within a ±10% band', () => {
+    expect(
+      evaluateTrade({ myBottleValues: [100], theirBottleValues: [105] }).verdict
+    ).toBe('fair');
+    expect(
+      evaluateTrade({ myBottleValues: [100], theirBottleValues: [200] }).verdict
+    ).toBe('you-win');
+    expect(
+      evaluateTrade({ myBottleValues: [200], theirBottleValues: [100] }).verdict
+    ).toBe('they-win');
+  });
+
+  it('cash kickers rebalance a lopsided trade', () => {
+    // Their Blanton's ($110) for my Weller 12 ($148) is unfair...
+    const without = evaluateTrade({ myBottleValues: [148], theirBottleValues: [110] });
+    expect(without.verdict).toBe('they-win');
+    // ...until they add $40 cash.
+    const withCash = evaluateTrade({
+      myBottleValues: [148],
+      theirBottleValues: [110],
+      theirCash: 40,
+    });
+    expect(withCash.verdict).toBe('fair');
+  });
+
+  it('ignores negative cash and non-finite values', () => {
+    const evaln = evaluateTrade({
+      myBottleValues: [100, NaN],
+      theirBottleValues: [100],
+      myCash: -50,
+    });
+    expect(evaln.myTotal).toBe(100);
+    expect(evaln.verdict).toBe('fair');
+  });
+});
+
 describe('validateIdentifiedBottles (shelf-photo vision output)', () => {
   const { validateIdentifiedBottles } = require('../src/lib/claude');
 

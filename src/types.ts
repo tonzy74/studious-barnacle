@@ -114,6 +114,8 @@ export interface Bottle {
   msrp?: number;
   /** Estimated secondary-market price, USD. */
   secondary?: number;
+  /** What the owner actually paid, USD (cost basis — display only). */
+  pricePaid?: number;
   opened: boolean;
   quantity: number;
   addedAt: number;

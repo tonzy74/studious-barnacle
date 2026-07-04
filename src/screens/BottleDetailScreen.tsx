@@ -44,6 +44,10 @@ export default function BottleDetailScreen() {
     );
   }
 
+  const fair = fairPrice(bottle.msrp, bottle.secondary, bottle.rarity);
+  const gainLoss =
+    fair !== undefined && bottle.pricePaid !== undefined ? fair - bottle.pricePaid : undefined;
+
   const variantLine = [
     bottle.batch ? `Batch ${bottle.batch}` : '',
     bottle.barrelNo ? `Barrel #${bottle.barrelNo}` : '',
@@ -151,6 +155,42 @@ export default function BottleDetailScreen() {
             <Text style={styles.valueLabel}>Fair price</Text>
             <Text style={styles.fairPrice}>
               {formatUsd(fairPrice(bottle.msrp, bottle.secondary, bottle.rarity))}
+            </Text>
+          </View>
+        </View>
+        <View style={[styles.valueRow, { marginTop: 10 }]}>
+          <View style={styles.valueCol}>
+            <Text style={styles.valueLabel}>You paid</Text>
+            <TextInput
+              style={styles.valueInput}
+              defaultValue={bottle.pricePaid !== undefined ? String(bottle.pricePaid) : ''}
+              placeholder="—"
+              placeholderTextColor={colors.textDim}
+              keyboardType="decimal-pad"
+              onEndEditing={(e) => {
+                const v = parseFloat(e.nativeEvent.text);
+                updateBottle(bottle.id, { pricePaid: isNaN(v) ? undefined : v });
+              }}
+            />
+          </View>
+          <View style={[styles.valueCol, { flex: 2 }]}>
+            <Text style={styles.valueLabel}>Gain / loss vs fair price</Text>
+            <Text
+              style={[
+                styles.fairPrice,
+                {
+                  color:
+                    gainLoss === undefined
+                      ? colors.textDim
+                      : gainLoss >= 0
+                        ? colors.success
+                        : colors.danger,
+                },
+              ]}
+            >
+              {gainLoss === undefined
+                ? '—'
+                : `${gainLoss >= 0 ? '+' : '−'}${formatUsd(Math.abs(gainLoss))}`}
             </Text>
           </View>
         </View>

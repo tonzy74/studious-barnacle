@@ -13,6 +13,7 @@ import ChatScreen from './src/screens/ChatScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import MatchScreen from './src/screens/MatchScreen';
 import RandomPourScreen from './src/screens/RandomPourScreen';
+import TradeScreen from './src/screens/TradeScreen';
 import ScanScreen from './src/screens/ScanScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { colors } from './src/theme';
@@ -26,6 +27,7 @@ const TAB_ICONS: Record<keyof TabParamList, string> = {
   Pour: '🎲',
   Pair: '💬',
   Match: '🤝',
+  Trade: '🔁',
 };
 
 function Tabs() {
@@ -51,6 +53,7 @@ function Tabs() {
       <Tab.Screen name="Pour" component={RandomPourScreen} />
       <Tab.Screen name="Pair" component={ChatScreen} />
       <Tab.Screen name="Match" component={MatchScreen} />
+      <Tab.Screen name="Trade" component={TradeScreen} />
     </Tab.Navigator>
   );
 }
