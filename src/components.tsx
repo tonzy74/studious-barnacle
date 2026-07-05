@@ -2,10 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
-import Svg, { Circle, Line, Polygon } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  Line,
+  Polygon,
+  RadialGradient,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 
 import {
   colors,
+  glow,
   gradients,
   radius,
   rarityColors,
@@ -31,8 +40,8 @@ export function Card({
   return (
     <LinearGradient
       colors={gradients.card}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      start={{ x: 0.1, y: 0 }}
+      end={{ x: 0.9, y: 1 }}
       style={[styles.card, glow ? shadow.gold : shadow.card, style]}
     >
       {children}
@@ -188,7 +197,7 @@ export function StatTile({
   );
 }
 
-/** Full-screen gradient background wrapper. */
+/** Full-screen background: base gradient + a warm radial glow for depth. */
 export function ScreenGradient({
   children,
   style,
@@ -198,6 +207,15 @@ export function ScreenGradient({
 }) {
   return (
     <LinearGradient colors={gradients.screen} style={[{ flex: 1 }, style]}>
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          <RadialGradient id="screenGlow" cx="50%" cy="6%" r="75%">
+            <Stop offset="0" stopColor={glow.color} stopOpacity={glow.topOpacity} />
+            <Stop offset="1" stopColor={glow.color} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#screenGlow)" />
+      </Svg>
       {children}
     </LinearGradient>
   );
@@ -354,6 +372,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    // A lighter top edge catches the room light; the deep shadow drops it off
+    // the background for a raised, three-dimensional feel.
+    borderTopColor: colors.borderBright,
     padding: spacing.lg,
   },
   button: {

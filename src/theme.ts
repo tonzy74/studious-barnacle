@@ -38,11 +38,18 @@ export const colors = {
 
 /** Multi-stop gradients for hero surfaces, buttons, and badges. */
 export const gradients = {
-  screen: ['#1c130b', '#140d07'] as const,
-  card: ['#2b1d12', '#221610'] as const,
-  gold: ['#f0b45c', '#d99a3d', '#a6702a'] as const,
-  hero: ['#3a2817', '#241811', '#140d07'] as const,
+  // Deeper 3-stop base so the screen reads as a lit room, not a flat panel.
+  screen: ['#241910', '#160f08', '#0d0904'] as const,
+  card: ['#33231583', '#2b1d12', '#1e140c'] as const,
+  gold: ['#f5c479', '#d99a3d', '#9c6626'] as const,
+  hero: ['#43301c', '#281b10', '#140d07'] as const,
   ember: ['#a6702a', '#5e3d18'] as const,
+};
+
+/** Warm radial glow laid over the screen background for depth. */
+export const glow = {
+  color: '#e9a94a',
+  topOpacity: 0.16,
 };
 
 /** Consistent spacing scale (4pt base). */
@@ -85,17 +92,17 @@ export const type = {
 export const shadow = {
   card: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    elevation: 9,
   },
   gold: {
     shadowColor: '#d99a3d',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 7,
   },
 };
 

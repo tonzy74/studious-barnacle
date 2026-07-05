@@ -1,16 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, RarityBadge, StatTile, TypeBadge, TypeIcon } from '../components';
+import { Button, Card, RarityBadge, ScreenGradient, StatTile, TypeBadge, TypeIcon } from '../components';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
-import { colors, gradients, radius, spacing, type as typo } from '../theme';
+import { colors, radius, spacing, type as typo } from '../theme';
 import { Bottle } from '../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -77,7 +76,7 @@ export default function InventoryScreen() {
   };
 
   return (
-    <LinearGradient colors={gradients.screen} style={styles.container}>
+    <ScreenGradient style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View>
           <Text style={styles.eyebrow}>WHISKEY VAULT</Text>
@@ -153,7 +152,7 @@ export default function InventoryScreen() {
           </View>
         </>
       )}
-    </LinearGradient>
+    </ScreenGradient>
   );
 }
 
