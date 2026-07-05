@@ -1,5 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,25 +14,35 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '../components';
+import { Button, ScreenGradient } from '../components';
 import { askSommelier } from '../lib/claude';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
-import { colors } from '../theme';
+import { colors, gradients, radius, spacing, type as typo } from '../theme';
 import { ChatMsg } from '../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const SUGGESTIONS = [
-  'What should I pour with a ribeye tonight?',
-  'Pick something for a cold rainy evening',
-  'Which bottle pairs with dark chocolate?',
-  'Surprise me with a pour and tell me why',
+  { icon: 'restaurant' as const, text: 'What should I pour with a ribeye tonight?' },
+  { icon: 'rainy' as const, text: 'Pick something for a cold rainy evening' },
+  { icon: 'cafe' as const, text: 'Which bottle pairs with dark chocolate?' },
+  { icon: 'sparkles' as const, text: 'Surprise me with a pour and tell me why' },
 ];
+
+function SommelierMark() {
+  return (
+    <LinearGradient colors={gradients.gold} style={styles.mark}>
+      <Ionicons name="wine" size={30} color={colors.ink} />
+    </LinearGradient>
+  );
+}
 
 export default function ChatScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const apiKey = useStore((s) => s.apiKey);
   const model = useStore((s) => s.model);
@@ -68,138 +80,176 @@ export default function ChatScreen() {
 
   if (!apiKey) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <Text style={styles.title}>AI Sommelier</Text>
-        <Text style={styles.text}>
-          The pairing chat is powered by Claude. Add your Anthropic API key in Settings to enable
-          it — the key stays on your device.
-        </Text>
-        <Button
-          title="Open Settings"
-          onPress={() => navigation.navigate('Settings')}
-          style={{ marginTop: 20 }}
-        />
-      </View>
+      <ScreenGradient>
+        <View style={[styles.center, { paddingTop: insets.top }]}>
+          <SommelierMark />
+          <Text style={styles.title}>AI Sommelier</Text>
+          <Text style={styles.text}>
+            The pairing chat is powered by Claude. Add your Anthropic API key in Settings to enable
+            it — the key stays on your device.
+          </Text>
+          <Button
+            title="Open Settings"
+            icon="settings-outline"
+            onPress={() => navigation.navigate('Settings')}
+            style={{ marginTop: spacing.xl }}
+          />
+        </View>
+      </ScreenGradient>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
-    >
-      {messages.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.title}>AI Sommelier</Text>
-          <Text style={styles.text}>
-            Ask for pairings from your {bottles.length}-bottle collection.
-          </Text>
-          <View style={{ marginTop: 20, width: '100%' }}>
-            {SUGGESTIONS.map((s) => (
-              <TouchableOpacity key={s} style={styles.suggestion} onPress={() => send(s)}>
-                <Text style={styles.suggestionText}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      ) : (
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={(_, i) => String(i)}
-          contentContainerStyle={{ padding: 16 }}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.bubble,
-                item.role === 'user' ? styles.userBubble : styles.assistantBubble,
-              ]}
-            >
-              <Text style={styles.bubbleText}>{item.text}</Text>
+    <ScreenGradient>
+      <KeyboardAvoidingView
+        style={{ flex: 1, paddingTop: insets.top }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={90}
+      >
+        {messages.length === 0 ? (
+          <View style={styles.center}>
+            <SommelierMark />
+            <Text style={styles.title}>AI Sommelier</Text>
+            <Text style={styles.text}>
+              Ask for pairings from your {bottles.length}-bottle collection.
+            </Text>
+            <View style={{ marginTop: spacing.xl, width: '100%' }}>
+              {SUGGESTIONS.map((s) => (
+                <TouchableOpacity
+                  key={s.text}
+                  style={styles.suggestion}
+                  onPress={() => send(s.text)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name={s.icon} size={18} color={colors.amber} />
+                  <Text style={styles.suggestionText}>{s.text}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-        />
-      )}
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={messages}
+            keyExtractor={(_, i) => String(i)}
+            contentContainerStyle={{ padding: spacing.lg }}
+            renderItem={({ item }) =>
+              item.role === 'user' ? (
+                <LinearGradient
+                  colors={gradients.gold}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.bubble, styles.userBubble]}
+                >
+                  <Text style={styles.userBubbleText}>{item.text}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={[styles.bubble, styles.assistantBubble]}>
+                  <Text style={styles.bubbleText}>{item.text}</Text>
+                </View>
+              )
+            }
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          />
+        )}
 
-      {busy && (
-        <View style={styles.busyRow}>
-          <ActivityIndicator color={colors.amber} />
-          <Text style={{ color: colors.textDim, marginLeft: 8 }}>Consulting the sommelier…</Text>
+        {busy && (
+          <View style={styles.busyRow}>
+            <ActivityIndicator color={colors.amber} />
+            <Text style={{ color: colors.textDim, marginLeft: spacing.sm }}>
+              Consulting the sommelier…
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            value={input}
+            onChangeText={setInput}
+            placeholder="Ask for a pairing…"
+            placeholderTextColor={colors.textFaint}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.4 }]}
+            onPress={() => send(input)}
+            disabled={!input.trim() || busy}
+          >
+            <Ionicons name="arrow-up" size={22} color={colors.ink} />
+          </TouchableOpacity>
         </View>
-      )}
-
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={input}
-          onChangeText={setInput}
-          placeholder="Ask for a pairing…"
-          placeholderTextColor={colors.textDim}
-          multiline
-        />
-        <TouchableOpacity
-          style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.4 }]}
-          onPress={() => send(input)}
-          disabled={!input.trim() || busy}
-        >
-          <Text style={styles.sendText}>↑</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ScreenGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  text: { color: colors.textDim, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  mark: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  title: { ...typo.title, color: colors.text },
+  text: { color: colors.textDim, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 },
   suggestion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 8,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  suggestionText: { color: colors.amberBright },
-  bubble: { borderRadius: 14, padding: 12, marginBottom: 10, maxWidth: '85%' },
-  userBubble: { backgroundColor: colors.amber, alignSelf: 'flex-end' },
+  suggestionText: { color: colors.text, flex: 1, fontSize: 14 },
+  bubble: { borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md, maxWidth: '86%' },
+  userBubble: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+  userBubbleText: { color: colors.ink, lineHeight: 20, fontWeight: '600' },
   assistantBubble: {
     backgroundColor: colors.card,
     alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  bubbleText: { color: colors.text, lineHeight: 20 },
-  busyRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
+  bubbleText: { color: colors.text, lineHeight: 21 },
+  busyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 12,
+    padding: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    gap: 8,
+    gap: spacing.sm,
   },
   input: {
     flex: 1,
     backgroundColor: colors.card,
     color: colors.text,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
     maxHeight: 120,
     borderWidth: 1,
     borderColor: colors.border,
+    fontSize: 15,
   },
   sendBtn: {
     backgroundColor: colors.amber,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendText: { color: '#1a120b', fontSize: 20, fontWeight: '800' },
 });

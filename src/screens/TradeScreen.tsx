@@ -1,19 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, RarityBadge } from '../components';
+import { Button, Card, RarityBadge, ScreenGradient, ScreenHeader } from '../components';
 import { findWhiskeyByName } from '../lib/flavor';
 import { formatUsd } from '../lib/pricing';
 import { bottleTradeValue, evaluateTrade, TradeVerdict } from '../lib/trade';
 import { useStore } from '../store/useStore';
-import { colors } from '../theme';
+import { colors, radius, spacing } from '../theme';
 
 interface TheirItem {
   name: string;
@@ -28,6 +23,7 @@ const VERDICT_STYLE: Record<TradeVerdict, { color: string; label: string }> = {
 };
 
 export default function TradeScreen() {
+  const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
   const track = useStore((s) => s.track);
@@ -112,12 +108,20 @@ export default function TradeScreen() {
   const verdictStyle = VERDICT_STYLE[evaluation.verdict];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
-      <Text style={styles.title}>Trade Analyzer</Text>
-      <Text style={styles.subtitle}>
-        Dynasty-style trade fairness for bourbon. Values blend market price and rarity; opened
-        bottles are discounted. What you paid never inflates a value — the market doesn't care.
-      </Text>
+    <ScreenGradient>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: insets.top + spacing.md,
+          paddingBottom: 48,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          eyebrow="DYNASTY TRADE DESK"
+          title="Trade Analyzer"
+          subtitle="Values blend market price and rarity; opened bottles are discounted. What you paid never inflates a value — the market doesn't care."
+        />
 
       <Text style={styles.section}>Your side · {formatUsd(evaluation.myTotal)}</Text>
       {bottles.length === 0 && (
@@ -130,7 +134,11 @@ export default function TradeScreen() {
           disabled={!valuation}
           onPress={() => toggleMine(bottle.id)}
         >
-          <Text style={styles.check}>{mySelected.has(bottle.id) ? '☑' : '☐'}</Text>
+          <Ionicons
+            name={mySelected.has(bottle.id) ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={mySelected.has(bottle.id) ? colors.amberBright : colors.textFaint}
+          />
           <View style={{ flex: 1, marginHorizontal: 8 }}>
             <Text style={styles.name} numberOfLines={1}>
               {bottle.name}
@@ -172,14 +180,18 @@ export default function TradeScreen() {
           onSubmitEditing={addTheirs}
           returnKeyType="done"
         />
-        <TouchableOpacity style={styles.addBtn} onPress={addTheirs} disabled={!theirInput.trim()}>
-          <Text style={styles.addBtnText}>+</Text>
+        <TouchableOpacity
+          style={[styles.addBtn, !theirInput.trim() && { opacity: 0.5 }]}
+          onPress={addTheirs}
+          disabled={!theirInput.trim()}
+        >
+          <Ionicons name="add" size={24} color={colors.ink} />
         </TouchableOpacity>
       </View>
       {theirItems.map((item, index) => (
         <View key={`${item.name}-${index}`} style={styles.row}>
           <TouchableOpacity onPress={() => removeTheirs(index)}>
-            <Text style={styles.remove}>✕</Text>
+            <Ionicons name="close-circle" size={20} color={colors.danger} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginHorizontal: 8 }}>
             <Text style={styles.name} numberOfLines={1}>
@@ -215,7 +227,13 @@ export default function TradeScreen() {
         />
       </View>
 
-      <Button title="Evaluate fairness" onPress={evaluate} disabled={!hasTrade} style={{ marginTop: 20 }} />
+      <Button
+        title="Evaluate fairness"
+        icon="git-compare"
+        onPress={evaluate}
+        disabled={!hasTrade}
+        style={{ marginTop: spacing.lg }}
+      />
 
       {showVerdict && hasTrade && (
         <View style={[styles.verdictCard, { borderColor: verdictStyle.color }]}>
@@ -246,12 +264,13 @@ export default function TradeScreen() {
         </View>
       )}
 
-      <Text style={styles.legal}>
-        Whiskey Vault is a valuation and record-keeping tool. It doesn't process payments or
-        shipping for bottles — any exchange and cash settlement happens between you, off-app, in
-        compliance with your local alcohol laws. 21+.
-      </Text>
-    </ScrollView>
+        <Text style={styles.legal}>
+          Whiskey Vault is a valuation and record-keeping tool. It doesn't process payments or
+          shipping for bottles — any exchange and cash settlement happens between you, off-app, in
+          compliance with your local alcohol laws. 21+.
+        </Text>
+      </ScrollView>
+    </ScreenGradient>
   );
 }
 

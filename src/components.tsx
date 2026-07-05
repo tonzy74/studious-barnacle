@@ -188,6 +188,71 @@ export function StatTile({
   );
 }
 
+/** Full-screen gradient background wrapper. */
+export function ScreenGradient({
+  children,
+  style,
+}: {
+  children?: React.ReactNode;
+  style?: ViewStyle;
+}) {
+  return (
+    <LinearGradient colors={gradients.screen} style={[{ flex: 1 }, style]}>
+      {children}
+    </LinearGradient>
+  );
+}
+
+/** Standard screen title block with a gold eyebrow. */
+export function ScreenHeader({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <View style={{ marginBottom: spacing.md }}>
+      {eyebrow && <Text style={styles.headerEyebrow}>{eyebrow}</Text>}
+      <Text style={styles.headerTitle}>{title}</Text>
+      {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
+    </View>
+  );
+}
+
+/** Pill filter/selection chip. */
+export function Chip({
+  label,
+  active,
+  onPress,
+  icon,
+}: {
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+  icon?: keyof typeof Ionicons.glyphMap;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={[styles.chip, active && styles.chipActive]}
+    >
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={13}
+          color={active ? colors.ink : colors.textDim}
+          style={{ marginRight: 4 }}
+        />
+      )}
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 /** Horizontal gradient flavor bars with values. */
 export function FlavorBars({ profile }: { profile: FlavorProfile }) {
   return (
@@ -341,6 +406,22 @@ const styles = StyleSheet.create({
   statTile: { flex: 1, alignItems: 'center', paddingVertical: spacing.md, gap: 2 },
   statValue: { ...typo.title, color: colors.text, marginTop: 2 },
   statLabel: { ...typo.caption, color: colors.textDim },
+  headerEyebrow: { ...typo.overline, color: colors.amberDeep },
+  headerTitle: { ...typo.display, color: colors.text, marginTop: 2 },
+  headerSubtitle: { color: colors.textDim, marginTop: 4, fontSize: 14, lineHeight: 20 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipActive: { backgroundColor: colors.amber, borderColor: colors.amberBright },
+  chipText: { color: colors.textDim, fontSize: 13, fontWeight: '600' },
+  chipTextActive: { color: colors.ink, fontWeight: '800' },
   barRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
   barLabel: { color: colors.textDim, width: 82, fontSize: 12 },
   barTrack: {

@@ -78,7 +78,7 @@ export default function InventoryScreen() {
 
   return (
     <LinearGradient colors={gradients.screen} style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View>
           <Text style={styles.eyebrow}>WHISKEY VAULT</Text>
           <Text style={styles.title}>My Bar</Text>

@@ -1,14 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BarcodeScanningResult, CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '../components';
+import { Button, ScreenGradient } from '../components';
 import { resolveBarcodeAndLearn } from '../lib/library';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
-import { colors } from '../theme';
+import { colors, radius, spacing, type as typo } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -52,24 +53,35 @@ export default function ScanScreen() {
   };
 
   if (!permission) {
-    return <View style={styles.container} />;
+    return <ScreenGradient />;
   }
 
   if (!permission.granted) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <Text style={styles.title}>Camera access needed</Text>
-        <Text style={styles.text}>
-          Whiskey Vault needs the camera to scan bottle barcodes into your inventory.
-        </Text>
-        <Button title="Grant camera access" onPress={requestPermission} style={{ marginTop: 20 }} />
-        <Button
-          title="Add manually instead"
-          variant="secondary"
-          onPress={() => navigation.navigate('AddBottle', {})}
-          style={{ marginTop: 10 }}
-        />
-      </View>
+      <ScreenGradient>
+        <View style={[styles.container, styles.center]}>
+          <View style={styles.permGlyph}>
+            <Ionicons name="scan" size={44} color={colors.amber} />
+          </View>
+          <Text style={styles.title}>Camera access needed</Text>
+          <Text style={styles.text}>
+            Whiskey Vault needs the camera to scan bottle barcodes into your inventory.
+          </Text>
+          <Button
+            title="Grant camera access"
+            icon="camera"
+            onPress={requestPermission}
+            style={{ marginTop: spacing.xl, alignSelf: 'stretch' }}
+          />
+          <Button
+            title="Add manually instead"
+            icon="add"
+            variant="secondary"
+            onPress={() => navigation.navigate('AddBottle', {})}
+            style={{ marginTop: spacing.md, alignSelf: 'stretch' }}
+          />
+        </View>
+      </ScreenGradient>
     );
   }
 
@@ -85,8 +97,16 @@ export default function ScanScreen() {
         />
       )}
       <View style={styles.overlay}>
-        <Text style={styles.hint}>Point at the barcode on a bottle</Text>
-        <View style={styles.frame} />
+        <View style={styles.hintPill}>
+          <Ionicons name="barcode-outline" size={16} color={colors.amberBright} />
+          <Text style={styles.hint}>Point at the barcode on a bottle</Text>
+        </View>
+        <View style={styles.frame}>
+          <View style={[styles.corner, styles.tl]} />
+          <View style={[styles.corner, styles.tr]} />
+          <View style={[styles.corner, styles.bl]} />
+          <View style={[styles.corner, styles.br]} />
+        </View>
         {busy && (
           <View style={styles.busyRow}>
             <ActivityIndicator color={colors.amber} />
@@ -95,29 +115,56 @@ export default function ScanScreen() {
         )}
         <Button
           title="Add manually instead"
+          icon="add"
           variant="secondary"
           onPress={() => navigation.navigate('AddBottle', {})}
-          style={{ marginTop: 'auto', marginBottom: 24 }}
+          style={{ marginTop: 'auto', marginBottom: spacing.xl }}
         />
       </View>
     </View>
   );
 }
 
+const CORNER = 30;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  center: { justifyContent: 'center', alignItems: 'center', padding: 24 },
-  overlay: { flex: 1, alignItems: 'center', padding: 24 },
-  title: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  text: { color: colors.text, textAlign: 'center', marginTop: 8 },
-  hint: { color: colors.text, fontSize: 16, marginTop: 40, fontWeight: '600' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  permGlyph: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  overlay: { flex: 1, alignItems: 'center', padding: spacing.xl },
+  title: { ...typo.title, color: colors.text },
+  text: { color: colors.text, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 },
+  hintPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 60,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(20,13,7,0.7)',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  hint: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: colors.amberBright },
+  tl: { top: -2, left: -2, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 16 },
+  tr: { top: -2, right: -2, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 16 },
+  bl: { bottom: -2, left: -2, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 16 },
+  br: { bottom: -2, right: -2, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 16 },
   frame: {
     width: 260,
     height: 160,
-    borderWidth: 3,
-    borderColor: colors.amber,
-    borderRadius: 16,
-    marginTop: 24,
+    marginTop: spacing.xl,
   },
-  busyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
+  busyRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
 });

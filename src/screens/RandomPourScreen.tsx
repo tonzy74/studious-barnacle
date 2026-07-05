@@ -1,10 +1,22 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, RarityBadge, TypeBadge } from '../components';
+import {
+  Button,
+  Card,
+  Chip,
+  RarityBadge,
+  ScreenGradient,
+  ScreenHeader,
+  TypeBadge,
+  TypeIcon,
+} from '../components';
 import { randomPour } from '../lib/flavor';
 import { useStore } from '../store/useStore';
-import { colors } from '../theme';
+import { colors, gradients, radius, spacing, type as typo } from '../theme';
 import { Bottle, WhiskeyType } from '../types';
 
 const TYPE_FILTERS: (WhiskeyType | 'any')[] = [
@@ -19,6 +31,7 @@ const TYPE_FILTERS: (WhiskeyType | 'any')[] = [
 ];
 
 export default function RandomPourScreen() {
+  const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const track = useStore((s) => s.track);
   const [type, setType] = useState<WhiskeyType | 'any'>('any');
@@ -34,115 +47,120 @@ export default function RandomPourScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={styles.title}>Random Pour</Text>
-      <Text style={styles.subtitle}>Can't decide? Let the bar decide for you.</Text>
-
-      <Text style={styles.label}>Style</Text>
-      <View style={styles.chipRow}>
-        {TYPE_FILTERS.map((t) => (
-          <TouchableOpacity
-            key={t}
-            style={[styles.chip, type === t && styles.chipActive]}
-            onPress={() => setType(t)}
-          >
-            <Text style={[styles.chipText, type === t && styles.chipTextActive]}>{t}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>Open bottles only</Text>
-        <Switch
-          value={openedOnly}
-          onValueChange={setOpenedOnly}
-          trackColor={{ true: colors.amber, false: colors.cardAlt }}
-          thumbColor={colors.text}
+    <ScreenGradient>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: insets.top + spacing.md,
+          paddingBottom: 40,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          eyebrow="THE VAULT DECIDES"
+          title="Random Pour"
+          subtitle="Can't decide? Let the bar choose your dram."
         />
-      </View>
 
-      <View style={styles.switchRow}>
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <Text style={styles.switchLabel}>Protect allocated bottles</Text>
-          <Text style={styles.switchHint}>Keeps S and A tier out of the random pool</Text>
+        <Text style={styles.label}>Style</Text>
+        <View style={styles.chipRow}>
+          {TYPE_FILTERS.map((t) => (
+            <Chip key={t} label={t} active={type === t} onPress={() => setType(t)} />
+          ))}
         </View>
-        <Switch
-          value={protectAllocated}
-          onValueChange={setProtectAllocated}
-          trackColor={{ true: colors.amber, false: colors.cardAlt }}
-          thumbColor={colors.text}
-        />
-      </View>
 
-      <Button title="🥃  Pour me something" onPress={roll} style={{ marginTop: 24 }} />
-
-      {rolled && !pick && (
-        <Text style={styles.noMatch}>
-          Nothing in your bar matches those filters — loosen them up or add more bottles.
-        </Text>
-      )}
-
-      {pick && (
-        <View style={styles.resultCard}>
-          <Text style={styles.resultLabel}>TONIGHT'S POUR</Text>
-          <View style={styles.resultHeader}>
-            <Text style={styles.resultName}>{pick.name}</Text>
-            <TypeBadge type={pick.type} />
-            <RarityBadge rarity={pick.rarity} />
+        <Card style={{ marginTop: spacing.lg, gap: spacing.md }}>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Open bottles only</Text>
+            <Switch
+              value={openedOnly}
+              onValueChange={setOpenedOnly}
+              trackColor={{ true: colors.amber, false: colors.cardAlt }}
+              thumbColor={colors.text}
+            />
           </View>
-          <Text style={styles.resultSub}>
-            {pick.distillery} · {pick.proof} proof · {pick.opened ? 'already open' : 'crack it open'}
+          <View style={styles.divider} />
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1, marginRight: spacing.md }}>
+              <Text style={styles.switchLabel}>Protect allocated bottles</Text>
+              <Text style={styles.switchHint}>Keeps S and A tier out of the random pool</Text>
+            </View>
+            <Switch
+              value={protectAllocated}
+              onValueChange={setProtectAllocated}
+              trackColor={{ true: colors.amber, false: colors.cardAlt }}
+              thumbColor={colors.text}
+            />
+          </View>
+        </Card>
+
+        <Button
+          title="Pour me something"
+          icon="dice"
+          onPress={roll}
+          style={{ marginTop: spacing.xl }}
+        />
+
+        {rolled && !pick && (
+          <Text style={styles.noMatch}>
+            Nothing in your bar matches those filters — loosen them up or add more bottles.
           </Text>
-          <Text style={styles.resultNotes}>{pick.notes}</Text>
-          <Button title="Roll again" variant="secondary" onPress={roll} style={{ marginTop: 16 }} />
-        </View>
-      )}
-    </ScrollView>
+        )}
+
+        {pick && (
+          <LinearGradient colors={gradients.hero} style={styles.resultCard}>
+            <Text style={styles.resultLabel}>TONIGHT'S POUR</Text>
+            <View style={styles.resultTop}>
+              <TypeIcon type={pick.type} size={48} />
+              <View style={styles.resultBadges}>
+                <TypeBadge type={pick.type} />
+                <RarityBadge rarity={pick.rarity} size={30} />
+              </View>
+            </View>
+            <Text style={styles.resultName}>{pick.name}</Text>
+            <Text style={styles.resultSub}>
+              {pick.distillery} · {pick.proof} proof ·{' '}
+              {pick.opened ? 'already open' : 'crack it open'}
+            </Text>
+            <Text style={styles.resultNotes}>{pick.notes}</Text>
+            <Button
+              title="Roll again"
+              icon="refresh"
+              variant="secondary"
+              onPress={roll}
+              style={{ marginTop: spacing.lg }}
+            />
+          </LinearGradient>
+        )}
+      </ScrollView>
+    </ScreenGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  title: { color: colors.text, fontSize: 28, fontWeight: '800', marginTop: 8 },
-  subtitle: { color: colors.textDim, marginTop: 4 },
-  label: { color: colors.amberBright, marginTop: 20, marginBottom: 8, fontWeight: '600' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.amber, borderColor: colors.amber },
-  chipText: { color: colors.textDim, fontSize: 13 },
-  chipTextActive: { color: '#1a120b', fontWeight: '700' },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  switchLabel: { color: colors.text, fontSize: 16 },
+  label: { color: colors.amberBright, marginBottom: spacing.sm, fontWeight: '600' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  switchLabel: { color: colors.text, fontSize: 15, fontWeight: '600' },
   switchHint: { color: colors.textDim, fontSize: 12, marginTop: 2 },
-  noMatch: { color: colors.textDim, textAlign: 'center', marginTop: 24, lineHeight: 20 },
+  divider: { height: 1, backgroundColor: colors.border },
+  noMatch: { color: colors.textDim, textAlign: 'center', marginTop: spacing.xl, lineHeight: 20 },
   resultCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 18,
-    marginTop: 24,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.xl,
     borderWidth: 1,
-    borderColor: colors.amber,
+    borderColor: colors.amberDeep,
   },
-  resultLabel: { color: colors.amber, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
-  resultHeader: {
+  resultLabel: { ...typo.overline, color: colors.amber, letterSpacing: 2 },
+  resultTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing.md,
   },
-  resultName: { color: colors.text, fontSize: 22, fontWeight: '800', flex: 1, marginRight: 8 },
-  resultSub: { color: colors.amberBright, marginTop: 6 },
-  resultNotes: { color: colors.textDim, marginTop: 10, lineHeight: 20 },
+  resultBadges: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  resultName: { color: colors.text, fontSize: 22, fontWeight: '800', marginTop: spacing.md },
+  resultSub: { color: colors.amberBright, marginTop: 6, fontSize: 13.5 },
+  resultNotes: { color: colors.textDim, marginTop: spacing.md, lineHeight: 20 },
 });
