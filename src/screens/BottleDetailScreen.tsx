@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +23,7 @@ import {
   TypeIcon,
 } from '../components';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
+import { fetchRetailerOffers, PricingResult } from '../lib/offers';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_COLORS, RARITY_LABELS, RARITY_ORDER } from '../lib/rarity';
 import { RootStackParamList } from '../navigation';
@@ -44,6 +47,20 @@ export default function BottleDetailScreen() {
   const updateBottle = useStore((s) => s.updateBottle);
   const removeBottle = useStore((s) => s.removeBottle);
   const [editing, setEditing] = useState(false);
+  const [offers, setOffers] = useState<PricingResult | undefined>();
+
+  const bottleName = bottle?.name;
+  const bottleBarcode = bottle?.barcode;
+  useEffect(() => {
+    let active = true;
+    if (!bottleName) return;
+    fetchRetailerOffers({ name: bottleName, upc: bottleBarcode }).then((r) => {
+      if (active) setOffers(r);
+    });
+    return () => {
+      active = false;
+    };
+  }, [bottleName, bottleBarcode]);
 
   if (!bottle) {
     return (
@@ -219,6 +236,40 @@ export default function BottleDetailScreen() {
         </Text>
       </View>
 
+      {offers && offers.offers.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Where to buy</Text>
+          {offers.offers.map((o) => (
+            <TouchableOpacity
+              key={`${o.retailer}-${o.url}`}
+              style={styles.offerRow}
+              activeOpacity={0.8}
+              onPress={() => Linking.openURL(o.url)}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.offerRetailer}>{o.retailer}</Text>
+                {o.inStock === false && <Text style={styles.offerOos}>Out of stock</Text>}
+              </View>
+              <Text style={styles.offerPrice}>{formatUsd(o.price)}</Text>
+              <Ionicons name="open-outline" size={16} color={colors.textDim} />
+            </TouchableOpacity>
+          ))}
+          {offers.offers[0] && (
+            <Button
+              title={`Use lowest (${formatUsd(offers.offers[0].price)}) as retail`}
+              icon="pricetag"
+              variant="secondary"
+              onPress={() => updateBottle(bottle.id, { msrp: offers.offers[0].price })}
+              style={{ marginTop: spacing.md }}
+            />
+          )}
+          <Text style={styles.estimate}>
+            Prices from partner retailers via affiliate links — Whiskey Vault may earn a commission.
+            Availability and price vary by location. Must be 21+ to purchase.
+          </Text>
+        </View>
+      )}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tasting notes</Text>
         <Text style={styles.notes}>{bottle.notes || 'No notes yet.'}</Text>
@@ -337,6 +388,17 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontWeight: '700', fontSize: 15 },
   editToggle: { color: colors.amber, fontWeight: '700' },
   notes: { color: colors.textDim, lineHeight: 20 },
+  offerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  offerRetailer: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  offerOos: { color: colors.danger, fontSize: 11, marginTop: 2 },
+  offerPrice: { color: colors.amberBright, fontSize: 15, fontWeight: '800' },
   estimate: { color: colors.textDim, fontSize: 12, marginTop: 10, fontStyle: 'italic' },
   editRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
   editLabel: { color: colors.textDim, flex: 1, fontSize: 14 },
