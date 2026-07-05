@@ -5,6 +5,8 @@ import { calibrateProfile, expandHouses } from './generator';
 import { generatePicks } from './picks';
 import { AMERICAN_MAJORS } from './houses/americanMajors';
 import { AMERICAN_CRAFT } from './houses/americanCraft';
+import { MORE_AMERICAN } from './houses/moreAmerican';
+import { MORE_SHELF } from './houses/moreShelf';
 import { SCOTCH_SPEYSIDE_HIGHLAND } from './houses/scotchSpeysideHighland';
 import { SCOTCH_ISLAY_ISLANDS } from './houses/scotchIslayIslands';
 import { SCOTCH_BLENDS } from './houses/scotchBlends';
@@ -227,6 +229,8 @@ const CURATED_DB: WhiskeyRecord[] = [
 const GENERATED_DB: WhiskeyRecord[] = expandHouses([
   ...AMERICAN_MAJORS,
   ...AMERICAN_CRAFT,
+  ...MORE_AMERICAN,
+  ...MORE_SHELF,
   ...SCOTCH_SPEYSIDE_HIGHLAND,
   ...SCOTCH_ISLAY_ISLANDS,
   ...SCOTCH_BLENDS,

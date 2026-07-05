@@ -1,0 +1,257 @@
+import { HouseDef } from '../generator';
+
+// Axis order: sweet, oak, vanilla, caramel, spice, fruit, floral, smoke, nutty, earthy
+// Widely-distributed, commonly-owned real bottlings that fill everyday-shelf
+// gaps (the bottles people actually have on the bar), American-first.
+
+export const MORE_SHELF: HouseDef[] = [
+  {
+    d: 'Jim Beam', t: 'bourbon',
+    base: [6, 5, 6, 6, 4, 4, 2, 1, 4, 3],
+    c: 'Beam\'s nutty, peanut-and-oak family style.',
+    e: [
+      ['Jim Beam Black Extra-Aged', 86, ''],
+      ['Jim Beam Double Oak', 86, 'virgin'],
+      ['Jim Beam Devil\'s Cut', 90, 'rich'],
+      ['Jim Beam Bonded', 100, 'bib'],
+      ['Jim Beam Repeal Batch', 86, ''],
+      ['Jim Beam Rye', 90, 'highrye'],
+      ['Old Grand-Dad Bonded', 100, 'bib highrye'],
+      ['Basil Hayden', 80, 'highrye light'],
+      ['Basil Hayden Toast', 80, 'toast'],
+      ['Baker\'s Single Barrel 7 Year', 107, 'sb'],
+    ],
+  },
+  {
+    d: 'Wild Turkey', t: 'bourbon',
+    base: [6, 6, 6, 6, 5, 4, 2, 2, 3, 3],
+    c: 'Lawrenceburg char and caramel muscle.',
+    e: [
+      ['Wild Turkey 81', 81, 'light'],
+      ['Wild Turkey 101', 101, ''],
+      ['Wild Turkey 101 Rye', 101, 'highrye'],
+      ['Wild Turkey Longbranch', 86, 'char'],
+      ['Russell\'s Reserve 10 Year', 90, 'age10'],
+      ['Russell\'s Reserve 6 Year Rye', 90, 'highrye'],
+    ],
+  },
+  {
+    d: 'Heaven Hill', t: 'bourbon',
+    base: [6, 6, 5, 6, 5, 3, 2, 1, 4, 3],
+    c: 'Bardstown workhorse bourbons and ryes.',
+    e: [
+      ['Evan Williams Bottled in Bond', 100, 'bib'],
+      ['Evan Williams Single Barrel', 86, 'sb'],
+      ['Larceny Small Batch', 92, 'wheat'],
+      ['Larceny Barrel Proof', 124, 'wheat bp'],
+      ['Elijah Craig Small Batch', 94, ''],
+      ['Elijah Craig Rye', 94, 'highrye'],
+      ['Rittenhouse Rye Bottled in Bond', 100, 'bib highrye'],
+      ['Pikesville Straight Rye', 110, 'highrye'],
+      ['J.T.S. Brown Bottled in Bond', 100, 'bib'],
+    ],
+  },
+  {
+    d: 'Four Roses', t: 'bourbon',
+    base: [5, 5, 5, 5, 6, 5, 4, 1, 3, 3],
+    c: 'Floral, fruit-forward Lawrenceburg (KY) style.',
+    e: [
+      ['Four Roses Bourbon', 80, 'light'],
+      ['Four Roses Small Batch', 90, ''],
+      ['Four Roses Small Batch Select', 104, 'rich'],
+    ],
+  },
+  {
+    d: 'Sazerac', t: 'rye',
+    base: [5, 4, 5, 5, 6, 5, 4, 1, 3, 3],
+    c: 'New Orleans-style Buffalo Trace rye.',
+    e: [
+      ['Sazerac Rye', 90, 'highrye'],
+      ['Buffalo Trace White Dog Mash #1', 125, 'bp'],
+    ],
+  },
+  {
+    d: 'Old Forester', t: 'bourbon',
+    base: [7, 6, 6, 6, 5, 3, 2, 2, 3, 2],
+    c: 'Brown-Forman\'s original, rich and oaky Whisky Row line.',
+    e: [
+      ['Old Forester 86 Proof', 86, ''],
+      ['Old Forester 100 Proof', 100, 'bib'],
+      ['Old Forester 1897 Bottled in Bond', 100, 'bib'],
+      ['Old Forester Rye', 100, 'highrye'],
+      ['Old Forester Statesman', 95, 'rich'],
+    ],
+  },
+  {
+    d: 'Woodford Reserve', t: 'bourbon',
+    base: [6, 6, 6, 6, 5, 5, 3, 1, 4, 2],
+    c: 'Versailles pot-still-influenced fruit and spice.',
+    e: [
+      ['Woodford Reserve Distiller\'s Select', 90.4, ''],
+      ['Woodford Reserve Double Oaked', 90.4, 'virgin rich'],
+      ['Woodford Reserve Rye', 90.4, 'highrye'],
+      ['Woodford Reserve Wheat', 90.4, 'wheat'],
+      ['Woodford Reserve Malt', 90.4, ''],
+    ],
+  },
+  {
+    d: 'Maker\'s Mark', t: 'bourbon',
+    base: [7, 5, 6, 7, 4, 4, 2, 1, 4, 2],
+    c: 'Loretto wheated softness.',
+    e: [
+      ['Maker\'s Mark', 90, 'wheat'],
+      ['Maker\'s Mark 46', 94, 'wheat virgin'],
+      ['Maker\'s Mark 101', 101, 'wheat'],
+      ['Maker\'s Mark Cask Strength', 110, 'wheat bp'],
+      ['Maker\'s Mark BEP (Wood Finishing)', 109, 'wheat rich'],
+    ],
+  },
+  {
+    d: 'Buffalo Trace', t: 'bourbon',
+    base: [7, 5, 7, 6, 4, 4, 2, 1, 3, 2],
+    c: 'Frankfort flagship line.',
+    e: [
+      ['Buffalo Trace Bourbon', 90, ''],
+      ['Buffalo Trace Kosher Wheat Recipe', 94, 'wheat'],
+      ['Eagle Rare 10 Year', 90, 'age10'],
+      ['Colonel E.H. Taylor Small Batch', 100, 'bib'],
+      ['Sazerac Rye 6 Year', 90, 'highrye'],
+    ],
+  },
+  {
+    d: 'Michter\'s', t: 'bourbon',
+    base: [7, 6, 6, 7, 4, 5, 2, 1, 4, 2],
+    c: 'Louisville small-batch, low barrel-entry-proof richness.',
+    e: [
+      ['Michter\'s US*1 Small Batch Bourbon', 91.4, ''],
+      ['Michter\'s US*1 Straight Rye', 84.8, 'highrye'],
+      ['Michter\'s US*1 Sour Mash', 86, ''],
+      ['Michter\'s US*1 American Whiskey', 83.4, ''],
+      ['Michter\'s US*1 Toasted Barrel Rye', 108.6, 'toast highrye'],
+    ],
+  },
+  {
+    d: 'Knob Creek', t: 'bourbon',
+    base: [6, 7, 6, 6, 5, 3, 2, 1, 4, 3],
+    c: 'Beam\'s bigger, older small-batch line.',
+    e: [
+      ['Knob Creek 9 Year Small Batch', 100, ''],
+      ['Knob Creek 12 Year', 100, 'age12'],
+      ['Knob Creek 15 Year', 100, 'age15'],
+      ['Knob Creek Rye', 100, 'highrye'],
+      ['Knob Creek Cask Strength Rye', 119.6, 'highrye bp'],
+    ],
+  },
+  {
+    d: '1792', t: 'bourbon',
+    base: [6, 6, 5, 6, 7, 3, 2, 1, 3, 3],
+    c: 'Barton high-rye Bardstown bourbon.',
+    e: [
+      ['1792 Small Batch', 93.7, 'highrye'],
+      ['1792 Full Proof', 125, 'bp highrye'],
+      ['1792 Bottled in Bond', 100, 'bib highrye'],
+      ['1792 Single Barrel', 98.6, 'sb highrye'],
+      ['1792 Sweet Wheat', 91.2, 'wheat'],
+    ],
+  },
+  {
+    d: 'Bulleit', t: 'bourbon',
+    base: [6, 5, 5, 5, 7, 4, 3, 1, 3, 3],
+    c: 'High-rye sourced bourbon, spicy and dry.',
+    e: [
+      ['Bulleit Bourbon', 90, 'highrye'],
+      ['Bulleit Rye', 90, 'rye95'],
+      ['Bulleit 10 Year', 91.2, 'age10 highrye'],
+      ['Bulleit Bourbon Barrel Strength', 119, 'bp highrye'],
+    ],
+  },
+  {
+    d: 'Angel\'s Envy', t: 'bourbon',
+    base: [7, 5, 6, 6, 4, 6, 3, 1, 3, 2],
+    c: 'Louisville port-finished bourbon.',
+    e: [
+      ['Angel\'s Envy Port Finish', 86.6, 'port'],
+      ['Angel\'s Envy Cask Strength', 118, 'port bp'],
+      ['Angel\'s Envy Rye (Rum Cask)', 100, 'highrye rum'],
+    ],
+  },
+  {
+    d: 'Woodinville', t: 'bourbon',
+    base: [7, 5, 6, 6, 4, 4, 2, 1, 3, 2],
+    c: 'Washington State grain-to-glass bourbon.',
+    e: [
+      ['Woodinville Straight Bourbon', 90, ''],
+      ['Woodinville Bottled in Bond', 100, 'bib'],
+      ['Woodinville Straight Rye', 90, 'highrye'],
+      ['Woodinville Port Finished Bourbon', 90, 'port'],
+    ],
+  },
+  {
+    d: 'Uncle Nearest', t: 'tennessee',
+    base: [7, 5, 6, 6, 4, 4, 2, 2, 4, 2],
+    c: 'Shelbyville, Tennessee — honoring Nathan "Nearest" Green.',
+    e: [
+      ['Uncle Nearest 1856 Premium Whiskey', 100, ''],
+      ['Uncle Nearest 1884 Small Batch', 93, ''],
+      ['Uncle Nearest Master Blend Edition', 118.4, 'bp'],
+      ['Uncle Nearest Straight Rye', 100, 'highrye'],
+    ],
+  },
+  {
+    d: 'George Dickel', t: 'tennessee',
+    base: [6, 5, 6, 6, 4, 4, 2, 2, 3, 2],
+    c: 'Cascade Hollow charcoal-mellowed Tennessee whisky.',
+    e: [
+      ['George Dickel No. 12', 90, ''],
+      ['George Dickel Bottled in Bond', 100, 'bib'],
+      ['George Dickel Barrel Select', 86, ''],
+      ['George Dickel 8 Year Small Batch', 92, ''],
+      ['George Dickel Rye', 90, 'rye95'],
+    ],
+  },
+  {
+    d: 'High West', t: 'rye',
+    base: [5, 5, 5, 5, 7, 5, 3, 1, 3, 3],
+    c: 'Park City, Utah blender of sourced and estate whiskeys.',
+    e: [
+      ['High West Double Rye', 92, 'highrye'],
+      ['High West Rendezvous Rye', 92, 'highrye'],
+      ['High West American Prairie Bourbon', 92, ''],
+      ['High West Bourbon', 92, ''],
+      ['High West A Midwinter Night\'s Dram', 98.6, 'wine highrye'],
+    ],
+  },
+  {
+    d: 'WhistlePig', t: 'rye',
+    base: [5, 6, 5, 5, 8, 5, 3, 1, 3, 3],
+    c: 'Vermont-finished aged rye specialist.',
+    e: [
+      ['WhistlePig 10 Year Rye', 100, 'highrye age10'],
+      ['WhistlePig 12 Year Old World Rye', 86, 'highrye age12 wine'],
+      ['WhistlePig 15 Year Estate Oak Rye', 92, 'highrye age15'],
+      ['WhistlePig PiggyBack 6 Year Rye', 96.56, 'highrye'],
+      ['WhistlePig FarmStock Rye', 86, 'highrye'],
+    ],
+  },
+  {
+    d: 'Sagamore & Others (MGP-sourced)', t: 'rye',
+    base: [5, 5, 5, 5, 8, 4, 3, 1, 3, 3],
+    c: 'Classic 95/5 MGP-style Indiana rye character.',
+    e: [
+      ['George Remus Straight Bourbon', 90, ''],
+      ['Remus Repeal Reserve', 100, 'rich'],
+      ['Rossville Union Straight Rye', 94.6, 'rye95'],
+      ['Rossville Union Barrel Proof Rye', 112, 'rye95 bp'],
+    ],
+  },
+  {
+    d: 'Nelson\'s Green Brier', t: 'tennessee',
+    base: [7, 5, 6, 6, 4, 4, 2, 2, 3, 2],
+    c: 'Nashville revival of a pre-Prohibition Tennessee brand.',
+    e: [
+      ['Nelson\'s Green Brier Tennessee Whiskey', 91, ''],
+      ['Belle Meade Bourbon', 90.4, ''],
+      ['Belle Meade Cask Strength Reserve', 114, 'bp'],
+    ],
+  },
+];
