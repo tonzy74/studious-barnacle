@@ -9,6 +9,7 @@ export type RootStackParamList = {
   BottleDetail: { id: string };
   BulkAdd: undefined;
   Settings: undefined;
+  Releases: undefined;
 };
 
 export type TabParamList = {

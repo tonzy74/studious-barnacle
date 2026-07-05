@@ -345,3 +345,113 @@ export async function identifyBottlesFromPhoto(
   if (!text) return [];
   return validateIdentifiedBottles(JSON.parse(text));
 }
+
+export type ReleaseCategory = 'annual' | 'limited' | 'seasonal' | 'core' | 'other';
+
+export interface UpcomingRelease {
+  name: string;
+  distillery: string;
+  category: ReleaseCategory;
+  /** Approximate release window, e.g. "Fall 2026". */
+  window: string;
+  rarity?: Rarity;
+  note: string;
+}
+
+const RELEASE_CATEGORIES: ReleaseCategory[] = ['annual', 'limited', 'seasonal', 'core', 'other'];
+
+const RELEASES_SCHEMA = {
+  type: 'object',
+  properties: {
+    releases: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          distillery: { type: 'string' },
+          category: { type: 'string', enum: RELEASE_CATEGORIES },
+          window: { type: 'string', description: 'Approximate window, e.g. "Fall 2026"' },
+          rarity: { type: 'string', enum: ['S', 'A', 'B', 'C', 'D'] },
+          note: { type: 'string', description: 'One sentence on why collectors want it' },
+        },
+        required: ['name', 'distillery', 'category', 'window', 'note'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['releases'],
+  additionalProperties: false,
+} as const;
+
+/** Validate/normalize the releases output: exported separately for testing. */
+export function validateReleases(raw: unknown): UpcomingRelease[] {
+  const releases = (raw as { releases?: unknown })?.releases;
+  if (!Array.isArray(releases)) return [];
+  const seen = new Set<string>();
+  const out: UpcomingRelease[] = [];
+  for (const item of releases) {
+    if (typeof item !== 'object' || item === null) continue;
+    const r = item as Record<string, unknown>;
+    const name = typeof r.name === 'string' ? r.name.trim().slice(0, 120) : '';
+    if (!name) continue;
+    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const category = RELEASE_CATEGORIES.includes(r.category as ReleaseCategory)
+      ? (r.category as ReleaseCategory)
+      : 'other';
+    const rarity =
+      r.rarity === 'S' || r.rarity === 'A' || r.rarity === 'B' || r.rarity === 'C' || r.rarity === 'D'
+        ? (r.rarity as Rarity)
+        : undefined;
+    out.push({
+      name,
+      distillery: typeof r.distillery === 'string' ? r.distillery.trim().slice(0, 80) : '',
+      category,
+      window: typeof r.window === 'string' ? r.window.trim().slice(0, 40) : '',
+      rarity,
+      note: typeof r.note === 'string' ? r.note.trim().slice(0, 200) : '',
+    });
+    if (out.length >= 30) break;
+  }
+  return out;
+}
+
+/**
+ * Ask Claude for notable upcoming / annually-recurring desirable American
+ * whiskey releases collectors watch for. This is a compliant alternative to
+ * scraping release calendars: it draws on the model's knowledge of real,
+ * well-known release programs rather than copying any site's content. Windows
+ * are approximate and clearly labeled as such in the UI.
+ */
+export async function upcomingReleases(
+  apiKey: string,
+  model: string = DEFAULT_MODEL
+): Promise<UpcomingRelease[]> {
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const response = await client.messages.create({
+    model,
+    max_tokens: 2048,
+    system:
+      'You are a whiskey release expert. List notable upcoming or annually-recurring, ' +
+      'highly-desirable American whiskey releases that collectors watch for (e.g. Buffalo ' +
+      'Trace Antique Collection, Pappy Van Winkle, Four Roses Limited Edition, Old Forester ' +
+      'Birthday Bourbon, Wild Turkey Master\'s Keep, Michter\'s 20/25). Use real, well-known ' +
+      'release programs only — never invent products. Give an APPROXIMATE window (season + ' +
+      'year) since exact dates and prices are not fixed. Focus on American whiskey. Return ' +
+      '15-25 releases spanning allocated unicorns to attainable limited editions.',
+    messages: [
+      {
+        role: 'user',
+        content: 'What notable American whiskey releases should I be watching for?',
+      },
+    ],
+    output_config: { format: { type: 'json_schema', schema: RELEASES_SCHEMA } },
+  });
+  const text = response.content.find(
+    (block): block is Anthropic.TextBlock => block.type === 'text'
+  )?.text;
+  if (!text) return [];
+  return validateReleases(JSON.parse(text));
+}

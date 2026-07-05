@@ -14,6 +14,7 @@ import ChatScreen from './src/screens/ChatScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import MatchScreen from './src/screens/MatchScreen';
 import RandomPourScreen from './src/screens/RandomPourScreen';
+import ReleasesScreen from './src/screens/ReleasesScreen';
 import TradeScreen from './src/screens/TradeScreen';
 import ScanScreen from './src/screens/ScanScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -105,6 +106,7 @@ export default function App() {
           options={{ title: 'Bulk Add from Photo' }}
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+        <Stack.Screen name="Releases" component={ReleasesScreen} options={{ title: 'Releases' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
