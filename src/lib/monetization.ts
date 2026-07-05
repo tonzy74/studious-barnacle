@@ -23,19 +23,18 @@ export type ProFeature =
   | 'price-alerts';
 
 /**
- * The free/Pro split. Deliberately generous on the free side to beat
- * competitors on acquisition (unlimited collection, barcode scan, journal,
- * trade analyzer, value estimates, achievements are ALL free — more than
- * Bourboneur's free tier). Pro unlocks the expensive AI suite and power
- * analytics — the stuff that costs money to run and that no competitor
- * matches.
+ * The free/Pro split.
+ *
+ * IMPORTANT: the AI features run on the user's OWN Anthropic API key — they
+ * already pay for that usage directly — so we do NOT gate them behind Pro
+ * (that would double-charge and block real use). Pro instead unlocks the
+ * on-device power features and analytics that cost us nothing per-use, plus
+ * (future) hosted AI so users don't need their own key. The free tier stays
+ * generous — unlimited collection, scanning, journal, trade analyzer, value
+ * estimates, achievements, and all BYO-key AI — beating competitors on
+ * acquisition.
  */
 export const PRO_FEATURES: ProFeature[] = [
-  'ai-bulk-add',
-  'ai-sommelier',
-  'ai-cocktails',
-  'ai-releases',
-  'ai-label-scan',
   'recommendations',
   'portfolio-history',
   'portfolio-export',

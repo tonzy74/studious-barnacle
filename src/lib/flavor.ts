@@ -85,7 +85,14 @@ export function scaleProfileForProof(
   };
 }
 
-/** Generic words that shouldn't count as evidence of a specific bottle. */
+/**
+ * Generic words that shouldn't count as evidence of a *specific* bottle.
+ * These are descriptors shared across hundreds of bottlings (cask strength,
+ * barrel proof, small batch, bottled in bond…). Without them here, a query
+ * like "13th Colony Cask Strength" would falsely match "Maker's Mark Cask
+ * Strength" on the shared "cask"+"strength" — so accuracy depends on the
+ * distinctive brand words carrying the match, not the descriptors.
+ */
 const STOPWORDS = new Set([
   'whiskey',
   'whisky',
@@ -96,10 +103,51 @@ const STOPWORDS = new Set([
   'the',
   'and',
   'of',
+  'in',
+  'a',
   'aged',
   'year',
   'years',
   'yr',
+  // Strength / proof descriptors
+  'cask',
+  'strength',
+  'barrel',
+  'barrels',
+  'proof',
+  'full',
+  'overproof',
+  // Batch / release descriptors
+  'small',
+  'batch',
+  'bottled',
+  'bond',
+  'bonded',
+  'reserve',
+  'select',
+  'selection',
+  'limited',
+  'edition',
+  'release',
+  'special',
+  'original',
+  'finish',
+  'finished',
+  'number',
+  'no',
+  // Origin / producer descriptors
+  'kentucky',
+  'tennessee',
+  'distillery',
+  'distilling',
+  'distillers',
+  'company',
+  'co',
+  'sour',
+  'mash',
+  'old',
+  'rare',
+  'premium',
 ]);
 
 /**

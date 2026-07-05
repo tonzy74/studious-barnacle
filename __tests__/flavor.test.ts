@@ -131,6 +131,24 @@ describe('findWhiskeyByName', () => {
     expect(findWhiskeyByName('some random whiskey')).toBeUndefined();
   });
 
+  it('does not falsely match on shared generic descriptors (accuracy)', () => {
+    // Regression: "13th Colony Cask Strength" must NOT resolve to a famous
+    // bottle that merely shares "cask"/"strength" (e.g. Maker's Mark Cask
+    // Strength). 13th Colony isn't in the catalog, so this should be unknown.
+    const wrong = findWhiskeyByName('13th colony cask strength');
+    expect(wrong?.distillery ?? '').not.toMatch(/maker/i);
+    expect(wrong?.name ?? '').not.toMatch(/maker/i);
+
+    // Generic descriptor-only queries shouldn't confidently match a brand.
+    expect(findWhiskeyByName('cask strength bourbon')?.name ?? '').not.toMatch(/maker/i);
+    expect(findWhiskeyByName('small batch bottled in bond')).toBeUndefined();
+
+    // But a real brand + descriptor still resolves correctly.
+    expect(findWhiskeyByName('makers cask strength')?.name).toBe("Maker's Mark Cask Strength");
+    expect(findWhiskeyByName('rare breed')?.name).toBe('Wild Turkey Rare Breed');
+    expect(findWhiskeyByName('weller full proof')?.name).toBe('W.L. Weller Full Proof');
+  });
+
   it('ignores batch codes and pick vocabulary', () => {
     expect(findWhiskeyByName('elijah craig barrel proof C923')?.name).toBe(
       'Elijah Craig Barrel Proof'

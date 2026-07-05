@@ -221,18 +221,34 @@ export function ScreenGradient({
   );
 }
 
-/** Standard screen title block with a gold eyebrow. */
+/** Standard screen title block with a gold eyebrow, optional back + action. */
 export function ScreenHeader({
   eyebrow,
   title,
   subtitle,
+  onBack,
+  right,
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
+  onBack?: () => void;
+  right?: React.ReactNode;
 }) {
   return (
     <View style={{ marginBottom: spacing.md }}>
+      {(onBack || right) && (
+        <View style={styles.headerNav}>
+          {onBack ? (
+            <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.7} hitSlop={8}>
+              <Ionicons name="chevron-back" size={22} color={colors.amberBright} />
+            </TouchableOpacity>
+          ) : (
+            <View />
+          )}
+          {right ?? <View />}
+        </View>
+      )}
       {eyebrow && <Text style={styles.headerEyebrow}>{eyebrow}</Text>}
       <Text style={styles.headerTitle}>{title}</Text>
       {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
@@ -483,6 +499,23 @@ const styles = StyleSheet.create({
   lockBenefit: { color: colors.textDim, fontSize: 14, flex: 1 },
   proChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
   proChipText: { color: colors.ink, fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  headerNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -4,
+  },
   headerEyebrow: { ...typo.overline, color: colors.amberDeep },
   headerTitle: { ...typo.display, color: colors.text, marginTop: 2 },
   headerSubtitle: { color: colors.textDim, marginTop: 4, fontSize: 14, lineHeight: 20 },
