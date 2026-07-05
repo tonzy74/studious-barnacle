@@ -88,3 +88,52 @@ falls back to its built-in curated / AI-estimated pricing.
   scrape retailer HTML.
 
 See `index.js` for a minimal, deployable reference implementation.
+
+## Run it now (works out of the box)
+
+```bash
+cd server/affiliate-price-service
+node index.js          # serves on :8787 from sample-catalog.json
+node test.js           # smoke tests
+
+curl "http://localhost:8787/v1/prices?name=eagle%20rare%2010"
+```
+
+Then point the app at it: set `PRICING_API_BASE_URL` in `src/config.ts` to
+your server's origin (e.g. `https://api.yourdomain.com`). The bottle page's
+"Where to buy" section and reference images light up immediately.
+
+## Deploy
+
+Zero dependencies, so it runs anywhere Node 18+ runs:
+
+- **Render / Railway / Fly.io**: point at this folder, start command `node index.js`.
+- **A small VPS**: `node index.js` behind nginx/Caddy for TLS.
+- **Vercel/Netlify**: wrap `server` from `index.js` in a serverless function.
+
+Set `PORT` if the host requires it. Production must be `https`.
+
+## Plugging in real feeds
+
+The sample catalog is demo data. For live pricing + licensed images + paid
+tracking links:
+
+1. **Join a network + get approved for merchant programs.** The spirits
+   merchants that actually run affiliate programs are online sellers:
+   - **Flaviar** (via Impact) — up to 60% on memberships, ~5% retail
+   - **Wine.com** — ~5%
+   - **ReserveBar**, **Caskers**, **Spirit Hub**, **Drizly/Uber** — retail rates
+2. Set the adapter env vars (see `adapters/impact.js`) and
+   `FEED_SOURCE=impact`. Implement the item→product mapping for your catalogs.
+3. Set `IMPACT_PUBLISHER_ID` / `AFFILIATE_SUBID` so every offer URL carries
+   your tracking (see `lib/affiliate.js`).
+
+### About secondary-market pricing
+
+Affiliate feeds give you **retail** prices and images. They do **not** give
+**secondary-market** values — that's a licensed data asset (this is exactly
+Bourboneur's "Bourbon Blue Book" moat). Options to fill the `secondary`
+field: license a secondary index, or grow your own comps from accepted in-app
+trades over time (the app's trade engine is already shaped for this). Leave
+`secondary` null until then; the app falls back to its estimate.
+

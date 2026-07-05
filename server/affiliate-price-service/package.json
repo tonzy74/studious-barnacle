@@ -1,0 +1,14 @@
+{
+  "name": "whiskey-vault-pricing-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reference pricing/offers backend for Whiskey Vault (affiliate feed ingestion).",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

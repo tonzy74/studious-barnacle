@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Eagle Rare 10 Year",
+    "upcs": ["088004021351"],
+    "msrp": 40,
+    "secondary": 70,
+    "imageUrl": "https://images.example.com/eagle-rare-10.jpg",
+    "updatedAt": "2026-07-01T00:00:00Z",
+    "offers": [
+      { "retailer": "ReserveBar", "price": 64.99, "url": "https://www.reservebar.com/products/eagle-rare-10", "currency": "USD", "inStock": true },
+      { "retailer": "Wine.com", "price": 59.99, "url": "https://www.wine.com/product/eagle-rare-10", "currency": "USD", "inStock": true }
+    ]
+  },
+  {
+    "name": "Blanton's Original Single Barrel",
+    "upcs": ["080686472100"],
+    "msrp": 65,
+    "secondary": 110,
+    "imageUrl": "https://images.example.com/blantons-original.jpg",
+    "updatedAt": "2026-07-01T00:00:00Z",
+    "offers": [
+      { "retailer": "ReserveBar", "price": 99.99, "url": "https://www.reservebar.com/products/blantons-original", "currency": "USD", "inStock": true },
+      { "retailer": "Caskers", "price": 109.99, "url": "https://www.caskers.com/blantons-original", "currency": "USD", "inStock": false }
+    ]
+  },
+  {
+    "name": "Buffalo Trace",
+    "upcs": ["080244009939"],
+    "msrp": 28,
+    "secondary": 40,
+    "imageUrl": "https://images.example.com/buffalo-trace.jpg",
+    "updatedAt": "2026-07-01T00:00:00Z",
+    "offers": [
+      { "retailer": "Wine.com", "price": 32.99, "url": "https://www.wine.com/product/buffalo-trace", "currency": "USD", "inStock": true }
+    ]
+  }
+]
