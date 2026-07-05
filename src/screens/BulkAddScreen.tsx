@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -12,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { Button, RarityBadge, TypeBadge } from '../components';
+import { Button, RarityBadge, ScreenGradient, TypeBadge } from '../components';
 import { IdentifiedBottle, identifyBottlesFromPhoto } from '../lib/claude';
 import { findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
 import { buildLearnedRecord } from '../lib/library';
@@ -179,6 +180,7 @@ export default function BulkAddScreen() {
   }
 
   return (
+    <ScreenGradient>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {!items && (
         <>
@@ -189,13 +191,15 @@ export default function BulkAddScreen() {
             For big collections, several photos of 10–15 bottles each beat one wide shot.
           </Text>
           <Button
-            title="📸 Photograph my shelf"
+            title="Photograph my shelf"
+            icon="camera"
             onPress={() => analyze(true)}
             disabled={busy !== 'idle'}
             style={{ marginTop: 20 }}
           />
           <Button
             title="Choose from photo library"
+            icon="images"
             variant="secondary"
             onPress={() => analyze(false)}
             disabled={busy !== 'idle'}
@@ -230,7 +234,11 @@ export default function BulkAddScreen() {
               onPress={() => toggle(index)}
             >
               <View style={styles.cardRow}>
-                <Text style={styles.check}>{item.selected ? '☑' : '☐'}</Text>
+                <Ionicons
+                  name={item.selected ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={item.selected ? colors.amberBright : colors.textFaint}
+                />
                 <View style={{ flex: 1, marginHorizontal: 8 }}>
                   <Text style={styles.name}>{item.match?.name ?? item.identified.name}</Text>
                   <Text style={styles.sub}>
@@ -261,12 +269,14 @@ export default function BulkAddScreen() {
                 ? 'Adding…'
                 : `Add ${items.filter((i) => i.selected).length} bottles to my bar`
             }
+            icon="add-circle"
             onPress={addSelected}
             disabled={busy !== 'idle' || items.every((i) => !i.selected)}
             style={{ marginTop: 16 }}
           />
           <Button
             title="Scan a different photo"
+            icon="refresh"
             variant="secondary"
             onPress={() => setItems(undefined)}
             disabled={busy !== 'idle'}
@@ -275,11 +285,12 @@ export default function BulkAddScreen() {
         </>
       )}
     </ScrollView>
+    </ScreenGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   center: { alignItems: 'center', justifyContent: 'center', padding: 24 },
   title: { color: colors.text, fontSize: 20, fontWeight: '800' },
   help: { color: colors.textDim, fontSize: 13, lineHeight: 19, marginTop: 8 },

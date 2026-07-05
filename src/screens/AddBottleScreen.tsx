@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { Button } from '../components';
+import { Button, Chip } from '../components';
 import { WHISKEY_DB } from '../data/whiskeyDatabase';
 import { EstimatedProfile, estimateFlavorProfile } from '../lib/claude';
 import {
@@ -301,15 +301,7 @@ export default function AddBottleScreen() {
         <Text style={styles.label}>Type</Text>
         <View style={styles.typeRow}>
           {TYPES.map((t) => (
-            <TouchableOpacity
-              key={t}
-              style={[styles.typeChip, type === t && styles.typeChipActive]}
-              onPress={() => setType(t)}
-            >
-              <Text style={[styles.typeChipText, type === t && styles.typeChipTextActive]}>
-                {t}
-              </Text>
-            </TouchableOpacity>
+            <Chip key={t} label={t} active={type === t} onPress={() => setType(t)} />
           ))}
         </View>
 
@@ -378,6 +370,7 @@ export default function AddBottleScreen() {
 
         <Button
           title="Add to my bar"
+          icon="add-circle"
           onPress={save}
           disabled={!name.trim()}
           style={{ marginTop: 20 }}

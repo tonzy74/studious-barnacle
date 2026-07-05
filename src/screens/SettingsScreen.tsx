@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { Button } from '../components';
+import { Button, ScreenGradient } from '../components';
 import { appleSignInAvailable, signInWithApple, signOut } from '../lib/auth';
 import { CLAUDE_MODELS } from '../lib/models';
 import { useStore } from '../store/useStore';
@@ -123,6 +123,7 @@ export default function SettingsScreen() {
   };
 
   return (
+    <ScreenGradient>
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
       <Text style={styles.section}>Account</Text>
       {profile ? (
@@ -245,11 +246,12 @@ export default function SettingsScreen() {
         Open Food Facts. See the privacy policy in the project repository for full details.
       </Text>
     </ScrollView>
+    </ScreenGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   section: {
     color: colors.text,
     fontWeight: '800',
