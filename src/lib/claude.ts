@@ -165,6 +165,10 @@ export async function estimateFlavorProfile(
     system:
       'You are a whiskey expert. Rate flavor intensities on a 0-10 scale reflecting the ' +
       'consensus of professional reviews (Whisky Advocate, Breaking Bourbon, Distiller). ' +
+      'Calibrate conservatively and use the FULL range: 0-2 = absent/trace, 3-4 = subtle, ' +
+      '5-6 = clearly present, 7-8 = prominent, 9-10 = dominant/intense. Most notes on most ' +
+      'whiskeys are in the 2-6 range; reserve 8+ for a defining characteristic (e.g. peat on ' +
+      'an Islay, rye spice on a barrel-proof rye). Do not rate everything mid-high. ' +
       'If you do not recognize the exact bottling, estimate from its distillery house style, ' +
       'category, and proof, and set "known" to false.',
     messages: [

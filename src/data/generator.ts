@@ -61,6 +61,25 @@ function clamp(v: number): number {
   return Math.round(Math.min(10, Math.max(0, v)) * 10) / 10;
 }
 
+/**
+ * Global downward calibration of flavor intensities.
+ *
+ * Synthesized and hand-set profiles trended high (a sea of 6-8s), making
+ * everything read "loud." We scale intensities toward the low end so the
+ * 0-10 axis uses its full range and only genuinely intense notes hit the top.
+ * Pure multiplicative scaling keeps each profile's *shape* — and therefore
+ * cosine-similarity matching — intact.
+ */
+export const FLAVOR_CALIBRATION = 0.8;
+
+export function calibrateProfile(profile: FlavorProfile): FlavorProfile {
+  const out = {} as FlavorProfile;
+  for (const axis of FLAVOR_AXES) {
+    out[axis] = Math.round(profile[axis] * FLAVOR_CALIBRATION * 10) / 10;
+  }
+  return out;
+}
+
 export function applyMods(base: number[], mods?: string): FlavorProfile {
   const v = base.slice();
   if (mods) {

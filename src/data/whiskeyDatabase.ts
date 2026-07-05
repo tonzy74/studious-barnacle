@@ -1,7 +1,7 @@
 import { FlavorProfile, WhiskeyRecord, WhiskeyType } from '../types';
 import { assignRarity } from '../lib/rarity';
 import { lookupPricing } from '../lib/pricing';
-import { expandHouses } from './generator';
+import { calibrateProfile, expandHouses } from './generator';
 import { generatePicks } from './picks';
 import { AMERICAN_MAJORS } from './houses/americanMajors';
 import { AMERICAN_CRAFT } from './houses/americanCraft';
@@ -254,22 +254,28 @@ export const WHISKEY_DB: WhiskeyRecord[] = (() => {
       merged.push(record);
     }
   }
-  // Attach rarity tiers and pricing anchors to every record.
+  // Attach rarity tiers and pricing anchors to every record, and calibrate
+  // flavor intensities down so the scale isn't uniformly loud.
   return merged.map((r) => ({
     ...r,
+    flavor: calibrateProfile(r.flavor),
     rarity: r.rarity ?? assignRarity(r),
     ...(lookupPricing(r.name) ?? {}),
   }));
 })();
 
-/** Default flavor profiles used when a bottle isn't in the reference DB. */
+/**
+ * Default flavor profiles used when a bottle isn't in the reference DB.
+ * Calibrated with the same downward scaling as the catalog so a default
+ * profile sits on the same intensity scale as everything else.
+ */
 export const TYPE_DEFAULTS: Record<WhiskeyType, FlavorProfile> = {
-  bourbon: fp(7, 6, 6, 6, 4, 4, 2, 1, 4, 2),
-  rye: fp(5, 5, 5, 5, 8, 4, 3, 1, 3, 3),
-  tennessee: fp(7, 5, 6, 6, 3, 4, 1, 2, 3, 2),
-  scotch: fp(5, 4, 4, 4, 3, 6, 4, 3, 3, 3),
-  irish: fp(6, 4, 4, 4, 3, 6, 4, 0, 4, 2),
-  japanese: fp(6, 4, 4, 4, 3, 6, 5, 1, 3, 2),
-  canadian: fp(6, 4, 5, 5, 4, 4, 3, 0, 2, 2),
-  other: fp(6, 5, 5, 5, 4, 4, 3, 1, 3, 2),
+  bourbon: calibrateProfile(fp(7, 6, 6, 6, 4, 4, 2, 1, 4, 2)),
+  rye: calibrateProfile(fp(5, 5, 5, 5, 8, 4, 3, 1, 3, 3)),
+  tennessee: calibrateProfile(fp(7, 5, 6, 6, 3, 4, 1, 2, 3, 2)),
+  scotch: calibrateProfile(fp(5, 4, 4, 4, 3, 6, 4, 3, 3, 3)),
+  irish: calibrateProfile(fp(6, 4, 4, 4, 3, 6, 4, 0, 4, 2)),
+  japanese: calibrateProfile(fp(6, 4, 4, 4, 3, 6, 5, 1, 3, 2)),
+  canadian: calibrateProfile(fp(6, 4, 5, 5, 4, 4, 3, 0, 2, 2)),
+  other: calibrateProfile(fp(6, 5, 5, 5, 4, 4, 3, 1, 3, 2)),
 };
