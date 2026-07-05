@@ -21,6 +21,8 @@ export const ANALYTICS_EVENTS = [
   'bulk_add_completed',
   'trade_evaluated',
   'sign_out',
+  'pour_logged',
+  'label_scanned',
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

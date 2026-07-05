@@ -8,9 +8,12 @@ import {
   Bottle,
   ConsentSettings,
   Correction,
+  Pour,
   UserProfile,
+  ValueSnapshot,
   WhiskeyRecord,
   WhiskeyType,
+  WishlistItem,
 } from '../types';
 import { upsertCorrection } from '../lib/corrections';
 import {
@@ -42,6 +45,12 @@ interface VaultState {
   learned: WhiskeyRecord[];
   /** Learned AI-misread → correct-identity mappings; auto-applied to future scans. */
   corrections: Correction[];
+  /** Tasting journal — dated, rated pours. */
+  pours: Pour[];
+  /** Bottles the user is hunting for. */
+  wishlist: WishlistItem[];
+  /** Collection-value history for the portfolio trend. */
+  valueHistory: ValueSnapshot[];
   profile: UserProfile | null;
   consent: ConsentSettings;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -58,6 +67,12 @@ interface VaultState {
     original: { name: string; distillery: string },
     fixed: { name: string; distillery: string; type: WhiskeyType; proof?: number }
   ) => void;
+  addPour: (pour: Pour) => void;
+  removePour: (id: string) => void;
+  addWishlist: (item: WishlistItem) => void;
+  removeWishlist: (id: string) => void;
+  /** Append today's collection-value snapshot (once per day, deduped). */
+  snapshotValue: (value: number, bottles: number) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -74,6 +89,9 @@ export const useStore = create<VaultState>()(
       model: DEFAULT_MODEL,
       learned: [],
       corrections: [],
+      pours: [],
+      wishlist: [],
+      valueHistory: [],
       profile: null,
       consent: { analytics: false, sellShare: false },
       events: [],
@@ -97,6 +115,23 @@ export const useStore = create<VaultState>()(
       setModel: (model) => set({ model }),
       recordCorrection: (original, fixed) =>
         set((s) => ({ corrections: upsertCorrection(s.corrections, original, fixed) })),
+      addPour: (pour) => set((s) => ({ pours: [pour, ...s.pours] })),
+      removePour: (id) => set((s) => ({ pours: s.pours.filter((p) => p.id !== id) })),
+      addWishlist: (item) => set((s) => ({ wishlist: [item, ...s.wishlist] })),
+      removeWishlist: (id) => set((s) => ({ wishlist: s.wishlist.filter((w) => w.id !== id) })),
+      snapshotValue: (value, bottles) =>
+        set((s) => {
+          const dayMs = 86_400_000;
+          const last = s.valueHistory[s.valueHistory.length - 1];
+          // One snapshot per calendar day; overwrite the same day's point.
+          if (last && Math.floor(last.at / dayMs) === Math.floor(Date.now() / dayMs)) {
+            const copy = s.valueHistory.slice(0, -1);
+            return { valueHistory: [...copy, { at: Date.now(), value, bottles }] };
+          }
+          return {
+            valueHistory: [...s.valueHistory, { at: Date.now(), value, bottles }].slice(-365),
+          };
+        }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -140,6 +175,9 @@ export const useStore = create<VaultState>()(
           model: DEFAULT_MODEL,
           learned: [],
           corrections: [],
+          pours: [],
+          wishlist: [],
+          valueHistory: [],
           profile: null,
           consent: { analytics: false, sellShare: false, decidedAt: Date.now() },
           events: [],
@@ -158,6 +196,9 @@ export const useStore = create<VaultState>()(
           model: s.model,
           learned: s.learned,
           corrections: s.corrections,
+          pours: s.pours,
+          wishlist: s.wishlist,
+          valueHistory: s.valueHistory,
           profile: s.profile,
           consent: s.consent,
           events: s.events,

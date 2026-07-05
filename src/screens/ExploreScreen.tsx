@@ -1,0 +1,78 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Card, ScreenGradient, ScreenHeader } from '../components';
+import { RootStackParamList } from '../navigation';
+import { colors, radius, spacing } from '../theme';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+type HubRoute = 'Journal' | 'Recommend' | 'Wishlist' | 'Portfolio' | 'Achievements' | 'Releases' | 'ScanLabel';
+
+const TILES: {
+  screen: HubRoute;
+  title: string;
+  desc: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { screen: 'Journal', title: 'Tasting Journal', desc: 'Log & rate every pour', icon: 'book' },
+  { screen: 'Recommend', title: 'For You', desc: 'Bottles matched to your palate', icon: 'sparkles' },
+  { screen: 'Wishlist', title: 'Hunt List', desc: 'Bottles you want & are chasing', icon: 'heart' },
+  { screen: 'Portfolio', title: 'Portfolio', desc: 'Value over time & export', icon: 'trending-up' },
+  { screen: 'Achievements', title: 'Achievements', desc: 'Badges & milestones', icon: 'trophy' },
+  { screen: 'Releases', title: 'Releases to Watch', desc: 'Upcoming allocated drops', icon: 'calendar' },
+  { screen: 'ScanLabel', title: 'Scan a Label', desc: 'Identify & value in-store', icon: 'scan-circle' },
+];
+
+export default function ExploreScreen() {
+  const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
+  return (
+    <ScreenGradient>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: insets.top + spacing.md,
+          paddingBottom: 40,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader eyebrow="EVERYTHING ELSE" title="Explore" />
+        {TILES.map((t) => (
+          <TouchableOpacity key={t.screen} activeOpacity={0.85} onPress={() => navigation.navigate(t.screen)}>
+            <Card style={styles.tile}>
+              <View style={styles.iconWrap}>
+                <Ionicons name={t.icon} size={22} color={colors.amberBright} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{t.title}</Text>
+                <Text style={styles.desc}>{t.desc}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textFaint} />
+            </Card>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </ScreenGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  tile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  desc: { color: colors.textDim, fontSize: 13, marginTop: 2 },
+});

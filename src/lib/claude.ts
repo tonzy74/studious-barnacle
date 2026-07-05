@@ -455,3 +455,85 @@ export async function upcomingReleases(
   if (!text) return [];
   return validateReleases(JSON.parse(text));
 }
+
+export interface CocktailSuggestion {
+  name: string;
+  /** Short "how to make it" line. */
+  recipe: string;
+  /** Why it suits this bottle. */
+  note: string;
+}
+
+const COCKTAIL_SCHEMA = {
+  type: 'object',
+  properties: {
+    cocktails: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          recipe: { type: 'string', description: 'Concise build: measures + method' },
+          note: { type: 'string', description: 'One sentence on why it suits this bottle' },
+        },
+        required: ['name', 'recipe', 'note'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['cocktails'],
+  additionalProperties: false,
+} as const;
+
+/** Validate the cocktail suggestions defensively; exported for testing. */
+export function validateCocktails(raw: unknown): CocktailSuggestion[] {
+  const list = (raw as { cocktails?: unknown })?.cocktails;
+  if (!Array.isArray(list)) return [];
+  const out: CocktailSuggestion[] = [];
+  for (const item of list) {
+    if (typeof item !== 'object' || item === null) continue;
+    const c = item as Record<string, unknown>;
+    const name = typeof c.name === 'string' ? c.name.trim().slice(0, 80) : '';
+    if (!name) continue;
+    out.push({
+      name,
+      recipe: typeof c.recipe === 'string' ? c.recipe.trim().slice(0, 400) : '',
+      note: typeof c.note === 'string' ? c.note.trim().slice(0, 200) : '',
+    });
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+/**
+ * Suggest cocktails (and how to build them) that suit a specific bottle —
+ * great for opened or everyday bottles. Draws on the bottle's style and proof.
+ */
+export async function cocktailsForBottle(
+  apiKey: string,
+  bottle: { name: string; type: WhiskeyType; proof?: number },
+  model: string = DEFAULT_MODEL
+): Promise<CocktailSuggestion[]> {
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const response = await client.messages.create({
+    model,
+    max_tokens: 1024,
+    system:
+      'You are a whiskey bartender. Suggest 3-5 cocktails that genuinely suit the given ' +
+      'bottle, considering its style and proof. Prefer classics and simple builds. For rare, ' +
+      'high-end sippers, it is fine to suggest drinking it neat or with a drop of water and to ' +
+      'say so. Give concise measures and method.',
+    messages: [
+      {
+        role: 'user',
+        content: `Bottle: ${bottle.name} (${bottle.type}${bottle.proof ? `, ${bottle.proof} proof` : ''}). What should I make with it?`,
+      },
+    ],
+    output_config: { format: { type: 'json_schema', schema: COCKTAIL_SCHEMA } },
+  });
+  const text = response.content.find(
+    (block): block is Anthropic.TextBlock => block.type === 'text'
+  )?.text;
+  if (!text) return [];
+  return validateCocktails(JSON.parse(text));
+}

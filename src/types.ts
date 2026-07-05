@@ -128,8 +128,47 @@ export interface Bottle {
   /** Reference/owner photo (https or local file URI). */
   imageUrl?: string;
   opened: boolean;
+  /** Remaining fill as a percent (0-100). Undefined = not tracked. */
+  fillLevel?: number;
+  /** An ever-topped-up "infinity"/solera bottle. */
+  infinity?: boolean;
   quantity: number;
   addedAt: number;
+}
+
+/** A single logged pour in the tasting journal. */
+export interface Pour {
+  id: string;
+  /** Linked collection bottle, when the pour came from an owned bottle. */
+  bottleId?: string;
+  name: string;
+  distillery?: string;
+  /** Personal score, 0-100. */
+  rating?: number;
+  notes?: string;
+  /** Photo of the pour (local uri or https). */
+  imageUrl?: string;
+  at: number;
+}
+
+/** A bottle the user is hunting for. */
+export interface WishlistItem {
+  id: string;
+  name: string;
+  distillery?: string;
+  note?: string;
+  /** Alert when a retailer offer drops to/below this price (needs backend). */
+  targetPrice?: number;
+  /** Watch for this as an upcoming release. */
+  watchRelease?: boolean;
+  addedAt: number;
+}
+
+/** A point-in-time snapshot of total collection value for the trend chart. */
+export interface ValueSnapshot {
+  at: number;
+  value: number;
+  bottles: number;
 }
 
 /**

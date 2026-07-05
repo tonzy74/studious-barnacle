@@ -12,9 +12,17 @@ import BottleDetailScreen from './src/screens/BottleDetailScreen';
 import BulkAddScreen from './src/screens/BulkAddScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
+import AchievementsScreen from './src/screens/AchievementsScreen';
+import ExploreScreen from './src/screens/ExploreScreen';
+import JournalScreen from './src/screens/JournalScreen';
+import LogPourScreen from './src/screens/LogPourScreen';
 import MatchScreen from './src/screens/MatchScreen';
+import PortfolioScreen from './src/screens/PortfolioScreen';
 import RandomPourScreen from './src/screens/RandomPourScreen';
+import RecommendScreen from './src/screens/RecommendScreen';
 import ReleasesScreen from './src/screens/ReleasesScreen';
+import ScanLabelScreen from './src/screens/ScanLabelScreen';
+import WishlistScreen from './src/screens/WishlistScreen';
 import TradeScreen from './src/screens/TradeScreen';
 import ScanScreen from './src/screens/ScanScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -107,6 +115,18 @@ export default function App() {
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
         <Stack.Screen name="Releases" component={ReleasesScreen} options={{ title: 'Releases' }} />
+        <Stack.Screen name="Explore" component={ExploreScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Journal" component={JournalScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Wishlist" component={WishlistScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Recommend" component={RecommendScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Portfolio" component={PortfolioScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Achievements" component={AchievementsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ScanLabel" component={ScanLabelScreen} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="LogPour"
+          component={LogPourScreen}
+          options={{ title: 'Log a Pour', presentation: 'modal' }}
+        />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

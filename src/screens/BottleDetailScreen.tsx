@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
@@ -24,6 +25,7 @@ import {
   TypeBadge,
 } from '../components';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
+import { cocktailsForBottle, CocktailSuggestion } from '../lib/claude';
 import { fetchRetailerOffers, PricingResult } from '../lib/offers';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_COLORS, RARITY_LABELS, RARITY_ORDER } from '../lib/rarity';
@@ -42,13 +44,17 @@ const SOURCE_LABELS: Record<FlavorSource, string> = {
 };
 
 export default function BottleDetailScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { params } = useRoute<Route>();
   const bottle = useStore((s) => s.bottles.find((b) => b.id === params.id));
   const updateBottle = useStore((s) => s.updateBottle);
   const removeBottle = useStore((s) => s.removeBottle);
+  const apiKey = useStore((s) => s.apiKey);
+  const aiModel = useStore((s) => s.model);
   const [editing, setEditing] = useState(false);
   const [offers, setOffers] = useState<PricingResult | undefined>();
+  const [cocktails, setCocktails] = useState<CocktailSuggestion[] | undefined>();
+  const [cocktailBusy, setCocktailBusy] = useState(false);
 
   const bottleName = bottle?.name;
   const bottleBarcode = bottle?.barcode;
@@ -99,6 +105,38 @@ export default function BottleDetailScreen() {
       updateBottle(bottle.id, { imageUrl: result.assets[0].uri });
     }
   };
+
+  const setFill = (level: number) =>
+    updateBottle(bottle.id, { fillLevel: level, opened: level < 100 ? true : bottle.opened });
+
+  const loadCocktails = async () => {
+    if (!apiKey || cocktailBusy) return;
+    setCocktailBusy(true);
+    try {
+      setCocktails(
+        await cocktailsForBottle(apiKey, { name: bottle.name, type: bottle.type, proof: bottle.proof }, aiModel)
+      );
+    } catch {
+      setCocktails([]);
+    } finally {
+      setCocktailBusy(false);
+    }
+  };
+
+  const costPerPour = (() => {
+    if (bottle.pricePaid === undefined) return undefined;
+    // ~17 pours (1.5oz) in a 750ml bottle.
+    const poursPerBottle = 17;
+    return bottle.pricePaid / poursPerBottle;
+  })();
+
+  const FILL_STEPS = [
+    { label: 'Full', v: 100 },
+    { label: '¾', v: 75 },
+    { label: '½', v: 50 },
+    { label: '¼', v: 25 },
+    { label: 'Empty', v: 0 },
+  ];
 
   const confirmDelete = () => {
     Alert.alert('Remove bottle', `Remove ${bottle.name} from your bar?`, [
@@ -295,6 +333,75 @@ export default function BottleDetailScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Pour & fill</Text>
+        <View style={styles.fillTrack}>
+          <View style={[styles.fillFill, { width: `${bottle.fillLevel ?? 100}%` }]} />
+        </View>
+        <View style={styles.fillRow}>
+          {FILL_STEPS.map((s) => (
+            <TouchableOpacity
+              key={s.v}
+              style={[styles.fillChip, (bottle.fillLevel ?? 100) === s.v && styles.fillChipActive]}
+              onPress={() => setFill(s.v)}
+            >
+              <Text
+                style={[
+                  styles.fillChipText,
+                  (bottle.fillLevel ?? 100) === s.v && styles.fillChipTextActive,
+                ]}
+              >
+                {s.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {costPerPour !== undefined && (
+          <Text style={styles.estimate}>≈ {formatUsd(costPerPour)} per 1.5 oz pour (cost basis)</Text>
+        )}
+        <Button
+          title="Log a pour"
+          icon="book"
+          variant="secondary"
+          onPress={() =>
+            navigation.navigate('LogPour', {
+              bottleId: bottle.id,
+              name: bottle.name,
+              distillery: bottle.distillery,
+              type: bottle.type,
+            })
+          }
+          style={{ marginTop: spacing.md }}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Cocktails for this bottle</Text>
+        {cocktails === undefined ? (
+          apiKey ? (
+            <Button
+              title={cocktailBusy ? 'Thinking…' : '✨ Suggest cocktails'}
+              variant="secondary"
+              onPress={loadCocktails}
+              disabled={cocktailBusy}
+              style={{ marginTop: spacing.sm }}
+            />
+          ) : (
+            <Text style={styles.estimate}>Add an API key in Settings to get cocktail ideas.</Text>
+          )
+        ) : cocktails.length === 0 ? (
+          <Text style={styles.estimate}>No suggestions came back — try again.</Text>
+        ) : (
+          cocktails.map((c) => (
+            <View key={c.name} style={styles.cocktail}>
+              <Text style={styles.cocktailName}>{c.name}</Text>
+              <Text style={styles.cocktailRecipe}>{c.recipe}</Text>
+              {!!c.note && <Text style={styles.cocktailNote}>{c.note}</Text>}
+            </View>
+          ))
+        )}
+      </View>
+
+      <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Flavor profile</Text>
           <TouchableOpacity onPress={() => setEditing((e) => !e)}>
@@ -439,6 +546,33 @@ const styles = StyleSheet.create({
   offerRetailer: { color: colors.text, fontSize: 14, fontWeight: '600' },
   offerOos: { color: colors.danger, fontSize: 11, marginTop: 2 },
   offerPrice: { color: colors.amberBright, fontSize: 15, fontWeight: '800' },
+  fillTrack: {
+    height: 10,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 5,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.sm,
+  },
+  fillFill: { height: 10, backgroundColor: colors.amber },
+  fillRow: { flexDirection: 'row', gap: 6 },
+  fillChip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  fillChipActive: { backgroundColor: colors.amber, borderColor: colors.amberBright },
+  fillChipText: { color: colors.textDim, fontSize: 13, fontWeight: '700' },
+  fillChipTextActive: { color: colors.ink },
+  cocktail: { marginTop: spacing.md },
+  cocktailName: { color: colors.amberBright, fontSize: 14, fontWeight: '700' },
+  cocktailRecipe: { color: colors.text, fontSize: 13, marginTop: 3, lineHeight: 18 },
+  cocktailNote: { color: colors.textDim, fontSize: 12, marginTop: 3, fontStyle: 'italic' },
   estimate: { color: colors.textDim, fontSize: 12, marginTop: 10, fontStyle: 'italic' },
   editRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
   editLabel: { color: colors.textDim, flex: 1, fontSize: 14 },

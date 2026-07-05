@@ -84,11 +84,11 @@ export default function InventoryScreen() {
         </View>
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Releases')}
+            onPress={() => navigation.navigate('Explore')}
             style={styles.gearButton}
             activeOpacity={0.8}
           >
-            <Ionicons name="calendar-outline" size={20} color={colors.amberBright} />
+            <Ionicons name="grid-outline" size={20} color={colors.amberBright} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('Settings')}

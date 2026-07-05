@@ -11,6 +11,14 @@ export type RootStackParamList = {
   BulkAdd: undefined;
   Settings: undefined;
   Releases: undefined;
+  Explore: undefined;
+  Journal: undefined;
+  Wishlist: undefined;
+  Recommend: undefined;
+  Portfolio: undefined;
+  Achievements: undefined;
+  ScanLabel: undefined;
+  LogPour: { bottleId?: string; name?: string; distillery?: string; type?: string };
 };
 
 export type TabParamList = {
