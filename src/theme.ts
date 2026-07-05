@@ -1,55 +1,62 @@
 /**
  * Whiskey Vault design system.
  *
- * The palette is built to feel like aged oak, brass, and candlelight —
- * deep browns, warm cream, and a gold accent that reads as luxury rather
- * than "default dark app." Everything (spacing, radii, type, shadow) is a
- * token so screens stay consistent and easy to restyle.
+ * The palette is a candlelit whiskey lounge — aged oak and mahogany, worn
+ * leather, and warm brass, lit low and gold. Everything (spacing, radii,
+ * type, shadow, texture) is a token so screens stay consistent.
  */
 
+import { Platform } from 'react-native';
+
 export const colors = {
-  // Backgrounds — layered browns, darkest at the base.
-  bg: '#140d07',
-  bgElevated: '#1c130b',
-  card: '#241811',
-  cardAlt: '#2f2015',
-  cardGlow: '#3a2817',
-  border: '#4a3520',
-  borderBright: '#6b4e2e',
+  // Backgrounds — warm mahogany/oak, darkest at the base.
+  bg: '#160d06',
+  bgElevated: '#20140a',
+  card: '#2a1a0f',
+  cardAlt: '#382312',
+  cardGlow: '#442b16',
+  border: '#553a1f',
+  borderBright: '#82592c',
 
   // Brass / gold accent family.
-  amber: '#d99a3d',
-  amberBright: '#f0b45c',
-  amberDeep: '#a6702a',
-  gold: '#e8c179',
+  amber: '#dc9c3c',
+  amberBright: '#f4b95e',
+  amberDeep: '#a86c26',
+  gold: '#ecc47e',
+  brass: '#c8973f',
 
   // Text.
-  text: '#f5ecdf',
-  textDim: '#b39d82',
-  textFaint: '#7d6b54',
+  text: '#f6ecdd',
+  textDim: '#b8a084',
+  textFaint: '#846c50',
 
   // Status.
-  danger: '#c0563f',
-  success: '#8bb36a',
+  danger: '#c85942',
+  success: '#93b96e',
 
   // Fixed dark ink for text on gold surfaces.
-  ink: '#1a120b',
+  ink: '#1a1108',
 };
 
 /** Multi-stop gradients for hero surfaces, buttons, and badges. */
 export const gradients = {
-  // Deeper 3-stop base so the screen reads as a lit room, not a flat panel.
-  screen: ['#241910', '#160f08', '#0d0904'] as const,
-  card: ['#33231583', '#2b1d12', '#1e140c'] as const,
-  gold: ['#f5c479', '#d99a3d', '#9c6626'] as const,
-  hero: ['#43301c', '#281b10', '#140d07'] as const,
-  ember: ['#a6702a', '#5e3d18'] as const,
+  // Deeper 3-stop base so the screen reads as a lit lounge, not a flat panel.
+  screen: ['#2a1c0f', '#170f07', '#0e0803'] as const,
+  card: ['#3a2614aa', '#2d1d10', '#20140b'] as const,
+  gold: ['#f7c882', '#dc9c3c', '#9e6522'] as const,
+  hero: ['#4d3419', '#2c1c0f', '#160d06'] as const,
+  ember: ['#a86c26', '#5f3c16'] as const,
 };
 
 /** Warm radial glow laid over the screen background for depth. */
 export const glow = {
-  color: '#e9a94a',
-  topOpacity: 0.16,
+  color: '#ecab46',
+  topOpacity: 0.17,
+};
+
+/** Serif display family — a refined, lounge-menu feel for big titles. */
+export const fonts = {
+  serif: Platform.select({ ios: 'Baskerville', android: 'serif', default: 'serif' }),
 };
 
 /** Consistent spacing scale (4pt base). */
@@ -71,10 +78,10 @@ export const radius = {
   pill: 999,
 };
 
-/** Type scale — sizes and weights used across screens. */
+/** Type scale — serif display for refined titles, sans for everything else. */
 export const type = {
-  display: { fontSize: 30, fontWeight: '800' as const, letterSpacing: 0.3 },
-  title: { fontSize: 22, fontWeight: '800' as const, letterSpacing: 0.2 },
+  display: { fontSize: 32, fontWeight: '700' as const, letterSpacing: 0.3, fontFamily: fonts.serif },
+  title: { fontSize: 23, fontWeight: '700' as const, letterSpacing: 0.2, fontFamily: fonts.serif },
   heading: { fontSize: 17, fontWeight: '700' as const },
   body: { fontSize: 15, fontWeight: '400' as const },
   label: { fontSize: 13, fontWeight: '600' as const, letterSpacing: 0.4 },

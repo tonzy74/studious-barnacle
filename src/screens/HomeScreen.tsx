@@ -6,7 +6,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Card, TypeIcon } from '../components';
+import { Card, Emblem, TypeIcon } from '../components';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
@@ -52,9 +52,12 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.top}>
-          <View>
-            <Text style={styles.eyebrow}>WHISKEY VAULT</Text>
-            <Text style={styles.hello}>{greeting()}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <Emblem size={44} />
+            <View>
+              <Text style={styles.eyebrow}>WHISKEY VAULT</Text>
+              <Text style={styles.hello}>{greeting()}</Text>
+            </View>
           </View>
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')} activeOpacity={0.8}>
             <Ionicons name="settings-outline" size={20} color={colors.amberBright} />

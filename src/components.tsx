@@ -216,8 +216,45 @@ export function ScreenGradient({
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#screenGlow)" />
       </Svg>
+      {/* Bottom vignette — the room dims toward the floor, like low lounge light. */}
+      <LinearGradient
+        colors={['transparent', '#0e080366', '#0b060299']}
+        locations={[0.55, 0.85, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       {children}
     </LinearGradient>
+  );
+}
+
+/** Brass vault emblem — a ringed monogram, the app's signature mark. */
+export function Emblem({ size = 40 }: { size?: number }) {
+  return (
+    <LinearGradient
+      colors={gradients.gold}
+      start={{ x: 0.2, y: 0 }}
+      end={{ x: 0.8, y: 1 }}
+      style={[
+        styles.emblem,
+        { width: size, height: size, borderRadius: size / 2 },
+      ]}
+    >
+      <View style={[styles.emblemInner, { borderRadius: size / 2 - 3 }]}>
+        <Text style={[styles.emblemText, { fontSize: size * 0.36 }]}>WV</Text>
+      </View>
+    </LinearGradient>
+  );
+}
+
+/** Ornamental section divider — a hairline with a small brass diamond. */
+export function OrnDivider() {
+  return (
+    <View style={styles.ornRow}>
+      <View style={styles.ornLine} />
+      <View style={styles.ornDiamond} />
+      <View style={styles.ornLine} />
+    </View>
   );
 }
 
@@ -515,6 +552,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -4,
+  },
+  emblem: { alignItems: 'center', justifyContent: 'center', ...shadow.gold },
+  emblemInner: {
+    ...StyleSheet.absoluteFillObject,
+    margin: 3,
+    borderWidth: 1,
+    borderColor: '#00000033',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emblemText: {
+    color: colors.ink,
+    fontWeight: '800',
+    fontFamily: typo.display.fontFamily,
+    letterSpacing: 0.5,
+  },
+  ornRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.md },
+  ornLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  ornDiamond: {
+    width: 7,
+    height: 7,
+    backgroundColor: colors.brass,
+    transform: [{ rotate: '45deg' }],
   },
   headerEyebrow: { ...typo.overline, color: colors.amberDeep },
   headerTitle: { ...typo.display, color: colors.text, marginTop: 2 },
