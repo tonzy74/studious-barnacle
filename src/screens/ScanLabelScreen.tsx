@@ -100,6 +100,7 @@ export default function ScanLabelScreen() {
           eyebrow="IN-STORE MODE"
           title="Scan a Label"
           subtitle="Point at a bottle to identify it and see its value, rarity, and whether you already own it — no barcode needed."
+          onBack={() => navigation.goBack()}
         />
 
         {!apiKey && (

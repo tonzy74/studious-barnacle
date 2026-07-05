@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { useStore } from '../store/useStore';
 import { colors, spacing } from '../theme';
 
 export default function RecommendScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
@@ -61,6 +63,7 @@ export default function RecommendScreen() {
           eyebrow="MATCHED TO YOU"
           title="For You"
           subtitle="Bottles you don't own yet, ranked against your collection's flavor profile."
+          onBack={() => navigation.goBack()}
         />
         {locked ? (
           <ProLock

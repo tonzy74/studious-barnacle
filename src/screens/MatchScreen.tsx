@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ function percentColor(p: number): string {
 }
 
 export default function MatchScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
@@ -55,6 +57,7 @@ export default function MatchScreen() {
           eyebrow="HOST LIKE A PRO"
           title="Guest Match"
           subtitle="Enter what a guest loves, and see how each bottle in your bar suits their palate."
+          onBack={() => navigation.goBack()}
         />
 
         <View style={styles.inputRow}>

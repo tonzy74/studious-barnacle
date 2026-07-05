@@ -56,7 +56,7 @@ export default function JournalScreen() {
   return (
     <ScreenGradient>
       <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: insets.top + spacing.md }}>
-        <ScreenHeader eyebrow="EVERY DRAM" title="Tasting Journal" />
+        <ScreenHeader eyebrow="EVERY DRAM" title="Tasting Journal" onBack={() => navigation.goBack()} />
         {pours.length > 0 && (
           <View style={styles.stats}>
             <StatTile label="Pours" value={String(pours.length)} icon="book" />

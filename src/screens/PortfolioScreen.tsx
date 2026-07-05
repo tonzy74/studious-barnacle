@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useMemo } from 'react';
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ import { colors, spacing, type as typo } from '../theme';
 import { Linking } from 'react-native';
 
 export default function PortfolioScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const valueHistory = useStore((s) => s.valueHistory);
@@ -91,7 +93,7 @@ export default function PortfolioScreen() {
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: insets.top + spacing.md, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeader eyebrow="YOUR CELLAR" title="Portfolio" />
+        <ScreenHeader eyebrow="YOUR CELLAR" title="Portfolio" onBack={() => navigation.goBack()} />
 
         <View style={styles.stats}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.8} onPress={toggleHideValues}>

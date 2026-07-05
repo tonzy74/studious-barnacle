@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +10,7 @@ import { useStore } from '../store/useStore';
 import { colors, radius, spacing } from '../theme';
 
 export default function AchievementsScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const pours = useStore((s) => s.pours);
@@ -54,6 +56,7 @@ export default function AchievementsScreen() {
           eyebrow={`${earned} / ${list.length} UNLOCKED`}
           title="Achievements"
           subtitle="Milestones across your collection and tasting journey."
+          onBack={() => navigation.goBack()}
         />
         <View style={styles.grid}>{list.map(renderBadge)}</View>
       </ScrollView>

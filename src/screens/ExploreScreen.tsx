@@ -14,7 +14,17 @@ import { colors, gradients, radius, spacing } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-type HubRoute = 'Journal' | 'Recommend' | 'Wishlist' | 'Portfolio' | 'Achievements' | 'Releases' | 'ScanLabel';
+type HubRoute =
+  | 'Journal'
+  | 'Recommend'
+  | 'Wishlist'
+  | 'Portfolio'
+  | 'Achievements'
+  | 'Releases'
+  | 'ScanLabel'
+  | 'Trade'
+  | 'Pour'
+  | 'Match';
 
 const TILES: {
   screen: HubRoute;
@@ -22,13 +32,16 @@ const TILES: {
   desc: string;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { screen: 'Journal', title: 'Tasting Journal', desc: 'Log & rate every pour', icon: 'book' },
+  { screen: 'ScanLabel', title: 'Scan a Label', desc: 'Identify & value in-store', icon: 'scan-circle' },
   { screen: 'Recommend', title: 'For You', desc: 'Bottles matched to your palate', icon: 'sparkles' },
+  { screen: 'Trade', title: 'Trade Analyzer', desc: 'Is that trade fair?', icon: 'swap-horizontal' },
+  { screen: 'Journal', title: 'Tasting Journal', desc: 'Log & rate every pour', icon: 'book' },
   { screen: 'Wishlist', title: 'Hunt List', desc: 'Bottles you want & are chasing', icon: 'heart' },
   { screen: 'Portfolio', title: 'Portfolio', desc: 'Value over time & export', icon: 'trending-up' },
-  { screen: 'Achievements', title: 'Achievements', desc: 'Badges & milestones', icon: 'trophy' },
   { screen: 'Releases', title: 'Releases to Watch', desc: 'Upcoming allocated drops', icon: 'calendar' },
-  { screen: 'ScanLabel', title: 'Scan a Label', desc: 'Identify & value in-store', icon: 'scan-circle' },
+  { screen: 'Pour', title: 'Random Pour', desc: "Can't decide? Let fate choose", icon: 'shuffle' },
+  { screen: 'Match', title: 'Guest Match', desc: "Find a bottle for a guest's taste", icon: 'people' },
+  { screen: 'Achievements', title: 'Achievements', desc: 'Badges & milestones', icon: 'trophy' },
 ];
 
 export default function ExploreScreen() {

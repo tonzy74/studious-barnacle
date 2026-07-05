@@ -100,6 +100,7 @@ export default function ReleasesScreen() {
           eyebrow="ON THE HORIZON"
           title="Releases to Watch"
           subtitle="Notable upcoming and annual American whiskey releases collectors chase."
+          onBack={() => navigation.goBack()}
         />
 
         {busy && !releases && (

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -31,6 +32,7 @@ const TYPE_FILTERS: (WhiskeyType | 'any')[] = [
 ];
 
 export default function RandomPourScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const track = useStore((s) => s.track);
@@ -60,6 +62,7 @@ export default function RandomPourScreen() {
           eyebrow="THE VAULT DECIDES"
           title="Random Pour"
           subtitle="Can't decide? Let the bar choose your dram."
+          onBack={() => navigation.goBack()}
         />
 
         <Text style={styles.label}>Style</Text>

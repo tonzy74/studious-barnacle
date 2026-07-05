@@ -21,14 +21,16 @@ export type RootStackParamList = {
   ScanLabel: undefined;
   Paywall: undefined;
   Diagnostics: undefined;
+  Trade: undefined;
+  Pour: undefined;
+  Match: undefined;
   LogPour: { bottleId?: string; name?: string; distillery?: string; type?: string };
 };
 
 export type TabParamList = {
+  Home: undefined;
   Bar: undefined;
   Scan: undefined;
-  Pour: undefined;
   Pair: undefined;
-  Match: undefined;
-  Trade: undefined;
+  Explore: undefined;
 };

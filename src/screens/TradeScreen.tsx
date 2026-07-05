@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +25,7 @@ const VERDICT_STYLE: Record<TradeVerdict, { color: string; label: string }> = {
 };
 
 export default function TradeScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
@@ -147,6 +149,7 @@ export default function TradeScreen() {
           eyebrow="DYNASTY TRADE DESK"
           title="Trade Analyzer"
           subtitle="Values blend market price and rarity; opened bottles are discounted. What you paid never inflates a value — the market doesn't care."
+          onBack={() => navigation.goBack()}
         />
 
       <Text style={styles.section}>Your side · {formatUsd(evaluation.myTotal)}</Text>

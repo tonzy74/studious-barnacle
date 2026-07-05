@@ -15,6 +15,7 @@ import InventoryScreen from './src/screens/InventoryScreen';
 import AchievementsScreen from './src/screens/AchievementsScreen';
 import DiagnosticsScreen from './src/screens/DiagnosticsScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
+import HomeScreen from './src/screens/HomeScreen';
 import JournalScreen from './src/screens/JournalScreen';
 import LogPourScreen from './src/screens/LogPourScreen';
 import MatchScreen from './src/screens/MatchScreen';
@@ -34,12 +35,19 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS: Record<keyof TabParamList, keyof typeof Ionicons.glyphMap> = {
+  Home: 'home',
   Bar: 'wine',
   Scan: 'scan',
-  Pour: 'shuffle',
   Pair: 'chatbubbles',
-  Match: 'people',
-  Trade: 'swap-horizontal',
+  Explore: 'grid',
+};
+
+const TAB_LABELS: Record<keyof TabParamList, string> = {
+  Home: 'Home',
+  Bar: 'Collection',
+  Scan: 'Scan',
+  Pair: 'Sommelier',
+  Explore: 'Explore',
 };
 
 function Tabs() {
@@ -57,6 +65,7 @@ function Tabs() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.3 },
         tabBarActiveTintColor: colors.amberBright,
         tabBarInactiveTintColor: colors.textFaint,
+        tabBarLabel: TAB_LABELS[route.name as keyof TabParamList],
         tabBarIcon: ({ focused, color }) => (
           <Ionicons
             name={TAB_ICONS[route.name as keyof TabParamList]}
@@ -66,12 +75,11 @@ function Tabs() {
         ),
       })}
     >
+      <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Bar" component={InventoryScreen} />
       <Tab.Screen name="Scan" component={ScanScreen} />
-      <Tab.Screen name="Pour" component={RandomPourScreen} />
       <Tab.Screen name="Pair" component={ChatScreen} />
-      <Tab.Screen name="Match" component={MatchScreen} />
-      <Tab.Screen name="Trade" component={TradeScreen} />
+      <Tab.Screen name="Explore" component={ExploreScreen} />
     </Tab.Navigator>
   );
 }
@@ -117,7 +125,9 @@ export default function App() {
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
         <Stack.Screen name="Releases" component={ReleasesScreen} options={{ title: 'Releases' }} />
-        <Stack.Screen name="Explore" component={ExploreScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Trade" component={TradeScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Pour" component={RandomPourScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Match" component={MatchScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Journal" component={JournalScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Wishlist" component={WishlistScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Recommend" component={RecommendScreen} options={{ headerShown: false }} />

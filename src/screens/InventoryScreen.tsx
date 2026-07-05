@@ -86,22 +86,13 @@ export default function InventoryScreen() {
           <Text style={styles.eyebrow}>WHISKEY VAULT</Text>
           <Text style={styles.title}>My Bar</Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Explore')}
-            style={styles.gearButton}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="grid-outline" size={20} color={colors.amberBright} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Settings')}
-            style={styles.gearButton}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="settings-outline" size={20} color={colors.amberBright} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Settings')}
+          style={styles.gearButton}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="settings-outline" size={20} color={colors.amberBright} />
+        </TouchableOpacity>
       </View>
 
       {bottles.length > 0 && (

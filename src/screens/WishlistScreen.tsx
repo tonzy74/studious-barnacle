@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +11,7 @@ import { colors, radius, spacing } from '../theme';
 import { WishlistItem } from '../types';
 
 export default function WishlistScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const wishlist = useStore((s) => s.wishlist);
   const addWishlist = useStore((s) => s.addWishlist);
@@ -49,7 +51,7 @@ export default function WishlistScreen() {
   return (
     <ScreenGradient>
       <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingTop: insets.top + spacing.md }}>
-        <ScreenHeader eyebrow="THE CHASE" title="Hunt List" subtitle="Bottles you want — track them and set price targets." />
+        <ScreenHeader eyebrow="THE CHASE" title="Hunt List" subtitle="Bottles you want — track them and set price targets." onBack={() => navigation.goBack()} />
 
         <View style={styles.addRow}>
           <TextInput
