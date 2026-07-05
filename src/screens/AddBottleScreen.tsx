@@ -3,6 +3,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -56,6 +57,7 @@ export default function AddBottleScreen() {
     ? [...WHISKEY_DB, ...learned].find((r) => r.id === params.refId)
     : undefined;
 
+  const imageUrl = prefillRef?.imageUrl ?? params.imageUrl;
   const [name, setName] = useState(prefillRef?.name ?? params.name ?? '');
   const [distillery, setDistillery] = useState(prefillRef?.distillery ?? params.brand ?? '');
   const [type, setType] = useState<WhiskeyType>(prefillRef?.type ?? 'bourbon');
@@ -143,6 +145,7 @@ export default function AddBottleScreen() {
       proof: enteredProof,
       barcode: params.barcode,
       refId: matched ? dbMatch?.id : undefined,
+      imageUrl: dbMatch?.imageUrl ?? imageUrl,
       flavor,
       flavorSource,
       notes: notes.trim() || (matched ? (dbMatch?.notes ?? '') : (estimate?.notes ?? '')),
@@ -203,6 +206,15 @@ export default function AddBottleScreen() {
     >
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {params.barcode && <Text style={styles.barcode}>Scanned barcode: {params.barcode}</Text>}
+
+        {imageUrl && (
+          <View style={styles.refImageWrap}>
+            <Image source={{ uri: imageUrl }} style={styles.refImage} resizeMode="contain" />
+            <Text style={styles.refImageCaption}>
+              Reference photo — compare it to your bottle before saving.
+            </Text>
+          </View>
+        )}
 
         <Text style={styles.label}>Name</Text>
         <TextInput
@@ -383,6 +395,17 @@ export default function AddBottleScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   barcode: { color: colors.textDim, marginBottom: 12, fontSize: 13 },
+  refImageWrap: {
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginBottom: 8,
+  },
+  refImage: { width: 120, height: 160, borderRadius: 8, backgroundColor: colors.bgElevated },
+  refImageCaption: { color: colors.textDim, fontSize: 12, marginTop: 8, textAlign: 'center' },
   label: { color: colors.amberBright, marginTop: 14, marginBottom: 6, fontWeight: '600' },
   section: {
     color: colors.text,

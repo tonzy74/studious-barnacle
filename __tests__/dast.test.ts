@@ -231,4 +231,25 @@ describe('DAST - poisoned Open Food Facts', () => {
     const result = await lookupBarcode('999999999999');
     expect(result.source).toBe('none');
   });
+
+  it('only accepts https product images, rejecting javascript:/http: payloads', async () => {
+    stubOFF({
+      status: 1,
+      product: {
+        product_name: 'Some Bourbon',
+        brands: 'Some Brand',
+        image_front_url: 'javascript:alert(1)',
+        image_url: 'http://insecure.example/x.jpg',
+      },
+    });
+    const evil = await lookupBarcode('012345678905');
+    expect(evil.imageUrl).toBeUndefined();
+
+    stubOFF({
+      status: 1,
+      product: { product_name: 'Some Bourbon', image_front_url: 'https://images.off/x.jpg' },
+    });
+    const good = await lookupBarcode('012345678905');
+    expect(good.imageUrl).toBe('https://images.off/x.jpg');
+  });
 });

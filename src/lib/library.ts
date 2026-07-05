@@ -12,6 +12,8 @@ export interface ResolveResult {
   /** Partial info when we got a name but couldn't build a full profile. */
   name?: string;
   brand?: string;
+  /** Product image (https) when a live lookup found one. */
+  imageUrl?: string;
   /** Where the resolution came from. */
   source: 'db' | 'learned' | 'learned-new' | 'openfoodfacts' | 'none';
 }
@@ -34,7 +36,14 @@ function guessType(name: string, brand?: string): WhiskeyType {
  * any known pricing anchors and a rarity estimate.
  */
 export async function buildLearnedRecord(
-  info: { name: string; brand?: string; type?: WhiskeyType; proof?: number; barcode?: string },
+  info: {
+    name: string;
+    brand?: string;
+    type?: WhiskeyType;
+    proof?: number;
+    barcode?: string;
+    imageUrl?: string;
+  },
   apiKey?: string,
   model?: string
 ): Promise<WhiskeyRecord> {
@@ -49,6 +58,7 @@ export async function buildLearnedRecord(
     notes: '',
     barcodes: info.barcode ? [info.barcode] : undefined,
     rarity: assignRarity({ name: info.name, distillery: info.brand ?? '' }),
+    imageUrl: info.imageUrl,
     learned: true,
     ...(lookupPricing(info.name) ?? {}),
   };
@@ -117,10 +127,10 @@ export async function resolveBarcodeAndLearn(
   }
 
   const record = await buildLearnedRecord(
-    { name: off.name, brand: off.brand, barcode },
+    { name: off.name, brand: off.brand, barcode, imageUrl: off.imageUrl },
     opts.apiKey,
     opts.model
   );
   opts.onLearn(record);
-  return { record, source: 'learned-new', name: off.name, brand: off.brand };
+  return { record, source: 'learned-new', name: off.name, brand: off.brand, imageUrl: off.imageUrl };
 }

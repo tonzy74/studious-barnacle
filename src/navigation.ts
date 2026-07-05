@@ -5,6 +5,7 @@ export type RootStackParamList = {
     name?: string;
     brand?: string;
     refId?: string;
+    imageUrl?: string;
   };
   BottleDetail: { id: string };
   BulkAdd: undefined;

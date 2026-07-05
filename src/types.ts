@@ -80,6 +80,12 @@ export interface WhiskeyRecord {
   msrp?: number;
   /** Estimated secondary-market price, USD. */
   secondary?: number;
+  /**
+   * Reference bottle image URL (https). Sourced from licensed channels only —
+   * Open Food Facts product photos, the affiliate/pricing backend's feed
+   * images, or a user's own photo. Never scraped from distiller sites.
+   */
+  imageUrl?: string;
   /** True for records learned at runtime (scans, AI profiling, manual adds). */
   learned?: boolean;
 }
@@ -119,6 +125,8 @@ export interface Bottle {
   secondary?: number;
   /** What the owner actually paid, USD (cost basis — display only). */
   pricePaid?: number;
+  /** Reference/owner photo (https or local file URI). */
+  imageUrl?: string;
   opened: boolean;
   quantity: number;
   addedAt: number;

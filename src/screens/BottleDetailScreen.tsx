@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -20,7 +22,6 @@ import {
   FlavorRadar,
   RarityBadge,
   TypeBadge,
-  TypeIcon,
 } from '../components';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 import { fetchRetailerOffers, PricingResult } from '../lib/offers';
@@ -90,6 +91,15 @@ export default function BottleDetailScreen() {
     });
   };
 
+  const displayImage = bottle.imageUrl ?? offers?.imageUrl;
+
+  const addPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6 });
+    if (!result.canceled && result.assets[0]?.uri) {
+      updateBottle(bottle.id, { imageUrl: result.assets[0].uri });
+    }
+  };
+
   const confirmDelete = () => {
     Alert.alert('Remove bottle', `Remove ${bottle.name} from your bar?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -112,7 +122,16 @@ export default function BottleDetailScreen() {
     >
       <LinearGradient colors={gradients.hero} style={styles.hero}>
         <View style={styles.heroTopRow}>
-          <TypeIcon type={bottle.type} size={52} />
+          {displayImage ? (
+            <TouchableOpacity onPress={addPhoto} activeOpacity={0.85}>
+              <Image source={{ uri: displayImage }} style={styles.heroImage} resizeMode="contain" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={addPhoto} activeOpacity={0.8} style={styles.addPhoto}>
+              <Ionicons name="camera-outline" size={22} color={colors.amber} />
+              <Text style={styles.addPhotoText}>Add photo</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.heroBadges}>
             <TypeBadge type={bottle.type} />
             <RarityBadge rarity={bottle.rarity} size={30} />
@@ -368,6 +387,27 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   heroBadges: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  heroImage: {
+    width: 64,
+    height: 84,
+    borderRadius: 8,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  addPhoto: {
+    width: 64,
+    height: 84,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: colors.bgElevated,
+  },
+  addPhotoText: { color: colors.amber, fontSize: 10, fontWeight: '600' },
   name: { color: colors.text, fontSize: 25, fontWeight: '800', letterSpacing: 0.2 },
   sub: { color: colors.amberBright, marginTop: 6, fontSize: 13.5 },
   variant: { color: colors.amber, marginTop: 4, fontWeight: '700', fontSize: 13 },

@@ -45,6 +45,7 @@ export default function ScanScreen() {
       name: resolved.record?.name ?? resolved.name,
       brand: resolved.record?.distillery ?? resolved.brand,
       refId: resolved.record?.id,
+      imageUrl: resolved.record?.imageUrl ?? resolved.imageUrl,
     });
     // Allow re-scanning the same code after returning to this screen.
     setTimeout(() => {

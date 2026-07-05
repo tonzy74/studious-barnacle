@@ -29,6 +29,8 @@ export interface PricingResult {
   msrp?: number;
   secondary?: number;
   offers: RetailerOffer[];
+  /** Licensed product image (https) from the affiliate feed, when available. */
+  imageUrl?: string;
   /** ISO timestamp of when the backend last refreshed these offers. */
   updatedAt?: string;
   source: 'backend';
@@ -85,11 +87,17 @@ export function parsePricingResponse(raw: unknown): PricingResult | undefined {
     msrp: validPrice(r.msrp),
     secondary: validPrice(r.secondary),
     offers,
+    imageUrl: validHttpsUrl(r.imageUrl),
     updatedAt,
     source: 'backend',
   };
   // Nothing usable came back.
-  if (result.msrp === undefined && result.secondary === undefined && offers.length === 0) {
+  if (
+    result.msrp === undefined &&
+    result.secondary === undefined &&
+    offers.length === 0 &&
+    !result.imageUrl
+  ) {
     return undefined;
   }
   return result;
