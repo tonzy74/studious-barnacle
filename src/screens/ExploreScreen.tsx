@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, ScreenGradient, ScreenHeader } from '../components';
+import { hasReferral, REFERRALS } from '../lib/monetization';
 import { RootStackParamList } from '../navigation';
-import { colors, radius, spacing } from '../theme';
+import { useStore } from '../store/useStore';
+import { colors, gradients, radius, spacing } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -31,6 +34,7 @@ const TILES: {
 export default function ExploreScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const isPro = useStore((s) => s.isPro);
   return (
     <ScreenGradient>
       <ScrollView
@@ -42,6 +46,19 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader eyebrow="EVERYTHING ELSE" title="Explore" />
+
+        {!isPro && (
+          <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('Paywall')}>
+            <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proBanner}>
+              <Ionicons name="sparkles" size={24} color={colors.ink} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.proTitle}>Go Pro</Text>
+                <Text style={styles.proSub}>Unlock the full AI suite — 7-day free trial</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.ink} />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
         {TILES.map((t) => (
           <TouchableOpacity key={t.screen} activeOpacity={0.85} onPress={() => navigation.navigate(t.screen)}>
             <Card style={styles.tile}>
@@ -56,6 +73,21 @@ export default function ExploreScreen() {
             </Card>
           </TouchableOpacity>
         ))}
+
+        {hasReferral(REFERRALS.flaviar.url) && (
+          <TouchableOpacity activeOpacity={0.85} onPress={() => Linking.openURL(REFERRALS.flaviar.url)}>
+            <Card style={styles.tile}>
+              <View style={styles.iconWrap}>
+                <Ionicons name="gift" size={22} color={colors.amberBright} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{REFERRALS.flaviar.title}</Text>
+                <Text style={styles.desc}>{REFERRALS.flaviar.subtitle}</Text>
+              </View>
+              <Ionicons name="open-outline" size={18} color={colors.textFaint} />
+            </Card>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </ScreenGradient>
   );
@@ -75,4 +107,14 @@ const styles = StyleSheet.create({
   },
   title: { color: colors.text, fontSize: 16, fontWeight: '700' },
   desc: { color: colors.textDim, fontSize: 13, marginTop: 2 },
+  proBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  proTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
+  proSub: { color: colors.ink, fontSize: 12, marginTop: 1, opacity: 0.8 },
 });

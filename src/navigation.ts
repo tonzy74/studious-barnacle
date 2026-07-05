@@ -18,6 +18,7 @@ export type RootStackParamList = {
   Portfolio: undefined;
   Achievements: undefined;
   ScanLabel: undefined;
+  Paywall: undefined;
   LogPour: { bottleId?: string; name?: string; distillery?: string; type?: string };
 };
 

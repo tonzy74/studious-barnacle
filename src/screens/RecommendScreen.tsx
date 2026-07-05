@@ -3,9 +3,10 @@ import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Card, RarityBadge, ScreenGradient, ScreenHeader, TypeBadge, TypeIcon } from '../components';
+import { Card, ProLock, RarityBadge, ScreenGradient, ScreenHeader, TypeBadge, TypeIcon } from '../components';
 import { formatUsd, fairPrice } from '../lib/pricing';
 import { recommendBottles, Recommendation } from '../lib/recommend';
+import { useProGate } from '../useProGate';
 import { useStore } from '../store/useStore';
 import { colors, spacing } from '../theme';
 
@@ -14,6 +15,7 @@ export default function RecommendScreen() {
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
   const addWishlist = useStore((s) => s.addWishlist);
+  const { locked, goPro } = useProGate('recommendations');
 
   const recs = useMemo(() => recommendBottles(bottles, learned, 20), [bottles, learned]);
 
@@ -60,7 +62,17 @@ export default function RecommendScreen() {
           title="For You"
           subtitle="Bottles you don't own yet, ranked against your collection's flavor profile."
         />
-        {recs.length === 0 ? (
+        {locked ? (
+          <ProLock
+            title="Personalized recommendations are a Pro feature"
+            benefits={[
+              'Bottles matched to your exact palate',
+              'Ranked against your whole collection',
+              'Plus the full AI suite',
+            ]}
+            onUpgrade={goPro}
+          />
+        ) : recs.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="sparkles-outline" size={40} color={colors.amber} />
             <Text style={styles.emptyText}>

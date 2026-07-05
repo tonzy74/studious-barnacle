@@ -3,10 +3,12 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, RarityBadge, ScreenGradient, ScreenHeader } from '../components';
+import { Button, Card, ProLock, RarityBadge, ScreenGradient, ScreenHeader } from '../components';
 import { ReleaseCategory, UpcomingRelease, upcomingReleases } from '../lib/claude';
 import { RootStackParamList } from '../navigation';
+import { useProGate } from '../useProGate';
 import { useStore } from '../store/useStore';
 import { colors, radius, spacing } from '../theme';
 
@@ -22,8 +24,10 @@ const CATEGORY_META: Record<ReleaseCategory, { label: string; icon: keyof typeof
 
 export default function ReleasesScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const apiKey = useStore((s) => s.apiKey);
   const model = useStore((s) => s.model);
+  const { locked, goPro } = useProGate('ai-releases');
   const [releases, setReleases] = useState<UpcomingRelease[] | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -42,9 +46,23 @@ export default function ReleasesScreen() {
   };
 
   useEffect(() => {
-    if (apiKey) load();
+    if (apiKey && !locked) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (locked) {
+    return (
+      <ScreenGradient>
+        <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.lg, flex: 1, justifyContent: 'center' }}>
+          <ProLock
+            title="Releases to Watch is a Pro feature"
+            benefits={['AI radar for allocated & seasonal drops', 'Know what to chase before it lands', 'Plus the full AI suite']}
+            onUpgrade={goPro}
+          />
+        </View>
+      </ScreenGradient>
+    );
+  }
 
   if (!apiKey) {
     return (

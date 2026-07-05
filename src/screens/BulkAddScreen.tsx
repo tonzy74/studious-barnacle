@@ -19,6 +19,7 @@ import { IdentifiedBottle, identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections, correctionKey } from '../lib/corrections';
 import { findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
 import { buildLearnedRecord } from '../lib/library';
+import { useProGate } from '../useProGate';
 import { RootStackParamList } from '../navigation';
 import { newBottleId, useStore } from '../store/useStore';
 import { colors, radius, spacing } from '../theme';
@@ -59,12 +60,14 @@ export default function BulkAddScreen() {
   const recordCorrection = useStore((s) => s.recordCorrection);
   const track = useStore((s) => s.track);
 
+  const { requirePro } = useProGate('ai-bulk-add');
   const [busy, setBusy] = useState<'idle' | 'analyzing' | 'adding'>('idle');
   const [items, setItems] = useState<ReviewItem[] | undefined>();
   const [editing, setEditing] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const analyze = async (fromCamera: boolean) => {
+    if (requirePro()) return;
     setError('');
     const picker = fromCamera ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
     if (fromCamera) {

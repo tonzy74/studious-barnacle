@@ -12,6 +12,7 @@ import { applyCorrections } from '../lib/corrections';
 import { findWhiskeyByName } from '../lib/flavor';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_LABELS } from '../lib/rarity';
+import { useProGate } from '../useProGate';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors, spacing, type as typo } from '../theme';
@@ -35,12 +36,14 @@ export default function ScanLabelScreen() {
   const bottles = useStore((s) => s.bottles);
   const corrections = useStore((s) => s.corrections);
   const addWishlist = useStore((s) => s.addWishlist);
+  const { requirePro } = useProGate('ai-label-scan');
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<Result | undefined>();
 
   const scan = async (fromCamera: boolean) => {
+    if (requirePro()) return;
     setError('');
     setResult(undefined);
     if (fromCamera) {

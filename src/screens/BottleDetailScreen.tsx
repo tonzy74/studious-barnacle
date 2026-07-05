@@ -27,6 +27,7 @@ import {
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 import { cocktailsForBottle, CocktailSuggestion } from '../lib/claude';
 import { fetchRetailerOffers, PricingResult } from '../lib/offers';
+import { useProGate } from '../useProGate';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_COLORS, RARITY_LABELS, RARITY_ORDER } from '../lib/rarity';
 import { RootStackParamList } from '../navigation';
@@ -51,6 +52,7 @@ export default function BottleDetailScreen() {
   const removeBottle = useStore((s) => s.removeBottle);
   const apiKey = useStore((s) => s.apiKey);
   const aiModel = useStore((s) => s.model);
+  const cocktailGate = useProGate('ai-cocktails');
   const [editing, setEditing] = useState(false);
   const [offers, setOffers] = useState<PricingResult | undefined>();
   const [cocktails, setCocktails] = useState<CocktailSuggestion[] | undefined>();
@@ -110,6 +112,7 @@ export default function BottleDetailScreen() {
     updateBottle(bottle.id, { fillLevel: level, opened: level < 100 ? true : bottle.opened });
 
   const loadCocktails = async () => {
+    if (cocktailGate.requirePro()) return;
     if (!apiKey || cocktailBusy) return;
     setCocktailBusy(true);
     try {
@@ -379,7 +382,13 @@ export default function BottleDetailScreen() {
         {cocktails === undefined ? (
           apiKey ? (
             <Button
-              title={cocktailBusy ? 'Thinking…' : '✨ Suggest cocktails'}
+              title={
+                cocktailBusy
+                  ? 'Thinking…'
+                  : cocktailGate.locked
+                    ? '✨ Suggest cocktails (Pro)'
+                    : '✨ Suggest cocktails'
+              }
               variant="secondary"
               onPress={loadCocktails}
               disabled={cocktailBusy}

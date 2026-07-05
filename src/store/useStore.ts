@@ -43,6 +43,8 @@ interface VaultState {
    * shared sync backend can be layered on later.)
    */
   learned: WhiskeyRecord[];
+  /** Pro entitlement (cached; source of truth is the store/RevenueCat at launch). */
+  isPro: boolean;
   /** Learned AI-misread → correct-identity mappings; auto-applied to future scans. */
   corrections: Correction[];
   /** Tasting journal — dated, rated pours. */
@@ -61,6 +63,7 @@ interface VaultState {
   removeBottle: (id: string) => void;
   setApiKey: (key: string) => void;
   setModel: (model: string) => void;
+  setPro: (isPro: boolean) => void;
   learnRecord: (record: WhiskeyRecord) => void;
   /** Remember a user's fix of an AI misread so it's auto-applied next time. */
   recordCorrection: (
@@ -87,6 +90,7 @@ export const useStore = create<VaultState>()(
       bottles: [],
       apiKey: '',
       model: DEFAULT_MODEL,
+      isPro: false,
       learned: [],
       corrections: [],
       pours: [],
@@ -113,6 +117,7 @@ export const useStore = create<VaultState>()(
         set({ apiKey });
       },
       setModel: (model) => set({ model }),
+      setPro: (isPro) => set({ isPro }),
       recordCorrection: (original, fixed) =>
         set((s) => ({ corrections: upsertCorrection(s.corrections, original, fixed) })),
       addPour: (pour) => set((s) => ({ pours: [pour, ...s.pours] })),
@@ -194,6 +199,7 @@ export const useStore = create<VaultState>()(
         ({
           bottles: s.bottles,
           model: s.model,
+          isPro: s.isPro,
           learned: s.learned,
           corrections: s.corrections,
           pours: s.pours,

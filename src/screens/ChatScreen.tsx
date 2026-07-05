@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
 import { askSommelier } from '../lib/claude';
+import { useProGate } from '../useProGate';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors, gradients, radius, spacing, type as typo } from '../theme';
@@ -47,6 +48,7 @@ export default function ChatScreen() {
   const apiKey = useStore((s) => s.apiKey);
   const model = useStore((s) => s.model);
   const track = useStore((s) => s.track);
+  const { requirePro } = useProGate('ai-sommelier');
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,6 +57,7 @@ export default function ChatScreen() {
   const send = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
+    if (requirePro()) return;
     const history: ChatMsg[] = [...messages, { role: 'user', text: trimmed }];
     setMessages(history);
     setInput('');

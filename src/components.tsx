@@ -240,6 +240,47 @@ export function ScreenHeader({
   );
 }
 
+/** Locked-feature panel shown in place of gated content. */
+export function ProLock({
+  title,
+  benefits,
+  onUpgrade,
+}: {
+  title: string;
+  benefits: string[];
+  onUpgrade: () => void;
+}) {
+  return (
+    <View style={styles.lockWrap}>
+      <LinearGradient colors={gradients.gold} style={styles.lockCrown}>
+        <Ionicons name="lock-closed" size={26} color={colors.ink} />
+      </LinearGradient>
+      <Text style={styles.lockTitle}>{title}</Text>
+      <View style={{ alignSelf: 'stretch', marginTop: spacing.md }}>
+        {benefits.map((b) => (
+          <View key={b} style={styles.lockRow}>
+            <Ionicons name="checkmark-circle" size={16} color={colors.amberBright} />
+            <Text style={styles.lockBenefit}>{b}</Text>
+          </View>
+        ))}
+      </View>
+      <Button title="Unlock with Pro" icon="sparkles" onPress={onUpgrade} style={{ marginTop: spacing.xl, alignSelf: 'stretch' }} />
+    </View>
+  );
+}
+
+/** Small Pro badge/upsell chip. */
+export function ProChip({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+      <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proChip}>
+        <Ionicons name="star" size={11} color={colors.ink} />
+        <Text style={styles.proChipText}>PRO</Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
 /** Pill filter/selection chip. */
 export function Chip({
   label,
@@ -427,6 +468,21 @@ const styles = StyleSheet.create({
   statTile: { flex: 1, alignItems: 'center', paddingVertical: spacing.md, gap: 2 },
   statValue: { ...typo.title, color: colors.text, marginTop: 2 },
   statLabel: { ...typo.caption, color: colors.textDim },
+  lockWrap: { alignItems: 'center', paddingVertical: spacing.xl, paddingHorizontal: spacing.lg },
+  lockCrown: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+    ...shadow.gold,
+  },
+  lockTitle: { ...typo.title, color: colors.text, textAlign: 'center' },
+  lockRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  lockBenefit: { color: colors.textDim, fontSize: 14, flex: 1 },
+  proChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
+  proChipText: { color: colors.ink, fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
   headerEyebrow: { ...typo.overline, color: colors.amberDeep },
   headerTitle: { ...typo.display, color: colors.text, marginTop: 2 },
   headerSubtitle: { color: colors.textDim, marginTop: 4, fontSize: 14, lineHeight: 20 },

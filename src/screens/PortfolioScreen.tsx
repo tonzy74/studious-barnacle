@@ -5,15 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { Button, Card, ScreenGradient, ScreenHeader, StatTile } from '../components';
+import { hasReferral, REFERRALS } from '../lib/monetization';
 import { fairPrice, formatUsd } from '../lib/pricing';
+import { useProGate } from '../useProGate';
 import { useStore } from '../store/useStore';
 import { colors, spacing, type as typo } from '../theme';
+import { Linking } from 'react-native';
 
 export default function PortfolioScreen() {
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const valueHistory = useStore((s) => s.valueHistory);
   const snapshotValue = useStore((s) => s.snapshotValue);
+  const exportGate = useProGate('portfolio-export');
 
   const totals = useMemo(() => {
     let value = 0;
@@ -36,6 +40,7 @@ export default function PortfolioScreen() {
   const gain = totals.cost > 0 ? totals.value - totals.cost : undefined;
 
   const exportCsv = () => {
+    if (exportGate.requirePro()) return;
     const header = 'Name,Distillery,Type,Proof,Rarity,MSRP,Secondary,FairPrice,PricePaid,Qty,Opened';
     const rows = bottles.map((b) =>
       [
@@ -131,8 +136,22 @@ export default function PortfolioScreen() {
           </Card>
         )}
 
+        {hasReferral(REFERRALS.insurance.url) && totals.value > 0 && (
+          <Card style={{ marginTop: spacing.md }} glow>
+            <Text style={styles.cardTitle}>{REFERRALS.insurance.title}</Text>
+            <Text style={styles.hint}>{REFERRALS.insurance.subtitle}</Text>
+            <Button
+              title={REFERRALS.insurance.cta}
+              icon="shield-checkmark"
+              variant="secondary"
+              onPress={() => Linking.openURL(REFERRALS.insurance.url)}
+              style={{ marginTop: spacing.md }}
+            />
+          </Card>
+        )}
+
         <Button
-          title="Export collection (CSV)"
+          title={exportGate.locked ? 'Export collection (CSV) — Pro' : 'Export collection (CSV)'}
           icon="download"
           variant="secondary"
           onPress={exportCsv}
