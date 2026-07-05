@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, RarityBadge, ScreenGradient, ScreenHeader } from '../components';
+import { compValue, tradeComps } from '../lib/comps';
 import { findWhiskeyByName } from '../lib/flavor';
 import { formatUsd } from '../lib/pricing';
 import { bottleTradeValue, evaluateTrade, TradeVerdict } from '../lib/trade';
@@ -26,7 +27,10 @@ export default function TradeScreen() {
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
+  const comps = useStore((s) => s.comps);
+  const addComps = useStore((s) => s.addComps);
   const track = useStore((s) => s.track);
+  const [recorded, setRecorded] = useState(false);
 
   const [mySelected, setMySelected] = useState<Set<string>>(new Set());
   const [theirItems, setTheirItems] = useState<TheirItem[]>([]);
@@ -49,14 +53,13 @@ export default function TradeScreen() {
     const name = theirInput.trim();
     if (!name) return;
     const record = findWhiskeyByName(name, learned);
-    const valuation = record ? bottleTradeValue(record) : undefined;
+    const displayName = record?.name ?? name;
+    const cv = compValue(displayName, comps);
+    const anchor = record ? bottleTradeValue(record) : undefined;
+    const value = cv?.confidence === 'comps' ? cv.value : (anchor?.value ?? 0);
     setTheirItems((prev) => [
       ...prev,
-      {
-        name: record?.name ?? name,
-        value: valuation?.value ?? 0,
-        matched: !!record && !!valuation,
-      },
+      { name: displayName, value, matched: !!value },
     ]);
     setTheirInput('');
     setShowVerdict(false);
@@ -77,11 +80,17 @@ export default function TradeScreen() {
 
   const myItems = useMemo(
     () =>
-      bottles.map((b) => ({
-        bottle: b,
-        valuation: bottleTradeValue(b),
-      })),
-    [bottles]
+      bottles.map((b) => {
+        // Prefer real comps when we have a confident sample, else the anchor.
+        const cv = compValue(b.name, comps);
+        const anchor = bottleTradeValue(b);
+        const valuation =
+          cv?.confidence === 'comps'
+            ? { value: cv.value, confidence: 'comps' as const }
+            : anchor;
+        return { bottle: b, valuation };
+      }),
+    [bottles, comps]
   );
 
   const evaluation = useMemo(() => {
@@ -98,10 +107,27 @@ export default function TradeScreen() {
 
   const evaluate = () => {
     setShowVerdict(true);
+    setRecorded(false);
     track('trade_evaluated', {
       count: mySelected.size + theirItems.length,
       verdict: evaluation.verdict,
     });
+  };
+
+  // Log this trade's bottles as market comps — this is what grows real,
+  // activity-based secondary values over time.
+  const recordCompletedTrade = () => {
+    const mine = myItems
+      .filter((i) => mySelected.has(i.bottle.id) && i.valuation)
+      .map((i) => ({ name: i.bottle.name, value: i.valuation!.value }));
+    const theirs = theirItems
+      .filter((i) => i.value > 0)
+      .map((i) => ({ name: i.name, value: i.value }));
+    const newComps = tradeComps([...mine, ...theirs]);
+    if (newComps.length) {
+      addComps(newComps);
+      setRecorded(true);
+    }
   };
 
   const hasTrade = mySelected.size + theirItems.length > 0;
@@ -258,9 +284,24 @@ export default function TradeScreen() {
           </Text>
           <Text style={styles.suggestion}>{evaluation.suggestion}</Text>
           <Text style={styles.confidence}>
-            Values are market anchors (fair price × condition). In-app trade comps will sharpen
-            these once trading goes live.
+            {comps.length > 0
+              ? `Values use real in-app trade comps where available (${comps.length} recorded), falling back to fair-price anchors otherwise.`
+              : 'Values are fair-price anchors today. Record completed trades to build real, activity-based comps that sharpen every future valuation.'}
           </Text>
+          {recorded ? (
+            <View style={styles.recordedRow}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+              <Text style={styles.recordedText}>Logged as comps — future values just got sharper.</Text>
+            </View>
+          ) : (
+            <Button
+              title="Record as completed trade"
+              icon="save"
+              variant="secondary"
+              onPress={recordCompletedTrade}
+              style={{ marginTop: spacing.md }}
+            />
+          )}
         </View>
       )}
 
@@ -361,5 +402,7 @@ const styles = StyleSheet.create({
   meterCaption: { color: colors.textDim, fontSize: 12, marginTop: 6 },
   suggestion: { color: colors.text, marginTop: 12, lineHeight: 20 },
   confidence: { color: colors.textDim, fontSize: 11, marginTop: 10, fontStyle: 'italic' },
+  recordedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md },
+  recordedText: { color: colors.success, fontSize: 12, fontWeight: '600', flex: 1 },
   legal: { color: colors.textDim, fontSize: 11, lineHeight: 16, marginTop: 24, fontStyle: 'italic' },
 });

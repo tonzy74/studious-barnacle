@@ -63,6 +63,7 @@ export default function AddBottleScreen() {
   const [type, setType] = useState<WhiskeyType>(prefillRef?.type ?? 'bourbon');
   const [proof, setProof] = useState(prefillRef ? String(prefillRef.proof) : '');
   const [notes, setNotes] = useState(prefillRef?.notes ?? '');
+  const [opened, setOpened] = useState(params.opened ?? false);
   const [pricePaid, setPricePaid] = useState('');
   const [batch, setBatch] = useState('');
   const [pickName, setPickName] = useState('');
@@ -156,7 +157,7 @@ export default function AddBottleScreen() {
       rarity: matched ? dbMatch?.rarity : estimate?.rarity,
       msrp: matched ? dbMatch?.msrp : estimate?.msrp,
       secondary: matched ? dbMatch?.secondary : estimate?.secondary,
-      opened: false,
+      opened,
       quantity: 1,
       addedAt: Date.now(),
     });
@@ -315,6 +316,14 @@ export default function AddBottleScreen() {
           {TYPES.map((t) => (
             <Chip key={t} label={t} active={type === t} onPress={() => setType(t)} />
           ))}
+        </View>
+
+        <Text style={styles.label}>
+          Status{params.opened !== undefined ? ' (AI guessed from the photo — confirm)' : ''}
+        </Text>
+        <View style={styles.typeRow}>
+          <Chip label="Sealed" active={!opened} onPress={() => setOpened(false)} />
+          <Chip label="Opened" active={opened} onPress={() => setOpened(true)} />
         </View>
 
         <Text style={styles.label}>Proof</Text>

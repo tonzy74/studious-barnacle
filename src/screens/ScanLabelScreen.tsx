@@ -25,6 +25,7 @@ interface Result {
   distillery: string;
   record?: WhiskeyRecord;
   owned: boolean;
+  opened?: boolean;
 }
 
 export default function ScanLabelScreen() {
@@ -73,7 +74,7 @@ export default function ScanLabelScreen() {
         const owned = bottles.some(
           (b) => b.name.toLowerCase().replace(/[^a-z0-9]+/g, '') === top.name.toLowerCase().replace(/[^a-z0-9]+/g, '')
         );
-        setResult({ name: top.name, distillery: top.distillery, record, owned });
+        setResult({ name: top.name, distillery: top.distillery, record, owned, opened: top.opened });
       }
     } catch (err) {
       setError(`Scan failed: ${(err as Error).message}`);
@@ -140,6 +141,19 @@ export default function ScanLabelScreen() {
               </View>
             )}
 
+            {result.opened !== undefined && (
+              <View style={styles.ownedTag}>
+                <Ionicons
+                  name={result.opened ? 'ellipse-outline' : 'lock-closed'}
+                  size={15}
+                  color={colors.textDim}
+                />
+                <Text style={styles.openText}>
+                  Looks {result.opened ? 'opened' : 'sealed'} (AI guess — confirm when adding)
+                </Text>
+              </View>
+            )}
+
             <View style={styles.valueRow}>
               <View>
                 <Text style={styles.valueLabel}>Fair price</Text>
@@ -161,6 +175,7 @@ export default function ScanLabelScreen() {
                   name: result.record?.name ?? result.name,
                   brand: result.record?.distillery ?? result.distillery,
                   refId: result.record?.id,
+                  opened: result.opened,
                 })
               }
               style={{ marginTop: spacing.lg }}
@@ -199,6 +214,7 @@ const styles = StyleSheet.create({
   sub: { color: colors.amberBright, marginTop: 4, fontSize: 14 },
   ownedTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md },
   ownedText: { color: colors.success, fontSize: 13, fontWeight: '600' },
+  openText: { color: colors.textDim, fontSize: 12 },
   valueRow: { flexDirection: 'row', marginTop: spacing.lg },
   valueLabel: { color: colors.textDim, fontSize: 12 },
   valueBig: { color: colors.amberBright, fontSize: 24, fontWeight: '800', marginTop: 2 },

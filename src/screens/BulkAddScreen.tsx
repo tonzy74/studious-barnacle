@@ -180,7 +180,7 @@ export default function BulkAddScreen() {
           rarity: match.rarity,
           msrp: match.msrp,
           secondary: match.secondary,
-          opened: false,
+          opened: identified.opened ?? false,
           quantity: 1,
           addedAt: Date.now(),
         });
@@ -207,7 +207,7 @@ export default function BulkAddScreen() {
           rarity: record.rarity,
           msrp: record.msrp,
           secondary: record.secondary,
-          opened: false,
+          opened: identified.opened ?? false,
           quantity: 1,
           addedAt: Date.now(),
         });

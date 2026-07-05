@@ -231,6 +231,8 @@ export interface IdentifiedBottle {
   type: WhiskeyType;
   proof?: number;
   confidence: 'high' | 'medium' | 'low';
+  /** Best-guess from the image: sealed vs opened/poured. Undefined = unclear. */
+  opened?: boolean;
 }
 
 const SHELF_SCHEMA = {
@@ -256,8 +258,13 @@ const SHELF_SCHEMA = {
             enum: ['high', 'medium', 'low'],
             description: 'high = label clearly readable; medium = mostly sure; low = guessing from bottle shape/partial label',
           },
+          opened: {
+            type: 'boolean',
+            description:
+              'From the image: true if the bottle looks opened/poured (fill line below the shoulder/neck, or seal/cap clearly broken), false if it looks sealed and full. Guess conservatively.',
+          },
         },
-        required: ['name', 'distillery', 'type', 'proof', 'confidence'],
+        required: ['name', 'distillery', 'type', 'proof', 'confidence', 'opened'],
         additionalProperties: false,
       },
     },
@@ -292,6 +299,7 @@ export function validateIdentifiedBottles(raw: unknown): IdentifiedBottle[] {
       type,
       proof: proofNum,
       confidence,
+      opened: typeof b.opened === 'boolean' ? b.opened : undefined,
     });
     if (out.length >= 40) break;
   }
@@ -320,7 +328,9 @@ export async function identifyBottlesFromPhoto(
       'bottling names (e.g. "Elijah Craig Barrel Proof", not "Elijah Craig"). Skip bottles ' +
       'that are not whiskey (wine, gin, mixers). If a label is partially hidden, still ' +
       'identify it when reasonably confident and mark confidence accordingly. Do not invent ' +
-      'bottles that are not visible.',
+      'bottles that are not visible. For each bottle, also judge from the image whether it looks ' +
+      'opened/poured — set "opened" true if the liquid line sits below the shoulder/neck or the ' +
+      'seal/cap is clearly broken, false if it looks sealed and full; guess conservatively.',
     messages: [
       {
         role: 'user',

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo } from 'react';
-import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
@@ -17,7 +17,10 @@ export default function PortfolioScreen() {
   const bottles = useStore((s) => s.bottles);
   const valueHistory = useStore((s) => s.valueHistory);
   const snapshotValue = useStore((s) => s.snapshotValue);
+  const hideValues = useStore((s) => s.hideValues);
+  const toggleHideValues = useStore((s) => s.toggleHideValues);
   const exportGate = useProGate('portfolio-export');
+  const money = (n: number) => (hideValues ? '••••' : formatUsd(n));
 
   const totals = useMemo(() => {
     let value = 0;
@@ -91,12 +94,14 @@ export default function PortfolioScreen() {
         <ScreenHeader eyebrow="YOUR CELLAR" title="Portfolio" />
 
         <View style={styles.stats}>
-          <StatTile label="Value" value={formatUsd(totals.value)} icon="pricetag" />
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.8} onPress={toggleHideValues}>
+            <StatTile label="Value" value={money(totals.value)} icon={hideValues ? 'eye-off' : 'eye'} />
+          </TouchableOpacity>
           <StatTile label="Bottles" value={String(totals.units)} icon="wine" />
           <StatTile
             label="Gain/Loss"
             value={
-              gain === undefined ? '—' : `${gain >= 0 ? '+' : '−'}${formatUsd(Math.abs(gain))}`
+              gain === undefined ? '—' : hideValues ? '••••' : `${gain >= 0 ? '+' : '−'}${formatUsd(Math.abs(gain))}`
             }
             icon="trending-up"
           />
@@ -128,10 +133,10 @@ export default function PortfolioScreen() {
           <Card style={{ marginTop: spacing.md }}>
             <Text style={styles.cardTitle}>Cost basis</Text>
             <Text style={styles.row}>
-              Invested: <Text style={styles.val}>{formatUsd(totals.cost)}</Text>
+              Invested: <Text style={styles.val}>{money(totals.cost)}</Text>
             </Text>
             <Text style={styles.row}>
-              Current value: <Text style={styles.val}>{formatUsd(totals.value)}</Text>
+              Current value: <Text style={styles.val}>{money(totals.value)}</Text>
             </Text>
           </Card>
         )}

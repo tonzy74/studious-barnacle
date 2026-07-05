@@ -18,6 +18,8 @@ export default function InventoryScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
+  const hideValues = useStore((s) => s.hideValues);
+  const toggleHideValues = useStore((s) => s.toggleHideValues);
   const collectionValue = bottles.reduce((sum, b) => {
     const fair = fairPrice(b.msrp, b.secondary, b.rarity);
     return sum + (fair ?? 0) * Math.max(1, b.quantity);
@@ -55,7 +57,9 @@ export default function InventoryScreen() {
                   />
                   <Text style={styles.openChipText}>{item.opened ? 'Open' : 'Sealed'}</Text>
                 </View>
-                {fair !== undefined && <Text style={styles.value}>{formatUsd(fair)}</Text>}
+                {fair !== undefined && (
+                  <Text style={styles.value}>{hideValues ? '•••' : formatUsd(fair)}</Text>
+                )}
               </View>
             </View>
           </View>
@@ -103,11 +107,13 @@ export default function InventoryScreen() {
       {bottles.length > 0 && (
         <View style={styles.statsRow}>
           <StatTile label="Bottles" value={String(bottles.length)} icon="wine" />
-          <StatTile
-            label="Est. Value"
-            value={collectionValue > 0 ? formatUsd(collectionValue) : '—'}
-            icon="pricetag"
-          />
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.8} onPress={toggleHideValues}>
+            <StatTile
+              label={hideValues ? 'Value · tap to show' : 'Est. Value'}
+              value={hideValues ? '••••' : collectionValue > 0 ? formatUsd(collectionValue) : '—'}
+              icon={hideValues ? 'eye-off' : 'eye'}
+            />
+          </TouchableOpacity>
           <StatTile label="Open" value={String(openCount)} icon="ellipse-outline" />
         </View>
       )}

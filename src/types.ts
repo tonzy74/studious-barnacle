@@ -172,6 +172,20 @@ export interface ValueSnapshot {
 }
 
 /**
+ * A market comp: an observed value for a bottling from a completed trade or
+ * sale. Aggregated over time (time-decayed) into real secondary-market values
+ * — the compliant equivalent of a "blue book" grown from actual activity.
+ */
+export interface Comp {
+  id: string;
+  /** Bottling name (matched normalized). */
+  name: string;
+  value: number;
+  at: number;
+  source: 'trade' | 'sale' | 'backend';
+}
+
+/**
  * A user correction of an AI identification. When the AI reads a bottle one
  * way and the user fixes it, we remember the mapping so the same misread is
  * auto-corrected next time — the app self-improves from its own mistakes.
