@@ -7,9 +7,12 @@ import {
   AnalyticsEvent,
   Bottle,
   ConsentSettings,
+  Correction,
   UserProfile,
   WhiskeyRecord,
+  WhiskeyType,
 } from '../types';
+import { upsertCorrection } from '../lib/corrections';
 import {
   AnalyticsEventName,
   buildEvent,
@@ -37,6 +40,8 @@ interface VaultState {
    * shared sync backend can be layered on later.)
    */
   learned: WhiskeyRecord[];
+  /** Learned AI-misread → correct-identity mappings; auto-applied to future scans. */
+  corrections: Correction[];
   profile: UserProfile | null;
   consent: ConsentSettings;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -48,6 +53,11 @@ interface VaultState {
   setApiKey: (key: string) => void;
   setModel: (model: string) => void;
   learnRecord: (record: WhiskeyRecord) => void;
+  /** Remember a user's fix of an AI misread so it's auto-applied next time. */
+  recordCorrection: (
+    original: { name: string; distillery: string },
+    fixed: { name: string; distillery: string; type: WhiskeyType; proof?: number }
+  ) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -63,6 +73,7 @@ export const useStore = create<VaultState>()(
       apiKey: '',
       model: DEFAULT_MODEL,
       learned: [],
+      corrections: [],
       profile: null,
       consent: { analytics: false, sellShare: false },
       events: [],
@@ -84,6 +95,8 @@ export const useStore = create<VaultState>()(
         set({ apiKey });
       },
       setModel: (model) => set({ model }),
+      recordCorrection: (original, fixed) =>
+        set((s) => ({ corrections: upsertCorrection(s.corrections, original, fixed) })),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -126,6 +139,7 @@ export const useStore = create<VaultState>()(
           apiKey: '',
           model: DEFAULT_MODEL,
           learned: [],
+          corrections: [],
           profile: null,
           consent: { analytics: false, sellShare: false, decidedAt: Date.now() },
           events: [],
@@ -143,6 +157,7 @@ export const useStore = create<VaultState>()(
           bottles: s.bottles,
           model: s.model,
           learned: s.learned,
+          corrections: s.corrections,
           profile: s.profile,
           consent: s.consent,
           events: s.events,

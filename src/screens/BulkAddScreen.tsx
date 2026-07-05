@@ -9,22 +9,38 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 
-import { Button, RarityBadge, ScreenGradient, TypeBadge } from '../components';
+import { Button, Chip, RarityBadge, ScreenGradient, TypeBadge } from '../components';
 import { IdentifiedBottle, identifyBottlesFromPhoto } from '../lib/claude';
+import { applyCorrections, correctionKey } from '../lib/corrections';
 import { findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
 import { buildLearnedRecord } from '../lib/library';
 import { RootStackParamList } from '../navigation';
 import { newBottleId, useStore } from '../store/useStore';
-import { colors } from '../theme';
-import { WhiskeyRecord } from '../types';
+import { colors, radius, spacing } from '../theme';
+import { WhiskeyRecord, WhiskeyType } from '../types';
+
+const TYPES: WhiskeyType[] = [
+  'bourbon',
+  'rye',
+  'tennessee',
+  'scotch',
+  'irish',
+  'japanese',
+  'canadian',
+  'other',
+];
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 interface ReviewItem {
+  /** What the AI read (after auto-corrections) — kept to learn from edits. */
+  original: IdentifiedBottle;
+  /** Current identity, editable by the user. */
   identified: IdentifiedBottle;
   match?: WhiskeyRecord;
   selected: boolean;
@@ -37,12 +53,15 @@ export default function BulkAddScreen() {
   const apiKey = useStore((s) => s.apiKey);
   const model = useStore((s) => s.model);
   const learned = useStore((s) => s.learned);
+  const corrections = useStore((s) => s.corrections);
   const addBottle = useStore((s) => s.addBottle);
   const learnRecord = useStore((s) => s.learnRecord);
+  const recordCorrection = useStore((s) => s.recordCorrection);
   const track = useStore((s) => s.track);
 
   const [busy, setBusy] = useState<'idle' | 'analyzing' | 'adding'>('idle');
   const [items, setItems] = useState<ReviewItem[] | undefined>();
+  const [editing, setEditing] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const analyze = async (fromCamera: boolean) => {
@@ -74,8 +93,12 @@ export default function BulkAddScreen() {
         setError('No whiskey bottles identified — try a closer shot with labels facing the camera.');
         setItems(undefined);
       } else {
+        // Self-improvement: auto-apply the user's past corrections before
+        // showing results, so we stop repeating known misreads.
+        const corrected = applyCorrections(identified, corrections);
         setItems(
-          identified.map((b) => ({
+          corrected.map((b) => ({
+            original: b,
             identified: b,
             match: findWhiskeyByName(`${b.name} ${b.distillery}`, learned),
             // Low-confidence reads start unchecked so a blurry guess
@@ -99,13 +122,45 @@ export default function BulkAddScreen() {
   const toggle = (index: number) =>
     setItems((prev) => prev?.map((it, i) => (i === index ? { ...it, selected: !it.selected } : it)));
 
+  /** Apply a user edit to an item and re-match it against the library. */
+  const updateItem = (index: number, patch: Partial<IdentifiedBottle>) =>
+    setItems((prev) =>
+      prev?.map((it, i) => {
+        if (i !== index) return it;
+        const identified = { ...it.identified, ...patch };
+        return {
+          ...it,
+          identified,
+          match: findWhiskeyByName(`${identified.name} ${identified.distillery}`, learned),
+          // A user edit is a verified read.
+          selected: true,
+        };
+      })
+    );
+
   const addSelected = async () => {
     if (!items) return;
     const chosen = items.filter((i) => i.selected);
     setBusy('adding');
     let matchedCount = 0;
     for (const item of chosen) {
-      const { identified, match } = item;
+      const { identified, match, original } = item;
+      // Self-improvement: if the user changed the AI's read, remember the fix
+      // so the same misread is auto-corrected next time.
+      if (
+        correctionKey(original.name, original.distillery) !==
+        correctionKey(identified.name, identified.distillery)
+      ) {
+        recordCorrection(
+          { name: original.name, distillery: original.distillery },
+          {
+            name: identified.name,
+            distillery: identified.distillery,
+            type: identified.type,
+            proof: identified.proof,
+          }
+        );
+      }
       const proof = identified.proof ?? match?.proof ?? 80;
       if (match) {
         matchedCount++;
@@ -223,23 +278,27 @@ export default function BulkAddScreen() {
             Found {items.length} bottle{items.length === 1 ? '' : 's'}
           </Text>
           <Text style={styles.help}>
-            Tap to include/exclude. ✓ database match uses professional tasting profiles; others
-            get a style profile you can refine later. Low-confidence reads start unchecked.
+            Tap to include/exclude, or ✎ to fix a wrong read — any bottle, regardless of
+            confidence. Your fixes are remembered and auto-applied next time.
           </Text>
 
           {items.map((item, index) => (
-            <TouchableOpacity
-              key={`${item.identified.name}-${index}`}
+            <View
+              key={`${index}`}
               style={[styles.card, item.selected && styles.cardSelected]}
-              onPress={() => toggle(index)}
             >
               <View style={styles.cardRow}>
-                <Ionicons
-                  name={item.selected ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={item.selected ? colors.amberBright : colors.textFaint}
-                />
-                <View style={{ flex: 1, marginHorizontal: 8 }}>
+                <TouchableOpacity onPress={() => toggle(index)}>
+                  <Ionicons
+                    name={item.selected ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={item.selected ? colors.amberBright : colors.textFaint}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, marginHorizontal: 8 }}
+                  onPress={() => toggle(index)}
+                >
                   <Text style={styles.name}>{item.match?.name ?? item.identified.name}</Text>
                   <Text style={styles.sub}>
                     {item.match
@@ -247,7 +306,7 @@ export default function BulkAddScreen() {
                       : item.identified.distillery || 'Unknown distillery'}
                     {item.identified.proof ? ` · ${item.identified.proof} proof` : ''}
                   </Text>
-                </View>
+                </TouchableOpacity>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
                   <View style={styles.badgeRow}>
                     <TypeBadge type={(item.match ?? item.identified).type} />
@@ -259,8 +318,62 @@ export default function BulkAddScreen() {
                     {item.identified.confidence} confidence
                   </Text>
                 </View>
+                <TouchableOpacity
+                  onPress={() => setEditing(editing === index ? null : index)}
+                  style={styles.editBtn}
+                >
+                  <Ionicons
+                    name={editing === index ? 'checkmark' : 'pencil'}
+                    size={16}
+                    color={colors.amberBright}
+                  />
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+
+              {editing === index && (
+                <View style={styles.editPanel}>
+                  <Text style={styles.editLabel}>Name</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    defaultValue={item.identified.name}
+                    onEndEditing={(e) => updateItem(index, { name: e.nativeEvent.text.trim() })}
+                    placeholder="Bottle name"
+                    placeholderTextColor={colors.textFaint}
+                  />
+                  <Text style={styles.editLabel}>Distillery</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    defaultValue={item.identified.distillery}
+                    onEndEditing={(e) => updateItem(index, { distillery: e.nativeEvent.text.trim() })}
+                    placeholder="Distillery"
+                    placeholderTextColor={colors.textFaint}
+                  />
+                  <Text style={styles.editLabel}>Proof</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    defaultValue={item.identified.proof ? String(item.identified.proof) : ''}
+                    keyboardType="decimal-pad"
+                    onEndEditing={(e) => {
+                      const v = parseFloat(e.nativeEvent.text);
+                      updateItem(index, { proof: Number.isFinite(v) ? v : undefined });
+                    }}
+                    placeholder="e.g. 100"
+                    placeholderTextColor={colors.textFaint}
+                  />
+                  <Text style={styles.editLabel}>Type</Text>
+                  <View style={styles.typeRow}>
+                    {TYPES.map((t) => (
+                      <Chip
+                        key={t}
+                        label={t}
+                        active={item.identified.type === t}
+                        onPress={() => updateItem(index, { type: t })}
+                      />
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
           ))}
 
           <Button
@@ -311,4 +424,33 @@ const styles = StyleSheet.create({
   sub: { color: colors.textDim, fontSize: 12, marginTop: 3 },
   badgeRow: { flexDirection: 'row', alignItems: 'center' },
   confidence: { fontSize: 11, fontWeight: '700' },
+  editBtn: {
+    marginLeft: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: colors.borderBright,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editPanel: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: 4,
+  },
+  editLabel: { color: colors.amberBright, fontSize: 12, fontWeight: '600', marginTop: 6 },
+  editInput: {
+    backgroundColor: colors.bgElevated,
+    color: colors.text,
+    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    fontSize: 14,
+  },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
 });

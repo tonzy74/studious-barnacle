@@ -132,6 +132,24 @@ export interface Bottle {
   addedAt: number;
 }
 
+/**
+ * A user correction of an AI identification. When the AI reads a bottle one
+ * way and the user fixes it, we remember the mapping so the same misread is
+ * auto-corrected next time — the app self-improves from its own mistakes.
+ */
+export interface Correction {
+  /** Normalized key of what the AI originally said (name + distillery). */
+  from: string;
+  /** The corrected identity. */
+  name: string;
+  distillery: string;
+  type: WhiskeyType;
+  proof?: number;
+  /** How many times this correction has been applied/confirmed. */
+  count: number;
+  at: number;
+}
+
 export interface ChatMsg {
   role: 'user' | 'assistant';
   text: string;
