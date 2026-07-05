@@ -6,6 +6,7 @@ import React, { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ScreenGradient } from '../components';
+import { diag } from '../lib/diagnostics';
 import { resolveBarcodeAndLearn } from '../lib/library';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
@@ -39,6 +40,10 @@ export default function ScanScreen() {
       onLearn: learnRecord,
     });
     setBusy(false);
+    diag.info(
+      'scan',
+      `${code} → ${resolved.source}: ${resolved.record?.name ?? resolved.name ?? '(no name)'}`
+    );
     track('scan_resolved', { source: resolved.source });
     navigation.navigate('AddBottle', {
       barcode: code,

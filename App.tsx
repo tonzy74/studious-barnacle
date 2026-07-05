@@ -13,6 +13,7 @@ import BulkAddScreen from './src/screens/BulkAddScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import AchievementsScreen from './src/screens/AchievementsScreen';
+import DiagnosticsScreen from './src/screens/DiagnosticsScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import JournalScreen from './src/screens/JournalScreen';
 import LogPourScreen from './src/screens/LogPourScreen';
@@ -123,6 +124,7 @@ export default function App() {
         <Stack.Screen name="Portfolio" component={PortfolioScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Achievements" component={AchievementsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="ScanLabel" component={ScanLabelScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} options={{ headerShown: false }} />
         <Stack.Screen
           name="Paywall"
           component={PaywallScreen}

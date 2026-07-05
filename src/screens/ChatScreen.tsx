@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
 import { askSommelier } from '../lib/claude';
+import { diag } from '../lib/diagnostics';
 import { useProGate } from '../useProGate';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
@@ -67,6 +68,7 @@ export default function ChatScreen() {
       const reply = await askSommelier(apiKey, bottles, history, model);
       setMessages([...history, { role: 'assistant', text: reply }]);
     } catch (err) {
+      diag.error('sommelier', err);
       const status = (err as { status?: number }).status;
       const msg =
         status === 401

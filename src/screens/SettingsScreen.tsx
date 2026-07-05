@@ -12,13 +12,18 @@ import {
   View,
 } from 'react-native';
 
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { Button, ScreenGradient } from '../components';
 import { appleSignInAvailable, signInWithApple, signOut } from '../lib/auth';
 import { CLAUDE_MODELS } from '../lib/models';
+import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme';
 
 export default function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const apiKey = useStore((s) => s.apiKey);
   const setApiKey = useStore((s) => s.setApiKey);
   const model = useStore((s) => s.model);
@@ -239,6 +244,18 @@ export default function SettingsScreen() {
         onPress={confirmDeleteAll}
         style={{ marginTop: 10 }}
       />
+
+      <Text style={styles.section}>Support</Text>
+      <Button
+        title="Diagnostics log"
+        icon="bug-outline"
+        variant="secondary"
+        onPress={() => navigation.navigate('Diagnostics')}
+      />
+      <Text style={styles.help}>
+        A live log of scans and AI calls. If something misbehaves, open this and share it so the
+        issue can be traced.
+      </Text>
 
       <Text style={[styles.help, { marginTop: 28 }]}>
         Whiskey Vault v1.0 · Your collection lives on this device. The AI features send your

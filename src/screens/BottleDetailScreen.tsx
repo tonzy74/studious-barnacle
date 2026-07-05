@@ -26,6 +26,7 @@ import {
 } from '../components';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 import { cocktailsForBottle, CocktailSuggestion } from '../lib/claude';
+import { diag } from '../lib/diagnostics';
 import { fetchRetailerOffers, PricingResult } from '../lib/offers';
 import { useProGate } from '../useProGate';
 import { fairPrice, formatUsd } from '../lib/pricing';
@@ -119,7 +120,8 @@ export default function BottleDetailScreen() {
       setCocktails(
         await cocktailsForBottle(apiKey, { name: bottle.name, type: bottle.type, proof: bottle.proof }, aiModel)
       );
-    } catch {
+    } catch (err) {
+      diag.error('cocktails', err, bottle.name);
       setCocktails([]);
     } finally {
       setCocktailBusy(false);

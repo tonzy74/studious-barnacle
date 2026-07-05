@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { Button, Chip } from '../components';
+import { diag } from '../lib/diagnostics';
 import { WHISKEY_DB } from '../data/whiskeyDatabase';
 import { EstimatedProfile, estimateFlavorProfile } from '../lib/claude';
 import {
@@ -113,6 +114,7 @@ export default function AddBottleScreen() {
       setEstimate(result);
       if (!notes.trim() && result.notes) setNotes(result.notes);
     } catch (err) {
+      diag.error('ai-profile', err, name.trim());
       setEstimateError(`Estimation failed: ${(err as Error).message}`);
     } finally {
       setEstimating(false);

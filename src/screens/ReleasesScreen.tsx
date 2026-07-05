@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, ProLock, RarityBadge, ScreenGradient, ScreenHeader } from '../components';
 import { ReleaseCategory, UpcomingRelease, upcomingReleases } from '../lib/claude';
+import { diag } from '../lib/diagnostics';
 import { RootStackParamList } from '../navigation';
 import { useProGate } from '../useProGate';
 import { useStore } from '../store/useStore';
@@ -37,8 +38,11 @@ export default function ReleasesScreen() {
     setBusy(true);
     setError('');
     try {
-      setReleases(await upcomingReleases(apiKey, model));
+      const r = await upcomingReleases(apiKey, model);
+      diag.info('releases', `loaded ${r.length} releases (model ${model})`);
+      setReleases(r);
     } catch (err) {
+      diag.error('releases', err, `model ${model}`);
       setError(`Couldn't load releases: ${(err as Error).message}`);
     } finally {
       setBusy(false);

@@ -17,6 +17,7 @@ import {
 import { Button, Chip, RarityBadge, ScreenGradient, TypeBadge } from '../components';
 import { IdentifiedBottle, identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections, correctionKey } from '../lib/corrections';
+import { diag } from '../lib/diagnostics';
 import { findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
 import { buildLearnedRecord } from '../lib/library';
 import { useProGate } from '../useProGate';
@@ -92,6 +93,7 @@ export default function BulkAddScreen() {
         result.assets[0].mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
         model
       );
+      diag.info('bulk-add', `identified ${identified.length} bottles (model ${model})`);
       if (identified.length === 0) {
         setError('No whiskey bottles identified — try a closer shot with labels facing the camera.');
         setItems(undefined);
@@ -111,6 +113,7 @@ export default function BulkAddScreen() {
         );
       }
     } catch (err) {
+      diag.error('bulk-add', err, `model ${model}`);
       const status = (err as { status?: number }).status;
       setError(
         status === 401

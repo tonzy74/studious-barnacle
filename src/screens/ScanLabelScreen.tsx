@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, RarityBadge, ScreenGradient, ScreenHeader, TypeBadge, TypeIcon } from '../components';
 import { identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections } from '../lib/corrections';
+import { diag } from '../lib/diagnostics';
 import { findWhiskeyByName } from '../lib/flavor';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_LABELS } from '../lib/rarity';
@@ -74,9 +75,11 @@ export default function ScanLabelScreen() {
         const owned = bottles.some(
           (b) => b.name.toLowerCase().replace(/[^a-z0-9]+/g, '') === top.name.toLowerCase().replace(/[^a-z0-9]+/g, '')
         );
+        diag.info('label-scan', `${top.name} → ${record ? 'matched ' + record.name : 'no db match'}`);
         setResult({ name: top.name, distillery: top.distillery, record, owned, opened: top.opened });
       }
     } catch (err) {
+      diag.error('label-scan', err, `model ${model}`);
       setError(`Scan failed: ${(err as Error).message}`);
     } finally {
       setBusy(false);
