@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import { Bottle, ChatMsg, FlavorProfile, Rarity, WhiskeyType } from '../types';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
-import { DEFAULT_MODEL } from './models';
+import { DEFAULT_MODEL, SOMMELIER_MODEL } from './models';
 import { fairPrice, formatUsd } from './pricing';
 
 /**
@@ -93,7 +93,7 @@ export async function askSommelier(
   apiKey: string,
   collection: Bottle[],
   history: ChatMsg[],
-  model: string = DEFAULT_MODEL
+  model: string = SOMMELIER_MODEL
 ): Promise<string> {
   const client = new Anthropic({
     apiKey,
