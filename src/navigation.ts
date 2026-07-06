@@ -18,7 +18,7 @@ export type RootStackParamList = {
   Recommend: undefined;
   Portfolio: undefined;
   Achievements: undefined;
-  ScanLabel: undefined;
+  ScanLabel: { barcode?: string } | undefined;
   Paywall: undefined;
   Diagnostics: undefined;
   Trade: undefined;

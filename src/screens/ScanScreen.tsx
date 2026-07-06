@@ -51,7 +51,7 @@ export default function ScanScreen() {
         'Barcode not found',
         "That UPC isn't in the public databases (common for whiskey). Scan the label instead — the AI will read it — or enter it by hand.",
         [
-          { text: 'Scan the label', onPress: () => navigation.navigate('ScanLabel') },
+          { text: 'Scan the label', onPress: () => navigation.navigate('ScanLabel', { barcode: code }) },
           {
             text: 'Enter manually',
             onPress: () => navigation.navigate('AddBottle', { barcode: code }),

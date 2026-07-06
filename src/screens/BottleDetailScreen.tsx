@@ -18,6 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 
 import {
+  BottleSilhouette,
   Button,
   FlavorBars,
   FlavorRadar,
@@ -171,8 +172,10 @@ export default function BottleDetailScreen() {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={addPhoto} activeOpacity={0.8} style={styles.addPhoto}>
-              <Ionicons name="camera-outline" size={22} color={colors.amber} />
-              <Text style={styles.addPhotoText}>Add photo</Text>
+              <BottleSilhouette type={bottle.type} size={44} />
+              <View style={styles.addPhotoBadge}>
+                <Ionicons name="camera" size={12} color={colors.ink} />
+              </View>
             </TouchableOpacity>
           )}
           <View style={styles.heroBadges}>
@@ -519,13 +522,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
-    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
     backgroundColor: colors.bgElevated,
   },
-  addPhotoText: { color: colors.amber, fontSize: 10, fontWeight: '600' },
+  addPhotoBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.amber,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.bg,
+  },
   name: { color: colors.text, fontSize: 25, fontWeight: '800', letterSpacing: 0.2 },
   sub: { color: colors.amberBright, marginTop: 6, fontSize: 13.5 },
   variant: { color: colors.amber, marginTop: 4, fontWeight: '700', fontSize: 13 },

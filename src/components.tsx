@@ -6,6 +6,7 @@ import Svg, {
   Circle,
   Defs,
   Line,
+  Path,
   Polygon,
   RadialGradient,
   Rect,
@@ -136,6 +137,34 @@ export function TypeIcon({ type, size = 34 }: { type: string; size?: number }) {
     >
       <Ionicons name={glyph} size={size * 0.5} color={tint} />
     </View>
+  );
+}
+
+/**
+ * A clean bottle silhouette tinted by whiskey type — the free, always-there
+ * placeholder shown when an entry has no photo, so nothing looks empty.
+ */
+export function BottleSilhouette({ type, size = 72 }: { type: string; size?: number }) {
+  const tint = typeColors[type] ?? typeColors.other;
+  const w = size;
+  const h = size * 1.5;
+  return (
+    <Svg width={w} height={h} viewBox="0 0 40 60">
+      {/* cap */}
+      <Rect x="16.5" y="1.5" width="7" height="4.5" rx="1" fill={tint} opacity={0.9} />
+      {/* neck */}
+      <Rect x="17.5" y="6" width="5" height="9" fill={tint} opacity={0.5} />
+      {/* body with sloped shoulders */}
+      <Path
+        d="M17.5 14 C17.5 17 11 18 11 25 L11 52 a4 4 0 0 0 4 4 L25 56 a4 4 0 0 0 4 -4 L29 25 C29 18 22.5 17 22.5 14 Z"
+        fill={tint}
+        fillOpacity={0.16}
+        stroke={tint}
+        strokeWidth={1.2}
+      />
+      {/* label */}
+      <Rect x="13.5" y="34" width="13" height="14" rx="1.5" fill={tint} opacity={0.22} />
+    </Svg>
   );
 }
 

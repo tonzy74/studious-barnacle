@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
@@ -31,6 +31,8 @@ interface Result {
 
 export default function ScanLabelScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProp<RootStackParamList, 'ScanLabel'>>();
+  const scannedBarcode = route.params?.barcode;
   const insets = useSafeAreaInsets();
   const apiKey = useStore((s) => s.apiKey);
   const model = useStore((s) => s.model);
@@ -112,8 +114,8 @@ export default function ScanLabelScreen() {
 
         {apiKey && (
           <View style={styles.actions}>
-            <Button title="Photograph a label" icon="camera" onPress={() => scan(true)} disabled={busy} style={{ flex: 1 }} />
-            <Button title="From library" icon="images" variant="secondary" onPress={() => scan(false)} disabled={busy} style={{ flex: 1 }} />
+            <Button title="Take photo" icon="camera" onPress={() => scan(true)} disabled={busy} style={{ flex: 1 }} />
+            <Button title="Library" icon="images" variant="secondary" onPress={() => scan(false)} disabled={busy} style={{ flex: 1 }} />
           </View>
         )}
 
@@ -180,6 +182,7 @@ export default function ScanLabelScreen() {
                   brand: result.record?.distillery ?? result.distillery,
                   refId: result.record?.id,
                   opened: result.opened,
+                  barcode: scannedBarcode,
                 })
               }
               style={{ marginTop: spacing.lg }}
