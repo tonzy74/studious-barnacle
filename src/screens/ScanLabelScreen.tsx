@@ -77,7 +77,7 @@ export default function ScanLabelScreen() {
         setError('Could not read a bottle — try a straight-on shot of the label.');
       } else {
         const top = identified[0];
-        const record = findWhiskeyByName(`${top.name} ${top.distillery}`, learned);
+        const record = findWhiskeyByName({ name: top.name, distillery: top.distillery }, learned);
         const owned = bottles.some(
           (b) => b.name.toLowerCase().replace(/[^a-z0-9]+/g, '') === top.name.toLowerCase().replace(/[^a-z0-9]+/g, '')
         );

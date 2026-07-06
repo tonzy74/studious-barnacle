@@ -111,7 +111,7 @@ export default function BulkAddScreen() {
           corrected.map((b) => ({
             original: b,
             identified: b,
-            match: findWhiskeyByName(`${b.name} ${b.distillery}`, learned),
+            match: findWhiskeyByName({ name: b.name, distillery: b.distillery }, learned),
             // Low-confidence reads start unchecked so a blurry guess
             // doesn't slip into the collection unnoticed.
             selected: b.confidence !== 'low',
@@ -143,7 +143,7 @@ export default function BulkAddScreen() {
         return {
           ...it,
           identified,
-          match: findWhiskeyByName(`${identified.name} ${identified.distillery}`, learned),
+          match: findWhiskeyByName({ name: identified.name, distillery: identified.distillery }, learned),
           // A user edit is a verified read.
           selected: true,
         };

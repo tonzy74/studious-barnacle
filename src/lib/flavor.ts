@@ -150,20 +150,56 @@ const STOPWORDS = new Set([
   'premium',
 ]);
 
+const isNumberWord = (w: string) => /^\d+$/.test(w);
+/** 1–3 digit number = age/proof (Eagle Rare 10, Weller 107); not a brand word. */
+const isAgeNumber = (w: string) => /^\d{1,3}$/.test(w);
+
+/** A query name is a whiskey name; a distillery is matched separately. */
+export type NameQuery = string | { name: string; distillery?: string };
+
+interface MatchQuery {
+  /** Normalized name string, for whole-name containment. */
+  nameNorm: string;
+  /** Distinctive (non-stopword) words from the product name. */
+  nameWords: string[];
+  /** Pure-number words in the name (age/proof) — matched, never anchoring. */
+  nameNums: Set<string>;
+  /** Generic descriptor words present in the query — tie-breakers only. */
+  descriptors: Set<string>;
+  /** Distinctive words from the distillery (empty for free-text queries). */
+  distWords: Set<string>;
+}
+
 /**
- * Reduce a raw query to the significant words used for matching: drop batch
- * codes and pick vocabulary so "ECBP batch C923" or "Blanton's Total Wine
- * pick" still resolve to the base bottling, and expand collector shorthand
- * ("ecbp", "gts", "wlw").
+ * Split a query into name words vs distillery words so distillery agreement is
+ * scored separately and can never, on its own, pull in an unrelated bottling.
+ * Drops batch codes and pick vocabulary, and expands collector shorthand
+ * ("ecbp" → "elijah craig barrel proof").
  */
-function queryWordsFor(query: string): { q: string; words: string[] } {
-  const q = normalizeName(query);
-  if (!q) return { q, words: [] };
-  const words = q
+function buildQuery(input: NameQuery): MatchQuery {
+  const name = typeof input === 'string' ? input : input.name;
+  const distillery = typeof input === 'string' ? '' : input.distillery ?? '';
+  const nameNorm = normalizeName(name);
+  const words = nameNorm
     .split(' ')
-    .filter((w) => !isBatchCode(w) && !VARIANT_WORDS.has(w))
+    .filter((w) => w && !isBatchCode(w) && !VARIANT_WORDS.has(w))
     .flatMap((w) => (ALIASES[w] ? ALIASES[w].split(' ') : [w]));
-  return { q, words };
+  // 1–3 digit numbers are ages/proofs (matched, never anchoring); 4-digit
+  // numbers ("1792", "1910", "1920") are brand identifiers and stay as name
+  // words that can anchor a match.
+  const nameWords = words.filter((w) => !STOPWORDS.has(w) && !isAgeNumber(w));
+  return {
+    nameNorm: words.join(' '),
+    nameWords,
+    nameNums: new Set(words.filter(isAgeNumber)),
+    // Generic descriptors (cask/strength/small/batch…) — only break ties.
+    descriptors: new Set(words.filter((w) => STOPWORDS.has(w))),
+    distWords: new Set(
+      normalizeName(distillery)
+        .split(' ')
+        .filter((w) => w && !STOPWORDS.has(w))
+    ),
+  };
 }
 
 /**
@@ -177,6 +213,19 @@ interface RecordSearchText {
   full: string;
   fullWords: Set<string>;
   nameNorm: string;
+  /**
+   * Distinctive product-name words drawn from the bottling's NAME only (minus
+   * generic descriptors and age numbers). These identify the bottle ("weller",
+   * "forester", "emmer", "1792"). A match must share one — and because these
+   * come from the name, not the distillery, a shared distillery alone can never
+   * produce a (wrong) match: unrelated bottlings from the same distillery don't
+   * carry that distillery's words in their names.
+   */
+  nameWords: Set<string>;
+  /** Age/proof numbers in the name (1–3 digits): matched, never anchoring. */
+  nums: Set<string>;
+  /** The distillery's words — supporting evidence only, never sufficient. */
+  distWords: Set<string>;
 }
 const searchTextCache = new WeakMap<WhiskeyRecord, RecordSearchText>();
 
@@ -187,35 +236,105 @@ function searchTextFor(record: WhiskeyRecord): RecordSearchText {
   // barrel, not the whiskey. Match only on the base bottling name (before the
   // em-dash) so retailer words never create spurious matches.
   const baseName = record.name.split('—')[0];
+  const nameNorm = normalizeName(baseName);
   const full = normalizeName(`${baseName} ${record.distillery}`);
+  const distWords = new Set(
+    normalizeName(record.distillery)
+      .split(' ')
+      .filter((w) => w && !STOPWORDS.has(w))
+  );
+  const nameTokens = nameNorm.split(' ').filter(Boolean);
   const value: RecordSearchText = {
     full,
     fullWords: new Set(full.split(' ')),
-    nameNorm: normalizeName(baseName),
+    nameNorm,
+    nameWords: new Set(nameTokens.filter((w) => !STOPWORDS.has(w) && !isAgeNumber(w))),
+    nums: new Set(nameTokens.filter(isAgeNumber)),
+    distWords,
   };
   searchTextCache.set(record, value);
   return value;
 }
 
-/** Score one reference record against pre-computed query words. */
-function scoreRecord(record: WhiskeyRecord, q: string, qWords: string[]): number {
-  const { full: target, fullWords: targetWords, nameNorm } = searchTextFor(record);
+/** A record's relevance, split so callers can require real name agreement. */
+interface RecordScore {
+  /** Total weighted score for ranking. */
+  score: number;
+  /** True when the record clears the bar to be considered a match at all. */
+  qualifies: boolean;
+}
+
+/** Score one reference record against a structured query. */
+function scoreRecord(record: WhiskeyRecord, query: MatchQuery): RecordScore {
+  const rec = searchTextFor(record);
+  const qNameSet = new Set(query.nameWords);
   let score = 0;
-  for (const w of qWords) {
-    if (STOPWORDS.has(w)) {
-      // Generic words only break ties, they can't establish a match.
-      if (targetWords.has(w)) score += 0.25;
-    } else if (targetWords.has(w)) {
-      score += 2;
-    } else if (w.length >= 4 && target.includes(w)) {
-      score += 1;
+  let nameHits = 0;
+
+  // Distinctive product-name agreement — the only thing that can anchor a match.
+  for (const w of query.nameWords) {
+    if (rec.nameWords.has(w)) {
+      score += 3;
+      nameHits++;
+    } else if (w.length >= 4 && rec.full.includes(w)) {
+      score += 1; // partial/substring hit
     }
   }
-  // Exact full-name containment is a strong signal.
-  if (nameNorm.includes(q) || q.includes(nameNorm)) {
+  // Two coverage views decide whether the anchor is trustworthy:
+  //  • recordCoverage — how much of THIS record's identity the query hit. A
+  //    lone "hill" against Rock Hill Farms is weak (0.33) and won't qualify.
+  //  • queryCoverage — how many of the QUERY's own distinctive words landed. A
+  //    casual "pappy 15" fully covers its one distinctive word ("pappy") so it
+  //    resolves, while "Heaven Hill 19" only half-covers against Rock Hill Farms.
+  const recordCoverage = rec.nameWords.size ? nameHits / rec.nameWords.size : 0;
+  const queryCoverage = query.nameWords.length ? nameHits / query.nameWords.length : 0;
+
+  // Distillery agreement is supporting evidence only — capped low so it can
+  // never rival real name agreement or, on its own, produce a match.
+  let distHits = 0;
+  for (const w of rec.distWords) {
+    if (query.distWords.has(w) || qNameSet.has(w)) distHits++;
+  }
+  score += Math.min(distHits, 3) * 0.5;
+
+  // Age/proof numbers: reward agreement; flag an age the query specified that
+  // this record lacks — they're almost certainly different expressions
+  // ("Heaven Hill 19" must not match a Heaven Hill with a different/no age).
+  let numHits = 0;
+  let numMismatch = false;
+  for (const n of query.nameNums) {
+    if (rec.nums.has(n)) numHits++;
+    else numMismatch = true;
+  }
+  score += numHits * 1.5;
+
+  // Prefer the least over-specific record: dock the record's own distinctive
+  // words the query never mentioned, so "Buffalo Trace" beats "Buffalo Trace
+  // White Dog" and a plain scan doesn't grab a random single-barrel pick.
+  let extra = 0;
+  for (const w of rec.nameWords) {
+    if (!qNameSet.has(w)) extra++;
+  }
+  score -= extra * 0.75;
+
+  // Generic descriptors (cask/proof/small/batch…) only break ties between
+  // bottlings that already share a name anchor.
+  for (const w of query.descriptors) {
+    if (rec.full.includes(w)) score += 0.25;
+  }
+
+  // Whole-name containment is a strong signal.
+  if (rec.nameNorm.includes(query.nameNorm) || query.nameNorm.includes(rec.nameNorm)) {
     score += 3;
   }
-  return score;
+
+  // A match needs a real name-word anchor that either covers half this record's
+  // identity or fully accounts for the query's own distinctive words (a short,
+  // exact brand name like "pappy" or "weller"), and must not contradict an age
+  // the query named. Distillery/descriptor overlap alone is never enough.
+  const qualifies =
+    nameHits >= 1 && (recordCoverage >= 0.5 || queryCoverage >= 1) && !numMismatch;
+  return { score, qualifies: qualifies && score >= 2.5 };
 }
 
 /** A ranked reference match with its raw relevance score. */
@@ -227,31 +346,36 @@ export interface WhiskeyCandidate {
 /**
  * Rank the reference database against a query, best first. Powers the "not
  * the right bottle?" corrections list — the scanner's single best guess is
- * just candidates[0], and the user can pick any of the alternates.
+ * just candidates[0], and the user can pick any of the alternates. Pass a
+ * `{ name, distillery }` object (from a scan) so distillery agreement is scored
+ * separately and can't, by itself, pull in an unrelated bottling.
  */
 export function findWhiskeyCandidates(
-  query: string,
+  query: NameQuery,
   extraDb: WhiskeyRecord[] = [],
   limit = 6
 ): WhiskeyCandidate[] {
-  const { q, words } = queryWordsFor(query);
-  if (words.length === 0) return [];
+  const mq = buildQuery(query);
+  if (mq.nameWords.length === 0) return [];
   const scored: WhiskeyCandidate[] = [];
   for (const record of [...WHISKEY_DB, ...extraDb]) {
-    const score = scoreRecord(record, q, words);
-    // Require at least one solid word match to avoid nonsense matches.
-    if (score >= 2) scored.push({ record, score });
+    const { score, qualifies } = scoreRecord(record, mq);
+    if (qualifies) scored.push({ record, score });
   }
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, limit);
 }
 
 /**
- * Fuzzy-match a user-typed whiskey name against the reference database.
- * Scores on shared word overlap so "weller" finds W.L. Weller Special Reserve
- * and "elijah craig bp" finds Elijah Craig Barrel Proof.
+ * Fuzzy-match a whiskey against the reference database. Scores on distinctive
+ * name-word overlap so "weller" finds W.L. Weller Special Reserve and
+ * "elijah craig bp" finds Elijah Craig Barrel Proof — but a shared distillery
+ * alone never produces a (wrong) match.
  */
-export function findWhiskeyByName(query: string, extraDb: WhiskeyRecord[] = []): WhiskeyRecord | undefined {
+export function findWhiskeyByName(
+  query: NameQuery,
+  extraDb: WhiskeyRecord[] = []
+): WhiskeyRecord | undefined {
   return findWhiskeyCandidates(query, extraDb, 1)[0]?.record;
 }
 
