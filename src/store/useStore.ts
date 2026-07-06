@@ -16,6 +16,7 @@ import {
   WhiskeyType,
   WishlistItem,
 } from '../types';
+import type { UpcomingRelease } from '../lib/claude';
 import { upsertCorrection } from '../lib/corrections';
 import {
   AnalyticsEventName,
@@ -58,6 +59,8 @@ interface VaultState {
   valueHistory: ValueSnapshot[];
   /** Observed market comps (from completed trades/sales) → real secondary values. */
   comps: Comp[];
+  /** Cached AI releases so the screen loads instantly and refreshes rarely. */
+  releasesCache?: { at: number; items: UpcomingRelease[] };
   profile: UserProfile | null;
   consent: ConsentSettings;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -84,6 +87,7 @@ interface VaultState {
   snapshotValue: (value: number, bottles: number) => void;
   /** Record market comps from a completed trade or sale. */
   addComps: (comps: Comp[]) => void;
+  setReleasesCache: (items: UpcomingRelease[]) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -149,6 +153,7 @@ export const useStore = create<VaultState>()(
           };
         }),
       addComps: (comps) => set((s) => ({ comps: [...comps, ...s.comps].slice(0, 2000) })),
+      setReleasesCache: (items) => set({ releasesCache: { at: Date.now(), items } }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -196,6 +201,7 @@ export const useStore = create<VaultState>()(
           wishlist: [],
           valueHistory: [],
           comps: [],
+          releasesCache: undefined,
           profile: null,
           consent: { analytics: false, sellShare: false, decidedAt: Date.now() },
           events: [],
@@ -219,6 +225,7 @@ export const useStore = create<VaultState>()(
           wishlist: s.wishlist,
           valueHistory: s.valueHistory,
           comps: s.comps,
+          releasesCache: s.releasesCache,
           profile: s.profile,
           consent: s.consent,
           events: s.events,

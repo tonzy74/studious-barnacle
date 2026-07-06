@@ -5,9 +5,9 @@ export interface BarcodeLookupResult {
   brand?: string;
   /** ID of a matched reference-database record, when the barcode is known. */
   refId?: string;
-  /** Product image (https) from Open Food Facts, when available. */
+  /** Product image (https) from the lookup source, when available. */
   imageUrl?: string;
-  source: 'local' | 'openfoodfacts' | 'none';
+  source: 'local' | 'upcitemdb' | 'openfoodfacts' | 'none';
 }
 
 /** Accept only https image URLs (no http/data/javascript), capped in length. */
@@ -45,35 +45,75 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
     return { name: local.name, brand: local.distillery, refId: local.id, source: 'local' };
   }
 
+  // UPCitemdb has far better spirits coverage than Open Food Facts (which is
+  // a food database and rarely has whiskey), so try it first.
+  const upc = await lookupUpcItemDb(barcode);
+  if (upc.name) return upc;
+
+  const off = await lookupOpenFoodFacts(barcode);
+  if (off.name) return off;
+
+  return { source: 'none' };
+}
+
+/** General product database with strong consumer/spirits coverage (free trial tier). */
+async function lookupUpcItemDb(barcode: string): Promise<BarcodeLookupResult> {
+  try {
+    const res = await fetch(
+      `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`,
+      { headers: { accept: 'application/json' } }
+    );
+    if (!res.ok) return { source: 'none' };
+    const data = (await res.json()) as {
+      items?: { title?: string; brand?: string; images?: string[] }[];
+    };
+    const item = data.items?.[0];
+    const name = cleanExternalText(item?.title);
+    if (!name) return { source: 'none' };
+    const image = Array.isArray(item?.images)
+      ? item!.images.map(cleanHttpsUrl).find(Boolean)
+      : undefined;
+    return {
+      name: stripBottleSize(name),
+      brand: cleanExternalText(item?.brand, 60),
+      imageUrl: image,
+      source: 'upcitemdb',
+    };
+  } catch {
+    return { source: 'none' };
+  }
+}
+
+/** Open Food Facts — thin on spirits, kept as a secondary fallback. */
+async function lookupOpenFoodFacts(barcode: string): Promise<BarcodeLookupResult> {
   try {
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,brands,image_front_url,image_url`,
       { headers: { 'User-Agent': 'WhiskeyVault/1.0 (personal inventory app)' } }
     );
-    if (res.ok) {
-      const data = (await res.json()) as {
-        status?: number;
-        product?: {
-          product_name?: string;
-          brands?: string;
-          image_front_url?: string;
-          image_url?: string;
-        };
-      };
-      const name = cleanExternalText(data.product?.product_name);
-      if (data.status === 1 && name) {
-        return {
-          name,
-          brand: cleanExternalText(data.product?.brands?.split(',')[0], 60),
-          imageUrl:
-            cleanHttpsUrl(data.product?.image_front_url) ?? cleanHttpsUrl(data.product?.image_url),
-          source: 'openfoodfacts',
-        };
-      }
-    }
+    if (!res.ok) return { source: 'none' };
+    const data = (await res.json()) as {
+      status?: number;
+      product?: { product_name?: string; brands?: string; image_front_url?: string; image_url?: string };
+    };
+    const name = cleanExternalText(data.product?.product_name);
+    if (data.status !== 1 || !name) return { source: 'none' };
+    return {
+      name: stripBottleSize(name),
+      brand: cleanExternalText(data.product?.brands?.split(',')[0], 60),
+      imageUrl:
+        cleanHttpsUrl(data.product?.image_front_url) ?? cleanHttpsUrl(data.product?.image_url),
+      source: 'openfoodfacts',
+    };
   } catch {
-    // Offline or API unavailable — fall through to manual entry.
+    return { source: 'none' };
   }
+}
 
-  return { source: 'none' };
+/** Trim trailing size/volume noise ("750ml", "1L", "1.75 L") from a title. */
+export function stripBottleSize(name: string): string {
+  return name
+    .replace(/\b\d+(\.\d+)?\s?(ml|l|liter|litre|oz|cl|pt)\b\.?/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }

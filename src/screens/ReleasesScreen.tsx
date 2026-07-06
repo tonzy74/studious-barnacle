@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, ProLock, RarityBadge, ScreenGradient, ScreenHeader } from '../components';
 import { ReleaseCategory, UpcomingRelease, upcomingReleases } from '../lib/claude';
 import { diag } from '../lib/diagnostics';
+import { FAST_MODEL } from '../lib/models';
 import { RootStackParamList } from '../navigation';
 import { useProGate } from '../useProGate';
 import { useStore } from '../store/useStore';
@@ -27,9 +28,11 @@ export default function ReleasesScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const apiKey = useStore((s) => s.apiKey);
-  const model = useStore((s) => s.model);
+  const cache = useStore((s) => s.releasesCache);
+  const setReleasesCache = useStore((s) => s.setReleasesCache);
   const { locked, goPro } = useProGate('ai-releases');
-  const [releases, setReleases] = useState<UpcomingRelease[] | undefined>();
+  // Show cached releases instantly; only hit the API when asked or stale.
+  const [releases, setReleases] = useState<UpcomingRelease[] | undefined>(cache?.items);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -38,11 +41,13 @@ export default function ReleasesScreen() {
     setBusy(true);
     setError('');
     try {
-      const r = await upcomingReleases(apiKey, model);
-      diag.info('releases', `loaded ${r.length} releases (model ${model})`);
+      // Text-only task → use the fast model so it isn't stuck waiting on Opus.
+      const r = await upcomingReleases(apiKey, FAST_MODEL);
+      diag.info('releases', `loaded ${r.length} releases (fast model)`);
       setReleases(r);
+      setReleasesCache(r);
     } catch (err) {
-      diag.error('releases', err, `model ${model}`);
+      diag.error('releases', err, 'fast model');
       setError(`Couldn't load releases: ${(err as Error).message}`);
     } finally {
       setBusy(false);
@@ -50,7 +55,10 @@ export default function ReleasesScreen() {
   };
 
   useEffect(() => {
-    if (apiKey && !locked) load();
+    // Only auto-fetch when there's nothing cached; otherwise show cache and
+    // let the user refresh. Cache older than 14 days refreshes in background.
+    const stale = !cache || Date.now() - cache.at > 14 * 86_400_000;
+    if (apiKey && !locked && stale) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

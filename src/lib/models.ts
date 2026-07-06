@@ -35,6 +35,13 @@ export const CLAUDE_MODELS: ClaudeModelOption[] = [
 /** Default: the most accurate vision engine. */
 export const DEFAULT_MODEL = 'claude-opus-4-8';
 
+/**
+ * Fast model for text-only tasks (releases, cocktails) where flagship vision
+ * accuracy isn't needed — Haiku is several times quicker and much cheaper, so
+ * these screens feel snappy instead of waiting on Opus.
+ */
+export const FAST_MODEL = 'claude-haiku-4-5-20251001';
+
 /** Human label for a model id (falls back to the raw id if unknown). */
 export function modelLabel(id: string): string {
   return CLAUDE_MODELS.find((m) => m.id === id)?.label ?? id;

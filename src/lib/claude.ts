@@ -5,6 +5,22 @@ import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 import { DEFAULT_MODEL } from './models';
 import { fairPrice, formatUsd } from './pricing';
 
+/**
+ * Extract and parse a JSON object from a model response, tolerating code
+ * fences, preamble, and trailing prose. Throws a clear error (rather than a
+ * cryptic "unexpected end of input") when the response is empty or has no
+ * complete JSON object — which happens when a reply is truncated.
+ */
+function parseJsonObject(text: string | undefined): Record<string, unknown> {
+  if (!text || !text.trim()) throw new Error('The AI returned an empty response — try again.');
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error('The AI response was cut off before it finished — try again.');
+  }
+  return JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+}
+
 function describeBottle(b: Bottle): string {
   const flavorSummary = (Object.keys(FLAVOR_LABELS) as (keyof typeof FLAVOR_LABELS)[])
     .filter((axis) => b.flavor[axis] >= 6)
@@ -189,7 +205,7 @@ export async function estimateFlavorProfile(
   )?.text;
   if (!text) throw new Error('Empty response from profile estimation');
 
-  const raw = JSON.parse(text) as Record<string, unknown>;
+  const raw = parseJsonObject(text);
   const flavor = {} as FlavorProfile;
   for (const axis of FLAVOR_AXES) {
     const v = typeof raw[axis] === 'number' ? (raw[axis] as number) : 5;
@@ -353,7 +369,7 @@ export async function identifyBottlesFromPhoto(
     (block): block is Anthropic.TextBlock => block.type === 'text'
   )?.text;
   if (!text) return [];
-  return validateIdentifiedBottles(JSON.parse(text));
+  return validateIdentifiedBottles(parseJsonObject(text));
 }
 
 export type ReleaseCategory = 'annual' | 'limited' | 'seasonal' | 'core' | 'other';
@@ -442,7 +458,7 @@ export async function upcomingReleases(
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
   const response = await client.messages.create({
     model,
-    max_tokens: 2048,
+    max_tokens: 4096,
     system:
       'You are a whiskey release expert. List notable upcoming or annually-recurring, ' +
       'highly-desirable American whiskey releases that collectors watch for (e.g. Buffalo ' +
@@ -450,7 +466,8 @@ export async function upcomingReleases(
       'Birthday Bourbon, Wild Turkey Master\'s Keep, Michter\'s 20/25). Use real, well-known ' +
       'release programs only — never invent products. Give an APPROXIMATE window (season + ' +
       'year) since exact dates and prices are not fixed. Focus on American whiskey. Return ' +
-      '15-25 releases spanning allocated unicorns to attainable limited editions.',
+      'exactly 12 releases spanning allocated unicorns to attainable limited editions. Keep ' +
+      'each note to one short sentence.',
     messages: [
       {
         role: 'user',
@@ -463,7 +480,7 @@ export async function upcomingReleases(
     (block): block is Anthropic.TextBlock => block.type === 'text'
   )?.text;
   if (!text) return [];
-  return validateReleases(JSON.parse(text));
+  return validateReleases(parseJsonObject(text));
 }
 
 export interface CocktailSuggestion {
@@ -545,5 +562,5 @@ export async function cocktailsForBottle(
     (block): block is Anthropic.TextBlock => block.type === 'text'
   )?.text;
   if (!text) return [];
-  return validateCocktails(JSON.parse(text));
+  return validateCocktails(parseJsonObject(text));
 }

@@ -1,3 +1,4 @@
+import { stripBottleSize } from '../src/lib/barcodeLookup';
 import { recommendBottles } from '../src/lib/recommend';
 import { computeAchievements, earnedCount } from '../src/lib/achievements';
 import { validateCocktails } from '../src/lib/claude';
@@ -85,6 +86,17 @@ describe('validateCocktails', () => {
   it('handles garbage', () => {
     expect(validateCocktails(null)).toEqual([]);
     expect(validateCocktails({ cocktails: 'no' })).toEqual([]);
+  });
+});
+
+describe('stripBottleSize', () => {
+  it('trims size/volume noise from product titles', () => {
+    expect(stripBottleSize('13th Colony Cask Strength Bourbon 750ml')).toBe(
+      '13th Colony Cask Strength Bourbon'
+    );
+    expect(stripBottleSize("Blanton's Single Barrel 750 ML")).toBe("Blanton's Single Barrel");
+    expect(stripBottleSize('Elijah Craig 1.75L')).toBe('Elijah Craig');
+    expect(stripBottleSize('Eagle Rare 10 Year')).toBe('Eagle Rare 10 Year');
   });
 });
 

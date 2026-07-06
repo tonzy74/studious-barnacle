@@ -3,7 +3,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BarcodeScanningResult, CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ScreenGradient } from '../components';
 import { diag } from '../lib/diagnostics';
@@ -40,14 +40,34 @@ export default function ScanScreen() {
       onLearn: learnRecord,
     });
     setBusy(false);
-    diag.info(
-      'scan',
-      `${code} → ${resolved.source}: ${resolved.record?.name ?? resolved.name ?? '(no name)'}`
-    );
+    const resolvedName = resolved.record?.name ?? resolved.name;
+    diag.info('scan', `${code} → ${resolved.source}: ${resolvedName ?? '(no name)'}`);
     track('scan_resolved', { source: resolved.source });
+
+    // Whiskey barcodes often aren't in any public database. Rather than dump
+    // the user into a blank form, offer the reliable path: scan the label.
+    if (!resolvedName) {
+      Alert.alert(
+        'Barcode not found',
+        "That UPC isn't in the public databases (common for whiskey). Scan the label instead — the AI will read it — or enter it by hand.",
+        [
+          { text: 'Scan the label', onPress: () => navigation.navigate('ScanLabel') },
+          {
+            text: 'Enter manually',
+            onPress: () => navigation.navigate('AddBottle', { barcode: code }),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      setTimeout(() => {
+        lastScanned.current = '';
+      }, 1500);
+      return;
+    }
+
     navigation.navigate('AddBottle', {
       barcode: code,
-      name: resolved.record?.name ?? resolved.name,
+      name: resolvedName,
       brand: resolved.record?.distillery ?? resolved.brand,
       refId: resolved.record?.id,
       imageUrl: resolved.record?.imageUrl ?? resolved.imageUrl,
