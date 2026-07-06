@@ -168,6 +168,45 @@ export function BottleSilhouette({ type, size = 72 }: { type: string; size?: num
   );
 }
 
+/** Distillery initials for a crest/monogram (e.g. "Buffalo Trace" → "BT"). */
+export function monogram(distillery: string): string {
+  const words = distillery
+    .split(/\s+/)
+    .filter((w) => w && !/^(the|of|and|&|co|company|distillery|distilling|distillers)$/i.test(w));
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return '·';
+}
+
+/**
+ * Brand crest: the distillery monogram on a tinted, brass-ringed card — a
+ * free, always-available stand-in for a logo when there's no photo (real
+ * distiller logos are trademarked and have no complete free source).
+ */
+export function BottleCrest({
+  distillery,
+  type,
+  size = 44,
+}: {
+  distillery: string;
+  type: string;
+  size?: number;
+}) {
+  const tint = typeColors[type] ?? typeColors.other;
+  return (
+    <View
+      style={[
+        styles.crest,
+        { width: size, height: size, borderRadius: size * 0.28, borderColor: tint },
+      ]}
+    >
+      <Text style={[styles.crestText, { fontSize: size * 0.34, color: tint }]}>
+        {monogram(distillery)}
+      </Text>
+    </View>
+  );
+}
+
 export function TypeBadge({ type }: { type: string }) {
   const tint = typeColors[type] ?? typeColors.other;
   const glyph = (typeIcons[type] ?? 'wine') as keyof typeof Ionicons.glyphMap;
@@ -515,6 +554,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.bgElevated,
   },
+  crest: {
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgElevated,
+  },
+  crestText: { fontWeight: '800', fontFamily: typo.display.fontFamily, letterSpacing: 0.5 },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
