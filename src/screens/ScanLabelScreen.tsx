@@ -11,6 +11,7 @@ import { identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections } from '../lib/corrections';
 import { diag } from '../lib/diagnostics';
 import { findWhiskeyByName } from '../lib/flavor';
+import { saveBottlePhoto } from '../lib/images';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_LABELS } from '../lib/rarity';
 import { useProGate } from '../useProGate';
@@ -27,6 +28,8 @@ interface Result {
   record?: WhiskeyRecord;
   owned: boolean;
   opened?: boolean;
+  /** The label shot, saved to the entry when the user adds the bottle. */
+  photoUri?: string;
 }
 
 export default function ScanLabelScreen() {
@@ -56,15 +59,16 @@ export default function ScanLabelScreen() {
     }
     const picker = fromCamera ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
     const shot = await picker({ mediaTypes: ['images'], quality: 0.5, base64: true });
-    if (shot.canceled || !shot.assets[0]?.base64) return;
+    const asset = shot.assets?.[0];
+    if (shot.canceled || !asset?.base64) return;
 
     setBusy(true);
     try {
       const identified = applyCorrections(
         await identifyBottlesFromPhoto(
           apiKey,
-          shot.assets[0].base64,
-          shot.assets[0].mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
+          asset.base64,
+          asset.mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
           model
         ),
         corrections
@@ -78,7 +82,7 @@ export default function ScanLabelScreen() {
           (b) => b.name.toLowerCase().replace(/[^a-z0-9]+/g, '') === top.name.toLowerCase().replace(/[^a-z0-9]+/g, '')
         );
         diag.info('label-scan', `${top.name} → ${record ? 'matched ' + record.name : 'no db match'}`);
-        setResult({ name: top.name, distillery: top.distillery, record, owned, opened: top.opened });
+        setResult({ name: top.name, distillery: top.distillery, record, owned, opened: top.opened, photoUri: asset.uri });
       }
     } catch (err) {
       diag.error('label-scan', err, `model ${model}`);
@@ -176,15 +180,22 @@ export default function ScanLabelScreen() {
             <Button
               title="Add to my bar"
               icon="add-circle"
-              onPress={() =>
+              onPress={async () => {
+                const imageUrl = result.photoUri
+                  ? await saveBottlePhoto(
+                      `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                      result.photoUri
+                    )
+                  : undefined;
                 navigation.navigate('AddBottle', {
                   name: result.record?.name ?? result.name,
                   brand: result.record?.distillery ?? result.distillery,
                   refId: result.record?.id,
                   opened: result.opened,
                   barcode: scannedBarcode,
-                })
-              }
+                  imageUrl,
+                });
+              }}
               style={{ marginTop: spacing.lg }}
             />
             <Button

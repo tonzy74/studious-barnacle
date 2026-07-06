@@ -19,6 +19,7 @@ import { IdentifiedBottle, identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections, correctionKey } from '../lib/corrections';
 import { diag } from '../lib/diagnostics';
 import { findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
+import { cropBottle } from '../lib/images';
 import { buildLearnedRecord } from '../lib/library';
 import { useProGate } from '../useProGate';
 import { RootStackParamList } from '../navigation';
@@ -64,6 +65,8 @@ export default function BulkAddScreen() {
   const { requirePro } = useProGate('ai-bulk-add');
   const [busy, setBusy] = useState<'idle' | 'analyzing' | 'adding'>('idle');
   const [items, setItems] = useState<ReviewItem[] | undefined>();
+  // The source shelf photo, kept so we can crop each bottle out on add.
+  const [photo, setPhoto] = useState<{ uri: string; w: number; h: number } | undefined>();
   const [editing, setEditing] = useState<number | null>(null);
   const [error, setError] = useState('');
 
@@ -83,14 +86,17 @@ export default function BulkAddScreen() {
       quality: 0.4,
       base64: true,
     });
-    if (result.canceled || !result.assets[0]?.base64) return;
+    const asset = result.assets?.[0];
+    if (result.canceled || !asset?.base64) return;
+    // Remember the full shot so we can crop each identified bottle out of it.
+    setPhoto({ uri: asset.uri, w: asset.width, h: asset.height });
 
     setBusy('analyzing');
     try {
       const identified = await identifyBottlesFromPhoto(
         apiKey,
-        result.assets[0].base64,
-        result.assets[0].mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
+        asset.base64,
+        asset.mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
         model
       );
       diag.info('bulk-add', `identified ${identified.length} bottles (model ${model})`);
@@ -168,10 +174,15 @@ export default function BulkAddScreen() {
         );
       }
       const proof = identified.proof ?? match?.proof ?? 80;
+      const id = newBottleId();
+      // Trim this bottle out of the shelf photo and save it to the entry.
+      const imageUrl = photo
+        ? await cropBottle(id, photo.uri, photo.w, photo.h, identified.box)
+        : undefined;
       if (match) {
         matchedCount++;
         addBottle({
-          id: newBottleId(),
+          id,
           name: match.name,
           distillery: match.distillery,
           type: match.type,
@@ -185,6 +196,7 @@ export default function BulkAddScreen() {
           secondary: match.secondary,
           opened: identified.opened ?? false,
           quantity: 1,
+          imageUrl,
           addedAt: Date.now(),
         });
       } else {
@@ -198,7 +210,7 @@ export default function BulkAddScreen() {
         });
         learnRecord(record);
         addBottle({
-          id: newBottleId(),
+          id,
           name: record.name,
           distillery: record.distillery,
           type: record.type,
@@ -212,6 +224,7 @@ export default function BulkAddScreen() {
           secondary: record.secondary,
           opened: identified.opened ?? false,
           quantity: 1,
+          imageUrl,
           addedAt: Date.now(),
         });
       }
@@ -397,7 +410,10 @@ export default function BulkAddScreen() {
             title="Scan a different photo"
             icon="refresh"
             variant="secondary"
-            onPress={() => setItems(undefined)}
+            onPress={() => {
+              setItems(undefined);
+              setPhoto(undefined);
+            }}
             disabled={busy !== 'idle'}
             style={{ marginTop: 10 }}
           />

@@ -18,7 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 
 import {
-  BottleSilhouette,
+  BottleCrest,
   Button,
   FlavorBars,
   FlavorRadar,
@@ -172,7 +172,7 @@ export default function BottleDetailScreen() {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={addPhoto} activeOpacity={0.8} style={styles.addPhoto}>
-              <BottleSilhouette type={bottle.type} size={44} />
+              <BottleCrest distillery={bottle.distillery} type={bottle.type} size={52} />
               <View style={styles.addPhotoBadge}>
                 <Ionicons name="camera" size={12} color={colors.ink} />
               </View>

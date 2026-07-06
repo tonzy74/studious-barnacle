@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
 import { askSommelier } from '../lib/claude';
+import { SOMMELIER_MODEL } from '../lib/models';
 import { diag } from '../lib/diagnostics';
 import { useProGate } from '../useProGate';
 import { RootStackParamList } from '../navigation';
@@ -47,7 +48,6 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const apiKey = useStore((s) => s.apiKey);
-  const model = useStore((s) => s.model);
   const track = useStore((s) => s.track);
   const { requirePro } = useProGate('ai-sommelier');
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -65,7 +65,7 @@ export default function ChatScreen() {
     setBusy(true);
     track('chat_message_sent', { count: history.length });
     try {
-      const reply = await askSommelier(apiKey, bottles, history, model);
+      const reply = await askSommelier(apiKey, bottles, history, SOMMELIER_MODEL);
       setMessages([...history, { role: 'assistant', text: reply }]);
     } catch (err) {
       diag.error('sommelier', err);

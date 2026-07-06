@@ -42,6 +42,14 @@ export const DEFAULT_MODEL = 'claude-opus-4-8';
  */
 export const FAST_MODEL = 'claude-haiku-4-5-20251001';
 
+/**
+ * The sommelier chat is hardwired to Sonnet 5 — not user-selectable. It's a
+ * text-only, notes-grounded conversation, so Sonnet is the sweet spot: quick
+ * and inexpensive on the user's key while still smart enough for nuanced
+ * pairings. (Flagship Opus is reserved for label vision, where accuracy matters.)
+ */
+export const SOMMELIER_MODEL = 'claude-sonnet-5';
+
 /** Human label for a model id (falls back to the raw id if unknown). */
 export function modelLabel(id: string): string {
   return CLAUDE_MODELS.find((m) => m.id === id)?.label ?? id;

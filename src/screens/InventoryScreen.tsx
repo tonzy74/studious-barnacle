@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, RarityBadge, ScreenGradient, StatTile, TypeBadge, TypeIcon } from '../components';
+import { BottleCrest, Button, Card, RarityBadge, ScreenGradient, StatTile, TypeBadge } from '../components';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
@@ -35,7 +35,11 @@ export default function InventoryScreen() {
       >
         <Card style={styles.card}>
           <View style={styles.cardRow}>
-            <TypeIcon type={item.type} size={44} />
+            {item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.thumb} resizeMode="cover" />
+            ) : (
+              <BottleCrest distillery={item.distillery} type={item.type} size={44} />
+            )}
             <View style={{ flex: 1, marginLeft: spacing.md }}>
               <View style={styles.cardHeader}>
                 <Text style={styles.name} numberOfLines={1}>
@@ -185,6 +189,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   card: { marginBottom: spacing.md, padding: spacing.md },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
+  thumb: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.bgElevated },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { color: colors.text, fontSize: 16, fontWeight: '700', flex: 1, marginRight: spacing.sm },
   sub: { color: colors.textDim, marginTop: 3, fontSize: 12.5 },
