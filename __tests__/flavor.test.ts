@@ -5,6 +5,7 @@ import {
   findWhiskeyByBarcode,
   findWhiskeyByName,
   findWhiskeyCandidates,
+  matchWhiskey,
   matchCollection,
   randomPour,
   scaleProfileForProof,
@@ -172,6 +173,18 @@ describe('findWhiskeyByName', () => {
     );
     // An age the label named must not resolve to a different-age sibling.
     expect(scan('Eagle Rare 10', 'Buffalo Trace')?.name).toBe('Eagle Rare 10 Year');
+  });
+
+  it('reports a match confidence the UI can surface', () => {
+    // A clean, well-anchored match reads as high confidence.
+    const strong = matchWhiskey({ name: 'E.H. Taylor Barrel Proof', distillery: 'Buffalo Trace' });
+    expect(strong?.confidence).toBe('high');
+    // Nothing in the catalog → no match at all (caller keeps the AI read).
+    expect(matchWhiskey({ name: 'Old Emmer', distillery: 'Bardstown Bourbon Company' })).toBeUndefined();
+    expect(matchWhiskey({ name: 'Heaven Hill 19 Year', distillery: 'Heaven Hill' })).toBeUndefined();
+    // Confidence is always one of the three tiers when present.
+    const m = matchWhiskey('weller');
+    expect(m && ['high', 'medium', 'low']).toContain(m!.confidence);
   });
 
   it('ignores batch codes and pick vocabulary', () => {

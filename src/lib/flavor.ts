@@ -379,6 +379,34 @@ export function findWhiskeyByName(
   return findWhiskeyCandidates(query, extraDb, 1)[0]?.record;
 }
 
+/** How sure we are that a library record is the scanned bottle. */
+export type MatchConfidence = 'high' | 'medium' | 'low';
+
+export interface WhiskeyMatch {
+  record: WhiskeyRecord;
+  score: number;
+  confidence: MatchConfidence;
+}
+
+/**
+ * Best library match for a scan, with a confidence tier the UI can surface so a
+ * guess never silently masquerades as fact. Because the matcher only qualifies
+ * records with genuine name agreement, the raw score is a reliable proxy: a
+ * clean multi-word/anchored match lands high, a thin single-word match low.
+ * Returns undefined when nothing qualifies — the caller keeps the AI's read and
+ * saves it as a new library entry.
+ */
+export function matchWhiskey(
+  query: NameQuery,
+  extraDb: WhiskeyRecord[] = []
+): WhiskeyMatch | undefined {
+  const top = findWhiskeyCandidates(query, extraDb, 1)[0];
+  if (!top) return undefined;
+  const confidence: MatchConfidence =
+    top.score >= 7 ? 'high' : top.score >= 4 ? 'medium' : 'low';
+  return { record: top.record, score: top.score, confidence };
+}
+
 export function findWhiskeyByBarcode(
   barcode: string,
   extraDb: WhiskeyRecord[] = []
