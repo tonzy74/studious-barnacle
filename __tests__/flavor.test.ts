@@ -5,6 +5,7 @@ import {
   findWhiskeyByBarcode,
   findWhiskeyByName,
   findWhiskeyCandidates,
+  matchWhiskey,
   matchCollection,
   randomPour,
   scaleProfileForProof,
@@ -147,6 +148,43 @@ describe('findWhiskeyByName', () => {
     expect(findWhiskeyByName('makers cask strength')?.name).toBe("Maker's Mark Cask Strength");
     expect(findWhiskeyByName('rare breed')?.name).toBe('Wild Turkey Rare Breed');
     expect(findWhiskeyByName('weller full proof')?.name).toBe('W.L. Weller Full Proof');
+  });
+
+  it('scan mode: distillery agreement alone never forces a (wrong) match', () => {
+    const scan = (name: string, distillery: string) =>
+      findWhiskeyByName({ name, distillery });
+    // Regression (reported): a bottle that isn't in the catalog must fall back
+    // to the AI read, not snap to an unrelated bottling from the same house.
+    // "Heaven Hill 19 Year" shares only its distillery with Parker's Heritage /
+    // Elijah Craig / Henry McKenna — none may be returned.
+    expect(scan('Heaven Hill 19 Year', 'Heaven Hill')).toBeUndefined();
+    // "Old Emmer" isn't in the catalog and shares nothing with "Old Elk".
+    expect(scan('Old Emmer', 'Bardstown Bourbon Company')).toBeUndefined();
+
+    // The correct expression still wins when it exists in the catalog.
+    expect(scan('E.H. Taylor Barrel Proof', 'Buffalo Trace')?.name).toBe(
+      'E.H. Taylor Barrel Proof'
+    );
+    // Flagship named after its distillery resolves to itself, not a variant.
+    expect(scan('Buffalo Trace', 'Buffalo Trace')?.name).toBe('Buffalo Trace');
+    // A distillery that's also the brand name (Old Forester) still anchors.
+    expect(scan('Old Forester 1910', 'Old Forester')?.name).toBe(
+      'Old Forester 1910 Old Fine Whisky'
+    );
+    // An age the label named must not resolve to a different-age sibling.
+    expect(scan('Eagle Rare 10', 'Buffalo Trace')?.name).toBe('Eagle Rare 10 Year');
+  });
+
+  it('reports a match confidence the UI can surface', () => {
+    // A clean, well-anchored match reads as high confidence.
+    const strong = matchWhiskey({ name: 'E.H. Taylor Barrel Proof', distillery: 'Buffalo Trace' });
+    expect(strong?.confidence).toBe('high');
+    // Nothing in the catalog → no match at all (caller keeps the AI read).
+    expect(matchWhiskey({ name: 'Old Emmer', distillery: 'Bardstown Bourbon Company' })).toBeUndefined();
+    expect(matchWhiskey({ name: 'Heaven Hill 19 Year', distillery: 'Heaven Hill' })).toBeUndefined();
+    // Confidence is always one of the three tiers when present.
+    const m = matchWhiskey('weller');
+    expect(m && ['high', 'medium', 'low']).toContain(m!.confidence);
   });
 
   it('ignores batch codes and pick vocabulary', () => {

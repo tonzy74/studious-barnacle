@@ -3,7 +3,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BarcodeScanningResult, CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button, ScreenGradient } from '../components';
 import { diag } from '../lib/diagnostics';
@@ -24,6 +24,11 @@ export default function ScanScreen() {
   const learnRecord = useStore((s) => s.learnRecord);
   const apiKey = useStore((s) => s.apiKey);
   const model = useStore((s) => s.model);
+  const { width, height } = useWindowDimensions();
+  // A generous reticle: most of the width and a tall capture band, so the user
+  // frames the whole label area, not a tiny box in the top third.
+  const frameW = Math.min(width - spacing.lg * 2, 420);
+  const frameH = Math.min(height * 0.5, frameW * 1.15);
   const track = useStore((s) => s.track);
 
   const onScan = async (result: BarcodeScanningResult) => {
@@ -127,24 +132,26 @@ export default function ScanScreen() {
           <Ionicons name="barcode-outline" size={16} color={colors.amberBright} />
           <Text style={styles.hint}>Point at the barcode on a bottle</Text>
         </View>
-        <View style={styles.frame}>
-          <View style={[styles.corner, styles.tl]} />
-          <View style={[styles.corner, styles.tr]} />
-          <View style={[styles.corner, styles.bl]} />
-          <View style={[styles.corner, styles.br]} />
-        </View>
-        {busy && (
-          <View style={styles.busyRow}>
-            <ActivityIndicator color={colors.amber} />
-            <Text style={styles.text}> Looking up bottle…</Text>
+        <View style={styles.frameWrap}>
+          <View style={[styles.frame, { width: frameW, height: frameH }]}>
+            <View style={[styles.corner, styles.tl]} />
+            <View style={[styles.corner, styles.tr]} />
+            <View style={[styles.corner, styles.bl]} />
+            <View style={[styles.corner, styles.br]} />
+            {busy && (
+              <View style={styles.busyRow}>
+                <ActivityIndicator color={colors.amber} />
+                <Text style={styles.text}> Looking up bottle…</Text>
+              </View>
+            )}
           </View>
-        )}
+        </View>
         <Button
           title="Add manually instead"
           icon="add"
           variant="secondary"
           onPress={() => navigation.navigate('AddBottle', {})}
-          style={{ marginTop: 'auto', marginBottom: spacing.xl }}
+          style={{ marginBottom: spacing.xl, alignSelf: 'stretch' }}
         />
       </View>
     </View>
@@ -187,10 +194,14 @@ const styles = StyleSheet.create({
   tr: { top: -2, right: -2, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 16 },
   bl: { bottom: -2, left: -2, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 16 },
   br: { bottom: -2, right: -2, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 16 },
-  frame: {
-    width: 260,
-    height: 160,
-    marginTop: spacing.xl,
+  frameWrap: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  frame: { alignItems: 'center', justifyContent: 'center' },
+  busyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(20,13,7,0.7)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
   },
-  busyRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
 });

@@ -10,7 +10,7 @@ import { Button, Card, RarityBadge, ScreenGradient, ScreenHeader, TypeBadge, Typ
 import { identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections } from '../lib/corrections';
 import { diag } from '../lib/diagnostics';
-import { findWhiskeyByName } from '../lib/flavor';
+import { matchWhiskey, MatchConfidence } from '../lib/flavor';
 import { saveBottlePhoto } from '../lib/images';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_LABELS } from '../lib/rarity';
@@ -26,6 +26,8 @@ interface Result {
   name: string;
   distillery: string;
   record?: WhiskeyRecord;
+  /** How sure the library match is; undefined when nothing matched. */
+  confidence?: MatchConfidence;
   owned: boolean;
   opened?: boolean;
   /** The label shot, saved to the entry when the user adds the bottle. */
@@ -77,12 +79,23 @@ export default function ScanLabelScreen() {
         setError('Could not read a bottle — try a straight-on shot of the label.');
       } else {
         const top = identified[0];
-        const record = findWhiskeyByName(`${top.name} ${top.distillery}`, learned);
+        const match = matchWhiskey({ name: top.name, distillery: top.distillery }, learned);
+        // Only adopt the library record's identity/value when we're confident;
+        // otherwise keep the AI read and let it be saved as a new entry.
+        const record = match && match.confidence !== 'low' ? match.record : undefined;
         const owned = bottles.some(
           (b) => b.name.toLowerCase().replace(/[^a-z0-9]+/g, '') === top.name.toLowerCase().replace(/[^a-z0-9]+/g, '')
         );
-        diag.info('label-scan', `${top.name} → ${record ? 'matched ' + record.name : 'no db match'}`);
-        setResult({ name: top.name, distillery: top.distillery, record, owned, opened: top.opened, photoUri: asset.uri });
+        diag.info('label-scan', `${top.name} → ${match ? match.confidence + ' match ' + match.record.name : 'no db match'}`);
+        setResult({
+          name: top.name,
+          distillery: top.distillery,
+          record,
+          confidence: match?.confidence,
+          owned,
+          opened: top.opened,
+          photoUri: asset.uri,
+        });
       }
     } catch (err) {
       diag.error('label-scan', err, `model ${model}`);
@@ -141,8 +154,40 @@ export default function ScanLabelScreen() {
                 <RarityBadge rarity={result.record?.rarity} size={30} />
               </View>
             </View>
-            <Text style={styles.name}>{result.record?.name ?? result.name}</Text>
+            <Text style={styles.name}>
+              {result.confidence === 'high' ? result.record!.name : result.name}
+            </Text>
             <Text style={styles.sub}>{result.record?.distillery ?? result.distillery}</Text>
+
+            {/* Say plainly how sure we are, and what happens on add. */}
+            <View
+              style={[
+                styles.matchTag,
+                {
+                  borderColor: result.record ? colors.success : colors.amber,
+                  backgroundColor: (result.record ? colors.success : colors.amber) + '18',
+                },
+              ]}
+            >
+              <Ionicons
+                name={
+                  result.confidence === 'high'
+                    ? 'shield-checkmark'
+                    : result.confidence === 'medium'
+                      ? 'help-circle'
+                      : 'add-circle'
+                }
+                size={15}
+                color={result.record ? colors.success : colors.amber}
+              />
+              <Text style={styles.matchText}>
+                {result.confidence === 'high'
+                  ? 'Matched in your library'
+                  : result.confidence === 'medium'
+                    ? `Possible match — closest is ${result.record!.name}`
+                    : 'Not in the library yet — we’ll save it for next time'}
+              </Text>
+            </View>
 
             {result.owned && (
               <View style={styles.ownedTag}>
@@ -230,6 +275,17 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   name: { ...typo.title, color: colors.text, marginTop: spacing.md },
   sub: { color: colors.amberBright, marginTop: 4, fontSize: 14 },
+  matchTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  matchText: { color: colors.text, fontSize: 12.5, fontWeight: '600', flex: 1 },
   ownedTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md },
   ownedText: { color: colors.success, fontSize: 13, fontWeight: '600' },
   openText: { color: colors.textDim, fontSize: 12 },

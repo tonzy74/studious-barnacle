@@ -18,7 +18,7 @@ import { Button, Chip, RarityBadge, ScreenGradient, TypeBadge } from '../compone
 import { IdentifiedBottle, identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections, correctionKey } from '../lib/corrections';
 import { diag } from '../lib/diagnostics';
-import { findWhiskeyByName, scaleProfileForProof } from '../lib/flavor';
+import { matchWhiskey, scaleProfileForProof, WhiskeyMatch } from '../lib/flavor';
 import { cropBottle } from '../lib/images';
 import { buildLearnedRecord } from '../lib/library';
 import { useProGate } from '../useProGate';
@@ -45,11 +45,14 @@ interface ReviewItem {
   original: IdentifiedBottle;
   /** Current identity, editable by the user. */
   identified: IdentifiedBottle;
-  match?: WhiskeyRecord;
+  /** Best library match with its confidence tier (undefined = not in library). */
+  match?: WhiskeyMatch;
   selected: boolean;
 }
 
 const CONFIDENCE_COLORS = { high: colors.success, medium: colors.amber, low: colors.danger };
+/** Only adopt a library record's identity/data when we're reasonably sure. */
+const isTrusted = (m?: WhiskeyMatch) => !!m && m.confidence !== 'low';
 
 export default function BulkAddScreen() {
   const navigation = useNavigation<Nav>();
@@ -111,7 +114,7 @@ export default function BulkAddScreen() {
           corrected.map((b) => ({
             original: b,
             identified: b,
-            match: findWhiskeyByName(`${b.name} ${b.distillery}`, learned),
+            match: matchWhiskey({ name: b.name, distillery: b.distillery }, learned),
             // Low-confidence reads start unchecked so a blurry guess
             // doesn't slip into the collection unnoticed.
             selected: b.confidence !== 'low',
@@ -143,7 +146,7 @@ export default function BulkAddScreen() {
         return {
           ...it,
           identified,
-          match: findWhiskeyByName(`${identified.name} ${identified.distillery}`, learned),
+          match: matchWhiskey({ name: identified.name, distillery: identified.distillery }, learned),
           // A user edit is a verified read.
           selected: true,
         };
@@ -173,41 +176,50 @@ export default function BulkAddScreen() {
           }
         );
       }
-      const proof = identified.proof ?? match?.proof ?? 80;
+      // Only adopt the library record when we're reasonably confident it's the
+      // right bottle; a low-confidence guess is treated as a new bottling so we
+      // never silently file it under the wrong name.
+      const rec = isTrusted(match) ? match!.record : undefined;
+      const proof = identified.proof ?? rec?.proof ?? 80;
       const id = newBottleId();
       // Trim this bottle out of the shelf photo and save it to the entry.
       const imageUrl = photo
         ? await cropBottle(id, photo.uri, photo.w, photo.h, identified.box)
         : undefined;
-      if (match) {
+      if (rec) {
         matchedCount++;
         addBottle({
           id,
-          name: match.name,
-          distillery: match.distillery,
-          type: match.type,
+          name: rec.name,
+          distillery: rec.distillery,
+          type: rec.type,
           proof,
-          refId: match.id,
-          flavor: scaleProfileForProof(match.flavor, match.proof, proof),
+          refId: rec.id,
+          flavor: scaleProfileForProof(rec.flavor, rec.proof, proof),
           flavorSource: 'db',
-          notes: match.notes,
-          rarity: match.rarity,
-          msrp: match.msrp,
-          secondary: match.secondary,
+          notes: rec.notes,
+          rarity: rec.rarity,
+          msrp: rec.msrp,
+          secondary: rec.secondary,
           opened: identified.opened ?? false,
           quantity: 1,
           imageUrl,
           addedAt: Date.now(),
         });
       } else {
-        // Unknown bottling: style-typical profile now, taught to the learned
-        // library; it can be AI-profiled or hand-tuned from its detail page.
-        const record = await buildLearnedRecord({
-          name: identified.name,
-          brand: identified.distillery || undefined,
-          type: identified.type,
-          proof,
-        });
+        // Unknown / low-confidence bottling: reference the AI's own knowledge
+        // (real tasting notes, rarity, pricing) — not just style defaults — and
+        // teach it to the learned library for instant matches next time.
+        const record = await buildLearnedRecord(
+          {
+            name: identified.name,
+            brand: identified.distillery || undefined,
+            type: identified.type,
+            proof,
+          },
+          apiKey,
+          model
+        );
         learnRecord(record);
         addBottle({
           id,
@@ -301,7 +313,21 @@ export default function BulkAddScreen() {
             confidence. Your fixes are remembered and auto-applied next time.
           </Text>
 
-          {items.map((item, index) => (
+          {items.map((item, index) => {
+            const trusted = isTrusted(item.match) ? item.match! : undefined;
+            const rec = trusted?.record;
+            // Show the AI's own read as the identity unless we have a high-
+            // confidence library match to adopt — so nothing "looks wrong".
+            const title =
+              item.match?.confidence === 'high' ? rec!.name : item.identified.name;
+            const status = !item.match
+              ? `New to your library · ${item.identified.distillery || 'unknown distillery'}`
+              : item.match.confidence === 'high'
+                ? `✓ In your library · ${rec!.distillery}`
+                : item.match.confidence === 'medium'
+                  ? `Likely ${item.match.record.name} · ✎ to confirm`
+                  : `New to your library · closest: ${item.match.record.name}`;
+            return (
             <View
               key={`${index}`}
               style={[styles.card, item.selected && styles.cardSelected]}
@@ -318,23 +344,21 @@ export default function BulkAddScreen() {
                   style={{ flex: 1, marginHorizontal: 8 }}
                   onPress={() => toggle(index)}
                 >
-                  <Text style={styles.name}>{item.match?.name ?? item.identified.name}</Text>
+                  <Text style={styles.name}>{title}</Text>
                   <Text style={styles.sub}>
-                    {item.match
-                      ? `✓ Matched: ${item.match.distillery}`
-                      : item.identified.distillery || 'Unknown distillery'}
+                    {status}
                     {item.identified.proof ? ` · ${item.identified.proof} proof` : ''}
                   </Text>
                 </TouchableOpacity>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
                   <View style={styles.badgeRow}>
-                    <TypeBadge type={(item.match ?? item.identified).type} />
-                    <RarityBadge rarity={item.match?.rarity} />
+                    <TypeBadge type={(rec ?? item.identified).type} />
+                    <RarityBadge rarity={rec?.rarity} />
                   </View>
                   <Text
                     style={[styles.confidence, { color: CONFIDENCE_COLORS[item.identified.confidence] }]}
                   >
-                    {item.identified.confidence} confidence
+                    {item.identified.confidence} read
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -393,7 +417,8 @@ export default function BulkAddScreen() {
                 </View>
               )}
             </View>
-          ))}
+          );
+          })}
 
           <Button
             title={
