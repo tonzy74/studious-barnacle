@@ -56,8 +56,15 @@ export default function ReleasesScreen() {
 
   useEffect(() => {
     // Only auto-fetch when there's nothing cached; otherwise show cache and
-    // let the user refresh. Cache older than 14 days refreshes in background.
-    const stale = !cache || Date.now() - cache.at > 14 * 86_400_000;
+    // let the user refresh. Cache older than 14 days refreshes in background —
+    // as does any cache whose windows still name a year that's already passed
+    // (e.g. an old "Fall 2024" result), so the calendar never looks stale.
+    const currentYear = new Date().getFullYear();
+    const hasPastYear = (cache?.items ?? []).some((r) => {
+      const m = r.window.match(/\b(?:19|20)\d{2}\b/);
+      return m ? parseInt(m[0], 10) < currentYear : false;
+    });
+    const stale = !cache || Date.now() - cache.at > 14 * 86_400_000 || hasPastYear;
     if (apiKey && !locked && stale) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

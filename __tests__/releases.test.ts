@@ -19,6 +19,23 @@ describe('validateReleases', () => {
     expect(out[0].rarity).toBe('S');
   });
 
+  it('rolls a past-year window forward to the current year', () => {
+    const out = validateReleases(
+      {
+        releases: [
+          { name: 'Old Forester Birthday Bourbon', distillery: 'Brown-Forman', category: 'annual', window: 'Fall 2024', note: 'n' },
+          { name: 'Pappy Van Winkle 15', distillery: 'Buffalo Trace', category: 'annual', window: 'Winter 2027', note: 'n' },
+          { name: 'BTAC', distillery: 'Buffalo Trace', category: 'annual', window: 'TBD', note: 'n' },
+        ],
+      },
+      2026
+    );
+    // Past year bumped to current; future year and yearless windows untouched.
+    expect(out[0].window).toBe('Fall 2026');
+    expect(out[1].window).toBe('Winter 2027');
+    expect(out[2].window).toBe('TBD');
+  });
+
   it('defaults unknown category and drops invalid rarity', () => {
     const out = validateReleases({
       releases: [
