@@ -66,6 +66,10 @@ export interface ProPlan {
   /** RevenueCat package identifier to purchase (wired on the EAS build). */
   packageId: string;
   best?: boolean;
+  /** Struck-through anchor price (e.g. annualized monthly cost) for contrast. */
+  anchor?: string;
+  /** Short savings/urgency badge, e.g. "SAVE 50%". Honest math only. */
+  badge?: string;
 }
 
 /**
@@ -75,12 +79,29 @@ export interface ProPlan {
  * display defaults.
  */
 export const PRO_PLANS: ProPlan[] = [
-  { id: 'annual', label: 'Annual', price: '$29.99/yr', sub: 'Best value — under $2.50/mo', packageId: '$rc_annual', best: true },
-  { id: 'monthly', label: 'Monthly', price: '$4.99/mo', sub: 'Cancel anytime', packageId: '$rc_monthly' },
-  { id: 'lifetime', label: 'Lifetime', price: '$99.99', sub: 'Pay once, own forever', packageId: '$rc_lifetime' },
+  {
+    id: 'annual',
+    label: 'Annual',
+    price: '$29.99/yr',
+    sub: 'Just $2.50/mo, billed yearly',
+    anchor: '$59.88', // 12 × the monthly price — the honest anchor for the 50% claim
+    badge: 'SAVE 50%',
+    packageId: '$rc_annual',
+    best: true,
+  },
+  { id: 'monthly', label: 'Monthly', price: '$4.99/mo', sub: 'Billed monthly, cancel anytime', packageId: '$rc_monthly' },
+  { id: 'lifetime', label: 'Lifetime', price: '$99.99', sub: 'Pay once, yours forever', packageId: '$rc_lifetime' },
 ];
 
 export const FREE_TRIAL_DAYS = 7;
+
+/**
+ * Value-anchor line for the paywall: reframes the price against what the app
+ * saves a collector (avoiding one overpriced secondary bottle). Honest framing,
+ * no fabricated stats — App Store review prohibits fake social proof.
+ */
+export const PRO_VALUE_LINE =
+  'One bottle you don’t overpay for covers years of Pro.';
 
 /**
  * Referral / affiliate revenue surfaces. Replace the URLs with YOUR tracking
