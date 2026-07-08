@@ -9,6 +9,7 @@ import { Button, Card, ProLock, RarityBadge, ScreenGradient, ScreenHeader } from
 import { ReleaseCategory, UpcomingRelease, upcomingReleases } from '../lib/claude';
 import { diag } from '../lib/diagnostics';
 import { FAST_MODEL } from '../lib/models';
+import { buildCalendar } from '../lib/releaseCalendar';
 import { RootStackParamList } from '../navigation';
 import { useProGate } from '../useProGate';
 import { useStore } from '../store/useStore';
@@ -112,9 +113,9 @@ export default function ReleasesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
-          eyebrow="ON THE HORIZON"
+          eyebrow="RELEASE CALENDAR"
           title="Releases to Watch"
-          subtitle="Notable upcoming and annual American whiskey releases collectors chase."
+          subtitle="Upcoming and annual American whiskey drops, laid out on a timeline by their expected window."
           onBack={() => navigation.goBack()}
         />
 
@@ -127,31 +128,55 @@ export default function ReleasesScreen() {
 
         {!!error && <Text style={styles.error}>{error}</Text>}
 
-        {releases?.map((r) => {
-          const meta = CATEGORY_META[r.category];
-          return (
-            <Card key={`${r.name}-${r.window}`} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={{ flex: 1, marginRight: spacing.sm }}>
-                  <Text style={styles.name}>{r.name}</Text>
-                  <Text style={styles.distillery}>{r.distillery}</Text>
+        {releases &&
+          buildCalendar(releases).map((group) => (
+            <View key={group.key} style={styles.group}>
+              {/* Calendar section header — a month/season on the timeline. */}
+              <View style={styles.monthHeader}>
+                <View style={styles.monthBadge}>
+                  <Ionicons name="calendar-outline" size={13} color={colors.amberBright} />
+                  <Text style={styles.monthText}>{group.label}</Text>
                 </View>
-                <RarityBadge rarity={r.rarity} size={26} />
+                <View style={styles.monthRule} />
+                <Text style={styles.monthCount}>
+                  {group.releases.length} drop{group.releases.length === 1 ? '' : 's'}
+                </Text>
               </View>
-              <View style={styles.metaRow}>
-                <View style={styles.chip}>
-                  <Ionicons name={meta.icon} size={12} color={colors.amberBright} />
-                  <Text style={styles.chipText}>{meta.label}</Text>
-                </View>
-                <View style={styles.chip}>
-                  <Ionicons name="time-outline" size={12} color={colors.textDim} />
-                  <Text style={styles.chipText}>{r.window}</Text>
-                </View>
-              </View>
-              <Text style={styles.note}>{r.note}</Text>
-            </Card>
-          );
-        })}
+
+              {group.releases.map((r) => {
+                const meta = CATEGORY_META[r.category];
+                return (
+                  <View key={`${r.name}-${r.window}`} style={styles.timelineRow}>
+                    {/* The timeline rail + node running down the left edge. */}
+                    <View style={styles.rail}>
+                      <View style={styles.node} />
+                      <View style={styles.line} />
+                    </View>
+                    <Card style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <View style={{ flex: 1, marginRight: spacing.sm }}>
+                          <Text style={styles.name}>{r.name}</Text>
+                          <Text style={styles.distillery}>{r.distillery}</Text>
+                        </View>
+                        <RarityBadge rarity={r.rarity} size={26} />
+                      </View>
+                      <View style={styles.metaRow}>
+                        <View style={styles.chip}>
+                          <Ionicons name={meta.icon} size={12} color={colors.amberBright} />
+                          <Text style={styles.chipText}>{meta.label}</Text>
+                        </View>
+                        <View style={styles.chip}>
+                          <Ionicons name="time-outline" size={12} color={colors.textDim} />
+                          <Text style={styles.chipText}>{r.window}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.note}>{r.note}</Text>
+                    </Card>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
 
         {releases && (
           <>
@@ -191,7 +216,35 @@ const styles = StyleSheet.create({
   emptyTitle: { color: colors.text, fontSize: 22, fontWeight: '800' },
   emptyText: { color: colors.textDim, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 },
   error: { color: colors.danger, marginTop: spacing.md },
-  card: { marginBottom: spacing.md, padding: spacing.md },
+  group: { marginTop: spacing.lg },
+  monthHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  monthBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderBright,
+  },
+  monthText: { color: colors.text, fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  monthRule: { flex: 1, height: 1, backgroundColor: colors.border },
+  monthCount: { color: colors.textFaint, fontSize: 11, fontWeight: '600' },
+  timelineRow: { flexDirection: 'row' },
+  rail: { width: 22, alignItems: 'center' },
+  node: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    marginTop: spacing.md,
+    backgroundColor: colors.amber,
+    borderWidth: 2,
+    borderColor: colors.bg,
+  },
+  line: { flex: 1, width: 2, backgroundColor: colors.border, marginTop: 2 },
+  card: { flex: 1, marginBottom: spacing.md, padding: spacing.md },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
   name: { color: colors.text, fontSize: 16, fontWeight: '700' },
   distillery: { color: colors.amberBright, fontSize: 13, marginTop: 2 },
