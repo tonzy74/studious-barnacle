@@ -3,12 +3,13 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Share, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Emblem, TypeIcon } from '../components';
 import { nextMilestone, pourOfTheDay, streakAlive, tipOfTheDay } from '../lib/engagement';
 import { fairPrice, formatUsd } from '../lib/pricing';
+import { buildVaultShareText } from '../lib/share';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors, gradients, radius, spacing, type as typo } from '../theme';
@@ -49,6 +50,13 @@ export default function HomeScreen() {
   const alive = streakAlive(streak);
   const tip = tipOfTheDay();
 
+  const shareVault = () => {
+    // Respect the hide-values toggle — never leak a dollar figure the user hid.
+    Share.share({ message: buildVaultShareText(bottles, { includeValue: !hideValues }) }).catch(
+      () => {}
+    );
+  };
+
   const ACTIONS: { label: string; icon: keyof typeof Ionicons.glyphMap; go: () => void }[] = [
     { label: 'Scan', icon: 'barcode-outline', go: () => jump('Scan') },
     { label: 'Add', icon: 'add-circle-outline', go: () => navigation.navigate('AddBottle', {}) },
@@ -70,9 +78,16 @@ export default function HomeScreen() {
               <Text style={styles.hello}>{greeting()}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')} activeOpacity={0.8}>
-            <Ionicons name="settings-outline" size={20} color={colors.amberBright} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {bottles.length > 0 && (
+              <TouchableOpacity style={styles.iconBtn} onPress={shareVault} activeOpacity={0.8}>
+                <Ionicons name="share-outline" size={20} color={colors.amberBright} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')} activeOpacity={0.8}>
+              <Ionicons name="settings-outline" size={20} color={colors.amberBright} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Value hero */}
