@@ -66,6 +66,10 @@ interface VaultState {
   consent: ConsentSettings;
   /** Daily-visit streak for the habit loop (loss-aversion retention driver). */
   streak: StreakState;
+  /** When the user finished (or skipped) first-run onboarding; undefined = new. */
+  onboardedAt?: number;
+  /** True once persisted state has rehydrated — gates the onboarding flash. */
+  hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
   events: AnalyticsEvent[];
   anonId: string;
@@ -93,6 +97,8 @@ interface VaultState {
   setReleasesCache: (items: UpcomingRelease[]) => void;
   /** Record a daily visit; extends/resets the streak. Call once on app open. */
   registerVisit: () => void;
+  /** Mark first-run onboarding as done so it won't show again. */
+  completeOnboarding: () => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -118,6 +124,8 @@ export const useStore = create<VaultState>()(
       profile: null,
       consent: { analytics: false, sellShare: false },
       streak: { streak: 0, longestStreak: 0, lastVisitDay: -1 },
+      onboardedAt: undefined,
+      hasHydrated: false,
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -161,6 +169,7 @@ export const useStore = create<VaultState>()(
       addComps: (comps) => set((s) => ({ comps: [...comps, ...s.comps].slice(0, 2000) })),
       setReleasesCache: (items) => set({ releasesCache: { at: Date.now(), items } }),
       registerVisit: () => set((s) => ({ streak: foldVisit(s.streak) })),
+      completeOnboarding: () => set({ onboardedAt: Date.now() }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -237,11 +246,15 @@ export const useStore = create<VaultState>()(
           profile: s.profile,
           consent: s.consent,
           streak: s.streak,
+          onboardedAt: s.onboardedAt,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,
       onRehydrateStorage: () => (state) => {
         void restoreApiKey(state?.apiKey);
+        // Flip the hydration gate so the onboarding overlay doesn't flash for
+        // returning users before their persisted state has loaded.
+        useStore.setState({ hasHydrated: true });
       },
     }
   )

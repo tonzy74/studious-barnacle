@@ -19,6 +19,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import JournalScreen from './src/screens/JournalScreen';
 import LogPourScreen from './src/screens/LogPourScreen';
 import MatchScreen from './src/screens/MatchScreen';
+import Onboarding from './src/screens/Onboarding';
 import PaywallScreen from './src/screens/PaywallScreen';
 import PortfolioScreen from './src/screens/PortfolioScreen';
 import RandomPourScreen from './src/screens/RandomPourScreen';
@@ -147,6 +148,8 @@ export default function App() {
         />
         </Stack.Navigator>
       </NavigationContainer>
+      {/* First-run value-prop overlay; renders itself only for brand-new users. */}
+      <Onboarding />
     </SafeAreaProvider>
   );
 }
