@@ -36,3 +36,19 @@ services:
     ports:
       - "8789:8789"
     restart: unless-stopped
+
+  ai:
+    build: ./ai-proxy
+    command: node index.js
+    environment:
+      - PORT=8790
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - APP_TOKEN=${AI_APP_TOKEN:-change-me}
+      - FREE_MONTHLY_QUOTA=${FREE_MONTHLY_QUOTA:-15}
+      - MAX_FREE_PER_DAY=${MAX_FREE_PER_DAY:-1000}
+      - USAGE_FILE=/data/ai-usage.json
+    volumes:
+      - ./data:/data
+    ports:
+      - "8790:8790"
+    restart: unless-stopped

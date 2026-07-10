@@ -27,6 +27,7 @@ import {
 } from '../components';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 import { cocktailsForBottle, CocktailSuggestion } from '../lib/claude';
+import { aiEnabled } from '../lib/aiClient';
 import { diag } from '../lib/diagnostics';
 import { fetchRetailerOffers, PricingResult } from '../lib/offers';
 import { useProGate } from '../useProGate';
@@ -115,7 +116,7 @@ export default function BottleDetailScreen() {
 
   const loadCocktails = async () => {
     if (cocktailGate.requirePro()) return;
-    if (!apiKey || cocktailBusy) return;
+    if (!aiEnabled(apiKey) || cocktailBusy) return;
     setCocktailBusy(true);
     try {
       setCocktails(
@@ -385,7 +386,7 @@ export default function BottleDetailScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cocktails for this bottle</Text>
         {cocktails === undefined ? (
-          apiKey ? (
+          aiEnabled(apiKey) ? (
             <Button
               title={
                 cocktailBusy

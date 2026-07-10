@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, ProLock, RarityBadge, ScreenGradient, ScreenHeader } from '../components';
 import { ReleaseCategory, UpcomingRelease, upcomingReleases } from '../lib/claude';
 import { diag } from '../lib/diagnostics';
+import { aiEnabled, isQuotaError } from '../lib/aiClient';
 import { FAST_MODEL } from '../lib/models';
 import { buildCalendar } from '../lib/releaseCalendar';
 import { RootStackParamList } from '../navigation';
@@ -38,7 +39,7 @@ export default function ReleasesScreen() {
   const [error, setError] = useState('');
 
   const load = async () => {
-    if (!apiKey || busy) return;
+    if (!aiEnabled(apiKey) || busy) return;
     setBusy(true);
     setError('');
     try {
@@ -49,6 +50,10 @@ export default function ReleasesScreen() {
       setReleasesCache(r);
     } catch (err) {
       diag.error('releases', err, 'fast model');
+      if (isQuotaError(err)) {
+        navigation.navigate('Paywall');
+        return;
+      }
       setError(`Couldn't load releases: ${(err as Error).message}`);
     } finally {
       setBusy(false);
@@ -66,7 +71,7 @@ export default function ReleasesScreen() {
       return m ? parseInt(m[0], 10) < currentYear : false;
     });
     const stale = !cache || Date.now() - cache.at > 14 * 86_400_000 || hasPastYear;
-    if (apiKey && !locked && stale) load();
+    if (aiEnabled(apiKey) && !locked && stale) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -84,7 +89,7 @@ export default function ReleasesScreen() {
     );
   }
 
-  if (!apiKey) {
+  if (!aiEnabled(apiKey)) {
     return (
       <ScreenGradient>
         <View style={styles.center}>

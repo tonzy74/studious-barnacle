@@ -24,6 +24,7 @@ import {
   findWhiskeyCandidates,
   scaleProfileForProof,
 } from '../lib/flavor';
+import { aiEnabled } from '../lib/aiClient';
 import { buildLearnedRecord } from '../lib/library';
 import { crossedCollectionThreshold } from '../lib/paywallEngine';
 import { useContextualPaywall } from '../useContextualPaywall';
@@ -288,7 +289,7 @@ export default function AddBottleScreen() {
                   ? '✨ AI profile ready — Claude recognized this bottling.'
                   : '✨ AI estimate ready — Claude estimated from style (it didn\'t know this exact bottle).'}
               </Text>
-            ) : apiKey ? (
+            ) : aiEnabled(apiKey) ? (
               <>
                 <Text style={styles.estimateText}>
                   Ask the AI sommelier to build its flavor profile from professional reviews, or

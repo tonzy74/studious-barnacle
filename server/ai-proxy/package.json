@@ -1,0 +1,9 @@
+{
+  "name": "whiskey-vault-ai-proxy",
+  "version": "1.0.0",
+  "description": "Metered Anthropic proxy: holds the API key server-side, free quota + Pro unlimited.",
+  "main": "index.js",
+  "scripts": { "start": "node index.js", "test": "node test.js" },
+  "license": "UNLICENSED",
+  "private": true
+}

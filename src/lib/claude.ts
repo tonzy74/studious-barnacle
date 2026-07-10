@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+import { makeClient } from './aiClient';
 import { Bottle, ChatMsg, FlavorProfile, Rarity, WhiskeyType } from '../types';
 import { FLAVOR_AXES, FLAVOR_LABELS } from '../data/whiskeyDatabase';
 import { DEFAULT_MODEL, SOMMELIER_MODEL } from './models';
@@ -95,12 +96,7 @@ export async function askSommelier(
   history: ChatMsg[],
   model: string = SOMMELIER_MODEL
 ): Promise<string> {
-  const client = new Anthropic({
-    apiKey,
-    // The key is the user's own, stored on their own device — this is the
-    // supported pattern for direct-from-app calls in React Native.
-    dangerouslyAllowBrowser: true,
-  });
+  const client = makeClient(apiKey);
 
   const response = await client.messages.create({
     model,
@@ -180,7 +176,7 @@ export async function estimateFlavorProfile(
   bottle: { name: string; distillery?: string; type: WhiskeyType; proof?: number },
   model: string = DEFAULT_MODEL
 ): Promise<EstimatedProfile> {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const client = makeClient(apiKey);
 
   const response = await client.messages.create({
     model,
@@ -371,7 +367,7 @@ export async function identifyBottlesFromPhoto(
   mediaType: 'image/jpeg' | 'image/png' = 'image/jpeg',
   model: string = DEFAULT_MODEL
 ): Promise<IdentifiedBottle[]> {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const client = makeClient(apiKey);
 
   const response = await client.messages.create({
     model,
@@ -504,7 +500,7 @@ export async function upcomingReleases(
   apiKey: string,
   model: string = DEFAULT_MODEL
 ): Promise<UpcomingRelease[]> {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const client = makeClient(apiKey);
   const today = new Date();
   const currentYear = today.getFullYear();
   const response = await client.messages.create({
@@ -595,7 +591,7 @@ export async function cocktailsForBottle(
   bottle: { name: string; type: WhiskeyType; proof?: number },
   model: string = DEFAULT_MODEL
 ): Promise<CocktailSuggestion[]> {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const client = makeClient(apiKey);
   const response = await client.messages.create({
     model,
     max_tokens: 1024,

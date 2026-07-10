@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
+import { aiEnabled, isQuotaError } from '../lib/aiClient';
 import { askSommelier } from '../lib/claude';
 import { SOMMELIER_MODEL } from '../lib/models';
 import { diag } from '../lib/diagnostics';
@@ -69,6 +70,14 @@ export default function ChatScreen() {
       setMessages([...history, { role: 'assistant', text: reply }]);
     } catch (err) {
       diag.error('sommelier', err);
+      if (isQuotaError(err)) {
+        setMessages([
+          ...history,
+          { role: 'assistant', text: "You've used this month's free AI. Go Pro for unlimited pairings." },
+        ]);
+        navigation.navigate('Paywall');
+        return;
+      }
       const status = (err as { status?: number }).status;
       const msg =
         status === 401
@@ -83,7 +92,7 @@ export default function ChatScreen() {
     }
   };
 
-  if (!apiKey) {
+  if (!aiEnabled(apiKey)) {
     return (
       <ScreenGradient>
         <View style={[styles.center, { paddingTop: insets.top }]}>

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { Button, Chip, RarityBadge, ScreenGradient, TypeBadge } from '../components';
+import { aiEnabled, isQuotaError } from '../lib/aiClient';
 import { IdentifiedBottle, identifyBottlesFromPhoto } from '../lib/claude';
 import { applyCorrections, correctionKey } from '../lib/corrections';
 import { diag } from '../lib/diagnostics';
@@ -123,6 +124,11 @@ export default function BulkAddScreen() {
       }
     } catch (err) {
       diag.error('bulk-add', err, `model ${model}`);
+      if (isQuotaError(err)) {
+        setBusy('idle');
+        navigation.navigate('Paywall');
+        return;
+      }
       const status = (err as { status?: number }).status;
       setError(
         status === 401
@@ -248,7 +254,7 @@ export default function BulkAddScreen() {
     ]);
   };
 
-  if (!apiKey) {
+  if (!aiEnabled(apiKey)) {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={styles.title}>Shelf scanning needs AI</Text>

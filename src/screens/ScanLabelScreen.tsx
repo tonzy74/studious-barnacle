@@ -12,6 +12,7 @@ import { applyCorrections } from '../lib/corrections';
 import { diag } from '../lib/diagnostics';
 import { matchWhiskey, MatchConfidence } from '../lib/flavor';
 import { saveBottlePhoto } from '../lib/images';
+import { aiEnabled, isQuotaError } from '../lib/aiClient';
 import { isValuableScan } from '../lib/paywallEngine';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_LABELS } from '../lib/rarity';
@@ -113,6 +114,11 @@ export default function ScanLabelScreen() {
       }
     } catch (err) {
       diag.error('label-scan', err, `model ${model}`);
+      if (isQuotaError(err)) {
+        setBusy(false);
+        navigation.navigate('Paywall');
+        return;
+      }
       setError(`Scan failed: ${(err as Error).message}`);
     } finally {
       setBusy(false);
@@ -136,14 +142,14 @@ export default function ScanLabelScreen() {
           onBack={() => navigation.goBack()}
         />
 
-        {!apiKey && (
+        {!aiEnabled(apiKey) && (
           <Card style={{ marginTop: spacing.md }}>
             <Text style={styles.note}>Label scanning uses AI — add your API key in Settings first.</Text>
             <Button title="Open Settings" icon="settings-outline" variant="secondary" onPress={() => navigation.navigate('Settings')} style={{ marginTop: spacing.md }} />
           </Card>
         )}
 
-        {apiKey && (
+        {aiEnabled(apiKey) && (
           <View style={styles.actions}>
             <Button title="Take photo" icon="camera" onPress={() => scan(true)} disabled={busy} style={{ flex: 1 }} />
             <Button title="Library" icon="images" variant="secondary" onPress={() => scan(false)} disabled={busy} style={{ flex: 1 }} />

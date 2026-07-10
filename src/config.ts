@@ -37,3 +37,13 @@ export const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '';
 
 /** Base URL of the push-service (token registry). Empty = don't register tokens. */
 export const PUSH_URL = process.env.EXPO_PUBLIC_PUSH_URL ?? '';
+
+/**
+ * Base URL of the metered ai-proxy (server/ai-proxy). When set, the app routes
+ * all AI through it — users never paste an Anthropic key, and free usage is
+ * metered with Pro unlimited. Empty = fall back to a user-entered key (BYOK).
+ */
+export const AI_PROXY_URL = process.env.EXPO_PUBLIC_AI_PROXY_URL ?? '';
+
+/** Shared app token the proxy checks (sent as the SDK's x-api-key). */
+export const AI_PROXY_APP_TOKEN = process.env.EXPO_PUBLIC_AI_PROXY_APP_TOKEN ?? '';
