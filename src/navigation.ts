@@ -21,6 +21,7 @@ export type RootStackParamList = {
   ScanLabel: { barcode?: string } | undefined;
   Paywall: undefined;
   Diagnostics: undefined;
+  Insights: undefined;
   Trade: undefined;
   Pour: undefined;
   Match: undefined;
