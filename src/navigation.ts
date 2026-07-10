@@ -22,6 +22,7 @@ export type RootStackParamList = {
   Paywall: undefined;
   Diagnostics: undefined;
   Insights: undefined;
+  Referral: undefined;
   Trade: undefined;
   Pour: undefined;
   Match: undefined;

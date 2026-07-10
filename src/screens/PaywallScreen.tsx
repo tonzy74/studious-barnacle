@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
 import { formatCountdown, introOfferState } from '../lib/introOffer';
+import { winBackState } from '../lib/winBackOffer';
 import {
   FEATURE_COPY,
   FOUNDER_BADGE,
@@ -25,6 +26,8 @@ export default function PaywallScreen() {
   const setPro = useStore((s) => s.setPro);
   const track = useStore((s) => s.track);
   const firstOpenAt = useStore((s) => s.firstOpenAt);
+  const isPro = useStore((s) => s.isPro);
+  const proLapsedAt = useStore((s) => s.proLapsedAt);
   const [plan, setPlan] = useState(PRO_PLANS.find((p) => p.best)?.id ?? PRO_PLANS[0].id);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -36,6 +39,8 @@ export default function PaywallScreen() {
 
   // Live countdown for the genuine, enforced founder offer.
   const intro = introOfferState(firstOpenAt, now);
+  // Win-back for a lapsed subscriber (takes precedence over the founder offer).
+  const winBack = winBackState({ isPro, proLapsedAt, now });
   useEffect(() => {
     if (!intro.active) return;
     const t = setInterval(() => setNow(Date.now()), 30_000);
@@ -97,14 +102,23 @@ export default function PaywallScreen() {
           trial.
         </Text>
 
-        {/* Genuine, enforced launch discount — real deadline, expires for good */}
-        {intro.active && (
+        {/* Win-back takes precedence: a real, bounded offer for a lapsed member */}
+        {winBack.eligible ? (
           <View style={styles.founder}>
-            <Ionicons name="time" size={16} color={colors.ink} />
+            <Ionicons name="hand-left" size={16} color={colors.ink} />
             <Text style={styles.founderText}>
-              {FOUNDER_BADGE} · 40% off annual · ends in {formatCountdown(intro.msLeft)}
+              Welcome back · {winBack.discountLabel} · {winBack.daysLeft}d left
             </Text>
           </View>
+        ) : (
+          intro.active && (
+            <View style={styles.founder}>
+              <Ionicons name="time" size={16} color={colors.ink} />
+              <Text style={styles.founderText}>
+                {FOUNDER_BADGE} · 40% off annual · ends in {formatCountdown(intro.msLeft)}
+              </Text>
+            </View>
+          )
         )}
 
         <View style={styles.benefits}>

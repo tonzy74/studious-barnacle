@@ -29,6 +29,7 @@ import PaywallScreen from './src/screens/PaywallScreen';
 import PortfolioScreen from './src/screens/PortfolioScreen';
 import RandomPourScreen from './src/screens/RandomPourScreen';
 import RecommendScreen from './src/screens/RecommendScreen';
+import ReferralScreen from './src/screens/ReferralScreen';
 import ReleasesScreen from './src/screens/ReleasesScreen';
 import ScanLabelScreen from './src/screens/ScanLabelScreen';
 import WishlistScreen from './src/screens/WishlistScreen';
@@ -149,6 +150,7 @@ export default function App() {
         <Stack.Screen name="ScanLabel" component={ScanLabelScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Insights" component={InsightsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Referral" component={ReferralScreen} options={{ headerShown: false }} />
         <Stack.Screen
           name="Paywall"
           component={PaywallScreen}

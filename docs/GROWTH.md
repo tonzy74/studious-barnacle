@@ -99,7 +99,20 @@ diversity, rarity, and value — all the user's own data.
   feature. AI features are *not* gated (they run on the user's own key); Pro
   gates only on-device power features that cost us nothing per use.
 
-## 6. Where the money comes from
+## 6. Viral & lifecycle loops (`referral.ts`, `winBackOffer.ts`)
+
+- **Double-sided referral** (Dropbox's engine): both the referrer and the new
+  user get a free month of Pro. Two-sided rewards convert far better than
+  one-sided because the sharer isn't asking a favor — they're giving a gift
+  (reciprocity, Cialdini). Self-referral and double-apply are blocked; rewards
+  are granted as real promotional Pro access.
+- **Win-back** for lapsed members: a genuine, **time-bounded** discount (50% off
+  the first year back, 60-day window) shown only to users who actually had Pro
+  and churned. Reactivating a known user is cheaper than acquiring a new one,
+  and a real deadline supplies honest urgency — it clears the instant they
+  re-subscribe and expires for good after the window (no fake reset).
+
+## 7. Where the money comes from
 
 1. **Pro subscriptions** — annual-primary, monthly for the impatient, lifetime
    for whales.
