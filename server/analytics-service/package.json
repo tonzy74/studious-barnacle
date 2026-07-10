@@ -1,0 +1,12 @@
+{
+  "name": "whiskey-vault-analytics-service",
+  "version": "1.0.0",
+  "description": "Zero-dependency analytics ingestion + funnel service for Whiskey Vault.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

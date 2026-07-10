@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,8 +21,14 @@ export default function PaywallScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const setPro = useStore((s) => s.setPro);
+  const track = useStore((s) => s.track);
   const [plan, setPlan] = useState(PRO_PLANS.find((p) => p.best)?.id ?? PRO_PLANS[0].id);
   const [busy, setBusy] = useState(false);
+
+  // Funnel: count every paywall view (manual or contextual).
+  useEffect(() => {
+    track('paywall_shown');
+  }, [track]);
 
   const buy = async () => {
     const chosen = PRO_PLANS.find((p) => p.id === plan);
@@ -32,6 +38,7 @@ export default function PaywallScreen() {
       const res = await purchasePro(chosen.packageId);
       if (res.pro) {
         setPro(true);
+        track('pro_purchased', { plan: chosen.id });
         Alert.alert('Welcome to Pro 🥃', res.message ?? 'All features unlocked.', [
           { text: 'Great', onPress: () => navigation.goBack() },
         ]);

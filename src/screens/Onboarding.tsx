@@ -50,7 +50,12 @@ export default function Onboarding() {
   const hasHydrated = useStore((s) => s.hasHydrated);
   const onboardedAt = useStore((s) => s.onboardedAt);
   const bottleCount = useStore((s) => s.bottles.length);
-  const complete = useStore((s) => s.completeOnboarding);
+  const completeOnboarding = useStore((s) => s.completeOnboarding);
+  const track = useStore((s) => s.track);
+  const complete = () => {
+    track('onboarding_completed');
+    completeOnboarding();
+  };
   const [index, setIndex] = useState(0);
   const scroller = useRef<ScrollView>(null);
 

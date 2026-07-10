@@ -46,6 +46,7 @@ export default function SettingsScreen() {
       const ok = await enableReminders(useStore.getState().streak.streak, notifications.hour);
       if (ok) {
         setNotifications({ enabled: true });
+        track('reminders_enabled');
       } else {
         Alert.alert(
           'Notifications are off',

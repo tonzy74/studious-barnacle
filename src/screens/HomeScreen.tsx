@@ -35,6 +35,7 @@ export default function HomeScreen() {
   const streak = useStore((s) => s.streak);
   const registerVisit = useStore((s) => s.registerVisit);
   const notifications = useStore((s) => s.notifications);
+  const track = useStore((s) => s.track);
 
   // Habit loop: log the daily visit once when Home mounts, and refresh the
   // streak-save reminder so tonight's copy reflects the live streak count.
@@ -57,6 +58,7 @@ export default function HomeScreen() {
   const tip = tipOfTheDay();
 
   const shareVault = () => {
+    track('vault_shared');
     // Respect the hide-values toggle — never leak a dollar figure the user hid.
     Share.share({ message: buildVaultShareText(bottles, { includeValue: !hideValues }) }).catch(
       () => {}
