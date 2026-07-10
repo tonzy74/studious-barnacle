@@ -76,6 +76,8 @@ interface VaultState {
   collectorLevelSeen: number;
   /** Whether we've asked for an App Store review (ask once, at a happy moment). */
   reviewRequested: boolean;
+  /** First-open time — anchors the genuine, enforced founder-offer window. */
+  firstOpenAt?: number;
   /** True once persisted state has rehydrated — gates the onboarding flash. */
   hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -115,6 +117,8 @@ interface VaultState {
   setCollectorLevelSeen: (level: number) => void;
   /** Mark the App Store review as asked so we don't prompt again. */
   markReviewRequested: () => void;
+  /** Stamp first-open once, to start the founder-offer countdown. */
+  markFirstOpen: () => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -148,6 +152,7 @@ export const useStore = create<VaultState>()(
       paywallPrompts: { lastShownAt: 0, count: 0 },
       collectorLevelSeen: 1,
       reviewRequested: false,
+      firstOpenAt: undefined,
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -200,6 +205,7 @@ export const useStore = create<VaultState>()(
         })),
       setCollectorLevelSeen: (level) => set({ collectorLevelSeen: level }),
       markReviewRequested: () => set({ reviewRequested: true }),
+      markFirstOpen: () => set((s) => (s.firstOpenAt ? s : { firstOpenAt: Date.now() })),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -286,6 +292,7 @@ export const useStore = create<VaultState>()(
           paywallPrompts: s.paywallPrompts,
           collectorLevelSeen: s.collectorLevelSeen,
           reviewRequested: s.reviewRequested,
+          firstOpenAt: s.firstOpenAt,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,

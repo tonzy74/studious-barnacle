@@ -8,6 +8,7 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 
 import { maybeFlushAnalytics } from './src/lib/analyticsFlush';
 import { configureNotifications } from './src/lib/notifications';
+import { useStore } from './src/store/useStore';
 
 import { RootStackParamList, TabParamList } from './src/navigation';
 import AddBottleScreen from './src/screens/AddBottleScreen';
@@ -106,6 +107,8 @@ export default function App() {
     configureNotifications();
     // Ship any queued analytics if a backend + consent are configured (no-op otherwise).
     maybeFlushAnalytics();
+    // Start the founder-offer clock on the very first open.
+    useStore.getState().markFirstOpen();
   }, []);
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>

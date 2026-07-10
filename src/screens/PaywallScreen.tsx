@@ -6,8 +6,10 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
+import { formatCountdown, introOfferState } from '../lib/introOffer';
 import {
   FEATURE_COPY,
+  FOUNDER_BADGE,
   FREE_TRIAL_DAYS,
   PRO_FEATURES,
   PRO_PLANS,
@@ -22,13 +24,23 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const setPro = useStore((s) => s.setPro);
   const track = useStore((s) => s.track);
+  const firstOpenAt = useStore((s) => s.firstOpenAt);
   const [plan, setPlan] = useState(PRO_PLANS.find((p) => p.best)?.id ?? PRO_PLANS[0].id);
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
   // Funnel: count every paywall view (manual or contextual).
   useEffect(() => {
     track('paywall_shown');
   }, [track]);
+
+  // Live countdown for the genuine, enforced founder offer.
+  const intro = introOfferState(firstOpenAt, now);
+  useEffect(() => {
+    if (!intro.active) return;
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [intro.active]);
 
   const buy = async () => {
     const chosen = PRO_PLANS.find((p) => p.id === plan);
@@ -85,6 +97,16 @@ export default function PaywallScreen() {
           trial.
         </Text>
 
+        {/* Genuine, enforced launch discount — real deadline, expires for good */}
+        {intro.active && (
+          <View style={styles.founder}>
+            <Ionicons name="time" size={16} color={colors.ink} />
+            <Text style={styles.founderText}>
+              {FOUNDER_BADGE} · 40% off annual · ends in {formatCountdown(intro.msLeft)}
+            </Text>
+          </View>
+        )}
+
         <View style={styles.benefits}>
           {PRO_FEATURES.map((f) => (
             <View key={f} style={styles.benefitRow}>
@@ -100,30 +122,43 @@ export default function PaywallScreen() {
           <Text style={styles.valueText}>{PRO_VALUE_LINE}</Text>
         </View>
 
-        {PRO_PLANS.map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            onPress={() => setPlan(p.id)}
-            activeOpacity={0.85}
-            style={[styles.plan, plan === p.id && styles.planActive]}
-          >
-            <View style={styles.radio}>
-              {plan === p.id && <View style={styles.radioDot} />}
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.planLabelRow}>
-                <Text style={styles.planLabel}>{p.label}</Text>
-                {p.badge && <Text style={styles.saveBadge}>{p.badge}</Text>}
-                {p.best && <Text style={styles.bestTag}>BEST VALUE</Text>}
+        {PRO_PLANS.map((p) => {
+          // While the founder offer is live, the annual plan shows its real
+          // discounted price with the standard price struck through.
+          const useIntro = intro.active && !!p.introPrice;
+          return (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => setPlan(p.id)}
+              activeOpacity={0.85}
+              style={[styles.plan, plan === p.id && styles.planActive]}
+            >
+              <View style={styles.radio}>
+                {plan === p.id && <View style={styles.radioDot} />}
               </View>
-              <Text style={styles.planSub}>{p.sub}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              {p.anchor && <Text style={styles.anchor}>{p.anchor}</Text>}
-              <Text style={styles.planPrice}>{p.price}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={{ flex: 1 }}>
+                <View style={styles.planLabelRow}>
+                  <Text style={styles.planLabel}>{p.label}</Text>
+                  {useIntro ? (
+                    <Text style={styles.saveBadge}>{FOUNDER_BADGE}</Text>
+                  ) : (
+                    p.badge && <Text style={styles.saveBadge}>{p.badge}</Text>
+                  )}
+                  {p.best && <Text style={styles.bestTag}>BEST VALUE</Text>}
+                </View>
+                <Text style={styles.planSub}>{useIntro ? p.introSub : p.sub}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                {useIntro ? (
+                  <Text style={styles.anchor}>{p.price}</Text>
+                ) : (
+                  p.anchor && <Text style={styles.anchor}>{p.anchor}</Text>
+                )}
+                <Text style={styles.planPrice}>{useIntro ? p.introPrice : p.price}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
 
         {/* Risk-reversal — the trial does the heavy lifting on conversion */}
         <View style={styles.trustRow}>
@@ -149,7 +184,11 @@ export default function PaywallScreen() {
           style={{ marginTop: spacing.lg }}
         />
         <Text style={styles.thenPrice}>
-          Then {PRO_PLANS.find((p) => p.id === plan)?.price}
+          Then{' '}
+          {(() => {
+            const sel = PRO_PLANS.find((p) => p.id === plan);
+            return intro.active && sel?.introPrice ? sel.introPrice : sel?.price;
+          })()}
           {plan === 'lifetime' ? '' : ' · cancel anytime in Settings'}
         </Text>
         <TouchableOpacity onPress={restore} style={{ marginTop: spacing.md }}>
@@ -188,6 +227,18 @@ const styles = StyleSheet.create({
     padding: spacing.md, marginTop: spacing.md,
   },
   planActive: { borderColor: colors.amber, backgroundColor: colors.cardAlt },
+  founder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.amberBright,
+  },
+  founderText: { color: colors.ink, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.2 },
   valueLine: {
     flexDirection: 'row',
     alignItems: 'center',

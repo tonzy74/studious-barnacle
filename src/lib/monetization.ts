@@ -70,7 +70,14 @@ export interface ProPlan {
   anchor?: string;
   /** Short savings/urgency badge, e.g. "SAVE 50%". Honest math only. */
   badge?: string;
+  /** Discounted price shown only while the genuine founder offer is live. */
+  introPrice?: string;
+  /** Sub-label for the intro price. */
+  introSub?: string;
 }
+
+/** Label for the enforced, time-boxed launch discount. */
+export const FOUNDER_BADGE = 'FOUNDER OFFER';
 
 /**
  * Plans shown on the paywall. Priced to undercut/á-la-Bourboneur ($3/mo) on
@@ -86,6 +93,10 @@ export const PRO_PLANS: ProPlan[] = [
     sub: 'Just $2.50/mo, billed yearly',
     anchor: '$59.88', // 12 × the monthly price — the honest anchor for the 50% claim
     badge: 'SAVE 50%',
+    // Genuine, enforced launch discount — shown only while introOfferState is
+    // active. Maps to a real RevenueCat intro-offer package so it's truly charged.
+    introPrice: '$17.99/yr',
+    introSub: 'Founder’s price — your first week only',
     packageId: '$rc_annual',
     best: true,
   },

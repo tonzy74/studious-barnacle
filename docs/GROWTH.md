@@ -87,6 +87,13 @@ diversity, rarity, and value — all the user's own data.
   single biggest driver of trial starts.
 - **Value reframing**: "One bottle you don't overpay for covers years of Pro"
   anchors price against the hobby's own spend, not against other apps.
+- **Genuine, enforced urgency** (`introOffer.ts`): a Founder's offer (40% off
+  annual) tied to the user's first-open, with a live countdown. The deadline is
+  *real* — when it passes the offer is gone and does **not** silently reset, and
+  the intro price maps to a real RevenueCat intro-offer package so it's actually
+  charged. This is the honest line: real limited-time offers convert; fake or
+  looping countdowns are the dark pattern the FTC/App Store penalize, so we
+  don't ship those.
 - **Compliance**: no fabricated review counts or testimonials — App Store review
   prohibits fake social proof, so every claim here is honest math or a real
   feature. AI features are *not* gated (they run on the user's own key); Pro
