@@ -4,6 +4,24 @@ Whiskey Vault's revenue is a function of **activation → habit → investment �
 conversion → LTV**. This doc records the behavioral science behind each lever
 and how it's implemented, so future changes stay grounded rather than guessed.
 
+## Ethics: persuasion, not manipulation (this is the higher-earning path)
+
+Every mechanic here is **honest**. We use evidence-based persuasion — framing,
+progress, status, well-timed prompts — but never dark patterns: no fake
+scarcity/countdowns, no fabricated "N people viewing", no hidden fees, no
+hard-to-cancel traps, no confirmshaming. That's a deliberate revenue decision,
+not just an ethical one:
+
+- Dark patterns trigger **App Store rejection**, **FTC/EU fines** (active
+  enforcement since 2023), **chargebacks and refunds**, and **1-star reviews** —
+  all of which destroy LTV and can pull the app.
+- Durable revenue compounds from **genuine value + trust**: retention,
+  renewals, referrals, and App-Store featuring. Honest persuasion maximizes the
+  metric that actually matters (lifetime value), not just first-tap conversion.
+
+If a change can't be stated plainly to the user without them feeling tricked, we
+don't ship it.
+
 ## Who we optimize for
 
 American-whiskey enthusiasts and collectors: predominantly 30–55, disposable
@@ -41,7 +59,23 @@ hobby — the app's job is to become the daily home for it.
 Small, offline, rotating knowledge nuggets add session value and a low-cost
 reason to return (variable content), without any API cost or compliance risk.
 
-## 4. Conversion — the paywall (`PaywallScreen`, `monetization.ts`)
+## 4. Identity & status — Collector Levels (`collectorLevel.ts`)
+
+A single overall rank (Novice → Legend) derived from collection depth,
+diversity, rarity, and value — all the user's own data.
+
+- **Self-signaling / identity** (Bodner & Prelec, 2003): people act to confirm a
+  self-image. Becoming "a Curator" makes whiskey collecting part of who they
+  are, which sustains the behavior far longer than a streak alone.
+- **Goal-setting theory** (Locke & Latham, 2002): a specific, slightly
+  out-of-reach next rank drives more effort than "collect more". We always show
+  the exact points to the next title.
+- **Peak-end rule** (Kahneman): a level-up fires a one-time celebration the
+  moment it happens, ending sessions on a high and creating a memorable peak.
+- The rank appears in the **share text**, so status-signaling doubles as
+  viral acquisition (people share ranks they're proud of).
+
+## 5. Conversion — the paywall (`PaywallScreen`, `monetization.ts`)
 
 - **Price anchoring & the decoy effect** (Ariely, *Predictably Irrational*): the
   annual plan shows a struck-through `$59.88` anchor (12× the monthly price) and
@@ -58,7 +92,7 @@ reason to return (variable content), without any API cost or compliance risk.
   feature. AI features are *not* gated (they run on the user's own key); Pro
   gates only on-device power features that cost us nothing per use.
 
-## 5. Where the money comes from
+## 6. Where the money comes from
 
 1. **Pro subscriptions** — annual-primary, monthly for the impatient, lifetime
    for whales.

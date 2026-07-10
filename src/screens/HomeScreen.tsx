@@ -3,10 +3,11 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
-import { Share, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Share, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Emblem, TypeIcon } from '../components';
+import { collectorLevel } from '../lib/collectorLevel';
 import { nextMilestone, pourOfTheDay, streakAlive, tipOfTheDay } from '../lib/engagement';
 import { scheduleStreakReminder } from '../lib/notifications';
 import { fairPrice, formatUsd } from '../lib/pricing';
@@ -36,6 +37,22 @@ export default function HomeScreen() {
   const registerVisit = useStore((s) => s.registerVisit);
   const notifications = useStore((s) => s.notifications);
   const track = useStore((s) => s.track);
+  const collectorLevelSeen = useStore((s) => s.collectorLevelSeen);
+  const setCollectorLevelSeen = useStore((s) => s.setCollectorLevelSeen);
+
+  const value = bottles.reduce(
+    (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
+    0
+  );
+  const level = collectorLevel(bottles, value);
+
+  const shareVault = () => {
+    track('vault_shared');
+    // Respect the hide-values toggle — never leak a dollar figure the user hid.
+    Share.share({ message: buildVaultShareText(bottles, { includeValue: !hideValues }) }).catch(
+      () => {}
+    );
+  };
 
   // Habit loop: log the daily visit once when Home mounts, and refresh the
   // streak-save reminder so tonight's copy reflects the live streak count.
@@ -46,24 +63,27 @@ export default function HomeScreen() {
     }
   }, [registerVisit, notifications.enabled, notifications.hour]);
 
-  const value = bottles.reduce(
-    (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
-    0
-  );
+  // Peak-end delight: celebrate a genuine rank-up once, the moment it happens.
+  useEffect(() => {
+    if (level.level > collectorLevelSeen) {
+      setCollectorLevelSeen(level.level);
+      Alert.alert(
+        `Level up — you’re a ${level.title}! 🥃`,
+        `Your collection just reached ${level.title} (Level ${level.level}). ${
+          level.nextTitle ? `Next up: ${level.nextTitle}.` : 'You’ve hit the top tier — a true legend.'
+        }`,
+        [{ text: 'Nice' }, { text: 'Share', onPress: shareVault }]
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level.level]);
+
   const units = bottles.reduce((n, b) => n + Math.max(1, b.quantity), 0);
   const recentBottles = [...bottles].sort((a, b) => b.addedAt - a.addedAt).slice(0, 4);
   const pour = pourOfTheDay(bottles);
   const milestone = nextMilestone(bottles, value);
   const alive = streakAlive(streak);
   const tip = tipOfTheDay();
-
-  const shareVault = () => {
-    track('vault_shared');
-    // Respect the hide-values toggle — never leak a dollar figure the user hid.
-    Share.share({ message: buildVaultShareText(bottles, { includeValue: !hideValues }) }).catch(
-      () => {}
-    );
-  };
 
   const ACTIONS: { label: string; icon: keyof typeof Ionicons.glyphMap; go: () => void }[] = [
     { label: 'Scan', icon: 'barcode-outline', go: () => jump('Scan') },
@@ -82,8 +102,17 @@ export default function HomeScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <Emblem size={44} />
             <View>
-              <Text style={styles.eyebrow}>WHISKEY VAULT</Text>
               <Text style={styles.hello}>{greeting()}</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Achievements')}
+                activeOpacity={0.8}
+                style={styles.levelChip}
+              >
+                <Ionicons name="ribbon" size={12} color={colors.amberBright} />
+                <Text style={styles.levelText}>
+                  Lv {level.level} · {level.title}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -111,6 +140,16 @@ export default function HomeScreen() {
             <Text style={styles.heroSub}>
               {units} bottle{units === 1 ? '' : 's'} · tap for portfolio
             </Text>
+            {level.nextTitle && (
+              <View style={styles.heroLevel}>
+                <View style={styles.heroTrack}>
+                  <View style={[styles.heroFill, { width: `${Math.round(level.progress * 100)}%` }]} />
+                </View>
+                <Text style={styles.heroLevelText}>
+                  {level.toNext} pts to {level.nextTitle}
+                </Text>
+              </View>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 
@@ -255,7 +294,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
   eyebrow: { ...typo.overline, color: colors.amberDeep },
-  hello: { ...typo.display, color: colors.text, marginTop: 2 },
+  hello: { ...typo.display, color: colors.text },
+  levelChip: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  levelText: { color: colors.amberBright, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.3 },
   iconBtn: {
     width: 42, height: 42, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border,
     backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center',
@@ -265,6 +306,10 @@ const styles = StyleSheet.create({
   heroLabel: { ...typo.overline, color: colors.amber },
   heroValue: { color: colors.text, fontSize: 34, fontWeight: '800', marginTop: spacing.sm, letterSpacing: 0.3 },
   heroSub: { color: colors.textDim, marginTop: 4, fontSize: 13 },
+  heroLevel: { marginTop: spacing.md, gap: 4 },
+  heroTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.35)', overflow: 'hidden' },
+  heroFill: { height: 6, borderRadius: 3, backgroundColor: colors.amberBright },
+  heroLevelText: { color: colors.amber, fontSize: 11, fontWeight: '700' },
   todayRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   streakChip: {
     alignItems: 'center',
