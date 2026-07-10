@@ -187,6 +187,18 @@ describe('findWhiskeyByName', () => {
     expect(m && ['high', 'medium', 'low']).toContain(m!.confidence);
   });
 
+  it('prefers the exact expression over a same-brand sibling (accuracy)', () => {
+    // A distinctive expression word the query names must beat a sibling that
+    // merely shares the brand — "…Dovetail" must not resolve to "…Single Barrel".
+    const dovetail = matchWhiskey({ name: 'Barrell Craft Spirits Dovetail', distillery: 'Barrell Craft Spirits' });
+    expect(dovetail?.record.name ?? '').toMatch(/dovetail/i);
+
+    // Retailer/pick words never block a real pick from matching its base bottle.
+    expect(findWhiskeyByName("blanton's total wine pick")?.id).toBe('blantons');
+    // …and the correct expression stays high-confidence.
+    expect(matchWhiskey({ name: 'E.H. Taylor Barrel Proof', distillery: 'Buffalo Trace' })?.confidence).toBe('high');
+  });
+
   it('ignores batch codes and pick vocabulary', () => {
     expect(findWhiskeyByName('elijah craig barrel proof C923')?.name).toBe(
       'Elijah Craig Barrel Proof'
