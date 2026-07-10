@@ -22,6 +22,7 @@ import ExploreScreen from './src/screens/ExploreScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import InsightsScreen from './src/screens/InsightsScreen';
 import JournalScreen from './src/screens/JournalScreen';
+import LineupsScreen from './src/screens/LineupsScreen';
 import LogPourScreen from './src/screens/LogPourScreen';
 import MatchScreen from './src/screens/MatchScreen';
 import Onboarding from './src/screens/Onboarding';
@@ -151,6 +152,7 @@ export default function App() {
         <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Insights" component={InsightsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Referral" component={ReferralScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Lineups" component={LineupsScreen} options={{ headerShown: false }} />
         <Stack.Screen
           name="Paywall"
           component={PaywallScreen}

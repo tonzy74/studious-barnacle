@@ -112,6 +112,18 @@ diversity, rarity, and value — all the user's own data.
   and a real deadline supplies honest urgency — it clears the instant they
   re-subscribe and expires for good after the window (no fake reset).
 
+## 6b. Completion cross-sell & fresh starts (`lineups.ts`, `freshStart.ts`)
+
+- **Complete-the-set** (Zeigarnik + goal-gradient): iconic, real lineups
+  (E.H. Taylor, Weller, Four Roses, Old Forester Whiskey Row, BTAC, Pappy
+  vertical). A started-but-unfinished set is a strong pull; Home shows the
+  closest one and the Lineups screen turns each missing bottle into a hunt-list
+  add — which is exactly where affiliate buy-links monetize.
+- **Fresh-Start Effect** (Dai, Milkman & Riis, 2014): a gentle goal nudge on
+  temporal landmarks (new year / season / month), shown once per landmark.
+  People start goals at these boundaries, so it's a high-intent re-engagement
+  window.
+
 ## 7. Where the money comes from
 
 1. **Pro subscriptions** — annual-primary, monthly for the impatient, lifetime

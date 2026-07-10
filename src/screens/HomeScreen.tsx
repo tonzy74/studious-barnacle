@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Emblem, TypeIcon } from '../components';
 import { collectorLevel } from '../lib/collectorLevel';
 import { nextMilestone, pourOfTheDay, streakAlive, tipOfTheDay } from '../lib/engagement';
+import { freshStartMoment } from '../lib/freshStart';
+import { closestLineup } from '../lib/lineups';
 import { scheduleStreakReminder } from '../lib/notifications';
 import { requestAppReview } from '../lib/review';
 import { shouldAskForReview } from '../lib/reviewPolicy';
@@ -43,6 +45,8 @@ export default function HomeScreen() {
   const setCollectorLevelSeen = useStore((s) => s.setCollectorLevelSeen);
   const reviewRequested = useStore((s) => s.reviewRequested);
   const markReviewRequested = useStore((s) => s.markReviewRequested);
+  const freshStartSeen = useStore((s) => s.freshStartSeen);
+  const dismissFreshStart = useStore((s) => s.dismissFreshStart);
 
   const value = bottles.reduce(
     (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
@@ -104,6 +108,9 @@ export default function HomeScreen() {
   const milestone = nextMilestone(bottles, value);
   const alive = streakAlive(streak);
   const tip = tipOfTheDay();
+  const lineup = closestLineup(bottles);
+  const freshStart = freshStartMoment();
+  const showFreshStart = freshStart && freshStart.key !== freshStartSeen;
 
   const ACTIONS: { label: string; icon: keyof typeof Ionicons.glyphMap; go: () => void }[] = [
     { label: 'Scan', icon: 'barcode-outline', go: () => jump('Scan') },
@@ -146,6 +153,20 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Fresh-start nudge at temporal landmarks (new year/season/month) */}
+        {showFreshStart && (
+          <View style={styles.fresh}>
+            <Ionicons name="sparkles" size={16} color={colors.amberBright} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.freshLabel}>{freshStart!.label}</Text>
+              <Text style={styles.freshSub}>{freshStart!.sub}</Text>
+            </View>
+            <TouchableOpacity onPress={() => dismissFreshStart(freshStart!.key)} hitSlop={10}>
+              <Ionicons name="close" size={18} color={colors.textFaint} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Value hero */}
         <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('Portfolio')}>
@@ -219,6 +240,27 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.milestoneReward}>Earns: {milestone.reward}</Text>
           </Card>
+        )}
+
+        {/* Complete-the-set cross-sell — completionist pull toward the hunt list */}
+        {lineup && (
+          <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('Lineups')}>
+            <Card style={styles.milestone}>
+              <View style={styles.milestoneTop}>
+                <Ionicons name="albums" size={16} color={colors.amberBright} />
+                <Text style={styles.milestoneLabel}>Complete the {lineup.name}</Text>
+                <Text style={styles.milestoneCount}>
+                  {lineup.owned}/{lineup.total}
+                </Text>
+              </View>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: `${Math.round(lineup.progress * 100)}%` }]} />
+              </View>
+              <Text style={styles.milestoneReward}>
+                {lineup.missing.length} to go · tap to hunt them down
+              </Text>
+            </Card>
+          </TouchableOpacity>
         )}
 
         {/* Quick actions */}
@@ -330,6 +372,19 @@ const styles = StyleSheet.create({
   heroTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.35)', overflow: 'hidden' },
   heroFill: { height: 6, borderRadius: 3, backgroundColor: colors.amberBright },
   heroLevelText: { color: colors.amber, fontSize: 11, fontWeight: '700' },
+  fresh: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.cardAlt,
+    borderWidth: 1,
+    borderColor: colors.borderBright,
+    marginBottom: spacing.md,
+  },
+  freshLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  freshSub: { color: colors.textDim, fontSize: 12, marginTop: 1 },
   todayRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   streakChip: {
     alignItems: 'center',
