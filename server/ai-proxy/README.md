@@ -51,10 +51,24 @@ free usage ~4–10× cheaper still, reserving the flagship model for Pro.
   install is out of quota or the daily budget is reached.
 - `GET /health`
 
+## Server-side Pro (RevenueCat webhook)
+
+Set `RC_WEBHOOK_SECRET` to make Pro **authoritative from RevenueCat** instead of
+trusting the app's `x-wv-pro` header (which a determined user could spoof).
+
+1. In the app, configure RevenueCat with `appUserID = <the app's anon id>` (the
+   same value it sends as `x-wv-install`).
+2. In the RevenueCat dashboard → Integrations → Webhooks, point it at
+   `POST https://your-proxy/v1/rc/webhook` and set the Authorization header to
+   `Bearer <RC_WEBHOOK_SECRET>`.
+3. The proxy folds `INITIAL_PURCHASE / RENEWAL / CANCELLATION / EXPIRATION / …`
+   events into a per-user Pro status and checks it on every AI call. When the
+   secret is set, the `x-wv-pro` header is ignored.
+
+`POST /v1/rc/webhook` — RevenueCat events (Bearer-auth). Returns `{ ok: true }`.
+
 ## Production hardening
 
-- Verify Pro **server-side** via a RevenueCat webhook instead of trusting the
-  `x-wv-pro` header (a determined user could spoof it).
 - Add device attestation (App Attest / Play Integrity) so the `APP_TOKEN` can't
   be lifted from the binary and abused.
-- Swap the in-memory usage map for a datastore; keep `MODEL_ALLOWLIST` tight.
+- Swap the in-memory usage/pro maps for a datastore; keep `MODEL_ALLOWLIST` tight.

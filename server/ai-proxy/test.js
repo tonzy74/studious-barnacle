@@ -4,6 +4,7 @@
 
 const assert = require('assert');
 const { monthKey, evaluate } = require('./lib/quota');
+const { applyEvent, isActive, statusFromEvent } = require('./lib/entitlement');
 
 let passed = 0;
 const ok = (name, fn) => {
@@ -48,6 +49,37 @@ ok('Pro is unlimited and never counted', () => {
   assert.strictEqual(r.allowed, true);
   assert.strictEqual(r.remaining, Infinity);
   assert.strictEqual(r.record.count, 999); // unchanged
+});
+
+const NOW = Date.UTC(2026, 5, 1);
+const FUTURE = NOW + 30 * 86400000;
+const PAST = NOW - 86400000;
+
+ok('a purchase grants Pro until expiration', () => {
+  const m = new Map();
+  applyEvent(m, { type: 'INITIAL_PURCHASE', app_user_id: 'u1', expiration_at_ms: FUTURE }, NOW);
+  assert.strictEqual(isActive(m.get('u1'), NOW), true);
+});
+
+ok('an expiration revokes Pro', () => {
+  const m = new Map();
+  applyEvent(m, { type: 'INITIAL_PURCHASE', app_user_id: 'u1', expiration_at_ms: FUTURE }, NOW);
+  applyEvent(m, { type: 'EXPIRATION', app_user_id: 'u1', expiration_at_ms: PAST }, NOW);
+  assert.strictEqual(isActive(m.get('u1'), NOW), false);
+});
+
+ok('cancellation keeps access until the period ends', () => {
+  const m = new Map();
+  applyEvent(m, { type: 'CANCELLATION', app_user_id: 'u1', expiration_at_ms: FUTURE }, NOW);
+  assert.strictEqual(isActive(m.get('u1'), NOW), true);
+});
+
+ok('an elapsed expiration date is not active even if flagged', () => {
+  assert.strictEqual(isActive({ active: true, expiresAt: PAST }, NOW), false);
+});
+
+ok('unknown event types are ignored', () => {
+  assert.strictEqual(statusFromEvent({ type: 'TEST', app_user_id: 'u1' }, NOW), null);
 });
 
 console.log(`\n${passed} tests passed.`);

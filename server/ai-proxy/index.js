@@ -26,6 +26,7 @@ const https = require('https');
 const fs = require('fs');
 const { URL } = require('url');
 const { evaluate } = require('./lib/quota');
+const { applyEvent, isActive } = require('./lib/entitlement');
 
 const PORT = process.env.PORT || 8790;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
@@ -39,6 +40,13 @@ const MAX_FREE_PER_DAY = Number(process.env.MAX_FREE_PER_DAY || 1000);
 const FREE_MODEL = process.env.FREE_MODEL || '';
 const USAGE_FILE = process.env.USAGE_FILE || null;
 const ANTHROPIC_VERSION = process.env.ANTHROPIC_VERSION || '2023-06-01';
+// When set, Pro is verified server-side from RevenueCat webhooks (authoritative)
+// instead of trusting the app's x-wv-pro header. Set this as the webhook's
+// Authorization header value in the RevenueCat dashboard.
+const RC_WEBHOOK_SECRET = process.env.RC_WEBHOOK_SECRET || '';
+
+/** appUserId (== install id) -> { active, expiresAt } from RevenueCat. */
+const proStatus = new Map();
 
 // Global free-request budget for the current UTC day.
 let globalFree = { day: '', count: 0 };
@@ -123,13 +131,31 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return sendJson(res, 204, {});
   if (url.pathname === '/health') return sendJson(res, 200, { ok: true, quota: FREE_MONTHLY_QUOTA });
 
+  // RevenueCat subscription webhook → authoritative Pro status.
+  if (req.method === 'POST' && url.pathname === '/v1/rc/webhook') {
+    if (!RC_WEBHOOK_SECRET || req.headers['authorization'] !== `Bearer ${RC_WEBHOOK_SECRET}`) {
+      return sendJson(res, 401, { error: 'unauthorized' });
+    }
+    try {
+      const body = JSON.parse((await readBody(req)) || '{}');
+      applyEvent(proStatus, body.event, Date.now());
+      return sendJson(res, 200, { ok: true });
+    } catch (err) {
+      return sendJson(res, 400, { error: String(err.message || err) });
+    }
+  }
+
   if (req.method === 'POST' && url.pathname === '/v1/messages') {
     if (!ANTHROPIC_API_KEY) return sendJson(res, 500, { error: 'proxy missing ANTHROPIC_API_KEY' });
     if (!APP_TOKEN || req.headers['x-api-key'] !== APP_TOKEN) {
       return sendJson(res, 401, { error: 'unauthorized' });
     }
     const install = String(req.headers['x-wv-install'] || '').slice(0, 64) || 'anon';
-    const isPro = req.headers['x-wv-pro'] === '1';
+    // Pro is authoritative from RevenueCat webhooks when configured; otherwise
+    // (dev) fall back to the client-asserted header.
+    const isPro = RC_WEBHOOK_SECRET
+      ? isActive(proStatus.get(install), Date.now())
+      : req.headers['x-wv-pro'] === '1';
 
     let body;
     try {
