@@ -117,7 +117,13 @@ const PRICE_ANCHORS: [marker: string, msrp: number, secondary: number][] = [
 ];
 
 function norm(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  // Strip apostrophes first (don't turn them into spaces) so possessive brands
+  // match their anchors: "Blanton's" → "blantons", "Maker's" → "makers".
+  return s
+    .toLowerCase()
+    .replace(/['’`]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 export function lookupPricing(name: string): { msrp: number; secondary: number } | undefined {
