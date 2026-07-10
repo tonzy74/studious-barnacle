@@ -1,0 +1,33 @@
+# One-click deploy of the whole Whiskey Vault backend to Render.
+# In the Render dashboard: New → Blueprint → point at this repo. It provisions
+# all three zero-dependency Node services. (Free tier is in-memory; add a Render
+# Disk + set the *_FILE env vars for persistence.)
+services:
+  - type: web
+    name: whiskey-vault-pricing
+    runtime: node
+    rootDir: server/affiliate-price-service
+    plan: free
+    buildCommand: "true"
+    startCommand: node index.js
+
+  - type: web
+    name: whiskey-vault-analytics
+    runtime: node
+    rootDir: server/analytics-service
+    plan: free
+    buildCommand: "true"
+    startCommand: node index.js
+    healthCheckPath: /health
+
+  - type: web
+    name: whiskey-vault-push
+    runtime: node
+    rootDir: server/push-service
+    plan: free
+    buildCommand: "true"
+    startCommand: node index.js
+    healthCheckPath: /health
+    envVars:
+      - key: ADMIN_TOKEN
+        generateValue: true # Render mints a secret; use it as x-admin-token on /send
