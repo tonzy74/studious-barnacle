@@ -111,6 +111,8 @@ interface VaultState {
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
   track: (name: AnalyticsEventName, props?: Record<string, unknown>) => void;
+  /** Drop the first n queued events after a successful backend flush (FIFO). */
+  dropSentEvents: (n: number) => void;
   /** GDPR/CCPA erasure: wipes collection, profile, events, learned library. */
   clearAllData: () => void;
 }
@@ -220,6 +222,7 @@ export const useStore = create<VaultState>()(
           if (!event) return s;
           return { events: [...s.events.slice(-(MAX_QUEUED_EVENTS - 1)), event] };
         }),
+      dropSentEvents: (n) => set((s) => ({ events: s.events.slice(n) })),
       clearAllData: () => {
         SecureStore.deleteItemAsync(API_KEY_KEYCHAIN_ID).catch(() => {});
         SecureStore.deleteItemAsync('whiskey-vault.identity-token').catch(() => {});
