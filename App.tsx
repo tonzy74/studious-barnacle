@@ -3,8 +3,10 @@ import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+
+import { configureNotifications } from './src/lib/notifications';
 
 import { RootStackParamList, TabParamList } from './src/navigation';
 import AddBottleScreen from './src/screens/AddBottleScreen';
@@ -98,6 +100,9 @@ const theme = {
 };
 
 export default function App() {
+  useEffect(() => {
+    configureNotifications();
+  }, []);
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <NavigationContainer theme={theme}>

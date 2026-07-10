@@ -68,6 +68,8 @@ interface VaultState {
   streak: StreakState;
   /** When the user finished (or skipped) first-run onboarding; undefined = new. */
   onboardedAt?: number;
+  /** Local-reminder preferences (opt-in re-engagement). */
+  notifications: { enabled: boolean; hour: number };
   /** True once persisted state has rehydrated — gates the onboarding flash. */
   hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -99,6 +101,8 @@ interface VaultState {
   registerVisit: () => void;
   /** Mark first-run onboarding as done so it won't show again. */
   completeOnboarding: () => void;
+  /** Persist the reminder toggle (scheduling itself is done in the screen). */
+  setNotifications: (patch: Partial<{ enabled: boolean; hour: number }>) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -126,6 +130,7 @@ export const useStore = create<VaultState>()(
       streak: { streak: 0, longestStreak: 0, lastVisitDay: -1 },
       onboardedAt: undefined,
       hasHydrated: false,
+      notifications: { enabled: false, hour: 19 },
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -170,6 +175,8 @@ export const useStore = create<VaultState>()(
       setReleasesCache: (items) => set({ releasesCache: { at: Date.now(), items } }),
       registerVisit: () => set((s) => ({ streak: foldVisit(s.streak) })),
       completeOnboarding: () => set({ onboardedAt: Date.now() }),
+      setNotifications: (patch) =>
+        set((s) => ({ notifications: { ...s.notifications, ...patch } })),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -221,6 +228,7 @@ export const useStore = create<VaultState>()(
           profile: null,
           consent: { analytics: false, sellShare: false, decidedAt: Date.now() },
           streak: { streak: 0, longestStreak: 0, lastVisitDay: -1 },
+          notifications: { enabled: false, hour: 19 },
           events: [],
           anonId: newAnonId(),
         });
@@ -247,6 +255,7 @@ export const useStore = create<VaultState>()(
           consent: s.consent,
           streak: s.streak,
           onboardedAt: s.onboardedAt,
+          notifications: s.notifications,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,

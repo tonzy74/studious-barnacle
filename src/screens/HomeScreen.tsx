@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Emblem, TypeIcon } from '../components';
 import { nextMilestone, pourOfTheDay, streakAlive, tipOfTheDay } from '../lib/engagement';
+import { scheduleStreakReminder } from '../lib/notifications';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { buildVaultShareText } from '../lib/share';
 import { RootStackParamList } from '../navigation';
@@ -33,11 +34,16 @@ export default function HomeScreen() {
   const toggleHideValues = useStore((s) => s.toggleHideValues);
   const streak = useStore((s) => s.streak);
   const registerVisit = useStore((s) => s.registerVisit);
+  const notifications = useStore((s) => s.notifications);
 
-  // Habit loop: log the daily visit once when Home mounts.
+  // Habit loop: log the daily visit once when Home mounts, and refresh the
+  // streak-save reminder so tonight's copy reflects the live streak count.
   useEffect(() => {
     registerVisit();
-  }, [registerVisit]);
+    if (notifications.enabled) {
+      scheduleStreakReminder(useStore.getState().streak.streak, notifications.hour);
+    }
+  }, [registerVisit, notifications.enabled, notifications.hour]);
 
   const value = bottles.reduce(
     (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
