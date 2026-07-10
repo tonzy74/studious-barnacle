@@ -23,6 +23,12 @@ export const ANALYTICS_EVENTS = [
   'sign_out',
   'pour_logged',
   'label_scanned',
+  // Funnel milestones — the events an analytics dashboard turns into a funnel.
+  'onboarding_completed',
+  'paywall_shown',
+  'pro_purchased',
+  'vault_shared',
+  'reminders_enabled',
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
@@ -39,6 +45,8 @@ const ALLOWED_PROP_KEYS = new Set([
   'provider',
   'protectAllocated',
   'verdict',
+  'trigger',
+  'plan',
 ]);
 
 const MAX_STRING_PROP = 32;

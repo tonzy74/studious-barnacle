@@ -18,6 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button, ScreenGradient } from '../components';
 import { appleSignInAvailable, signInWithApple, signOut } from '../lib/auth';
 import { CLAUDE_MODELS } from '../lib/models';
+import { cancelAllReminders, enableReminders } from '../lib/notifications';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -37,6 +38,26 @@ export default function SettingsScreen() {
   const events = useStore((s) => s.events);
   const track = useStore((s) => s.track);
   const clearAllData = useStore((s) => s.clearAllData);
+  const notifications = useStore((s) => s.notifications);
+  const setNotifications = useStore((s) => s.setNotifications);
+
+  const toggleReminders = async (value: boolean) => {
+    if (value) {
+      const ok = await enableReminders(useStore.getState().streak.streak, notifications.hour);
+      if (ok) {
+        setNotifications({ enabled: true });
+        track('reminders_enabled');
+      } else {
+        Alert.alert(
+          'Notifications are off',
+          'Enable notifications for Whiskey Vault in your device Settings to get streak and release reminders.'
+        );
+      }
+    } else {
+      await cancelAllReminders();
+      setNotifications({ enabled: false });
+    }
+  };
 
   const [draft, setDraft] = useState(apiKey);
   const [saved, setSaved] = useState(false);
@@ -120,6 +141,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             clearAllData();
+            cancelAllReminders();
             setDraft('');
           },
         },
@@ -196,6 +218,24 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         );
       })}
+
+      <Text style={styles.section}>Reminders</Text>
+
+      <View style={styles.toggleRow}>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <Text style={styles.toggleTitle}>Daily reminders</Text>
+          <Text style={styles.help}>
+            A gentle evening nudge to keep your tasting streak alive, plus a weekly heads-up on
+            upcoming releases. All scheduled on your device — no account or tracking.
+          </Text>
+        </View>
+        <Switch
+          value={notifications.enabled}
+          onValueChange={toggleReminders}
+          trackColor={{ true: colors.amber, false: colors.cardAlt }}
+          thumbColor={colors.text}
+        />
+      </View>
 
       <Text style={styles.section}>Privacy & Data</Text>
 

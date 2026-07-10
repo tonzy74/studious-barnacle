@@ -25,6 +25,8 @@ import {
   scaleProfileForProof,
 } from '../lib/flavor';
 import { buildLearnedRecord } from '../lib/library';
+import { crossedCollectionThreshold } from '../lib/paywallEngine';
+import { useContextualPaywall } from '../useContextualPaywall';
 import { RootStackParamList } from '../navigation';
 import { newBottleId, useStore } from '../store/useStore';
 import { colors } from '../theme';
@@ -53,6 +55,7 @@ export default function AddBottleScreen() {
   const learned = useStore((s) => s.learned);
   const learnRecord = useStore((s) => s.learnRecord);
   const track = useStore((s) => s.track);
+  const { maybePrompt } = useContextualPaywall();
 
   const prefillRef = params.refId
     ? [...WHISKEY_DB, ...learned].find((r) => r.id === params.refId)
@@ -199,6 +202,12 @@ export default function AddBottleScreen() {
         learned: true,
       });
     }
+
+    // Investment moment: crossing 5/15/40 bottles is when a collector feels the
+    // vault is worth protecting. If the frequency-capped engine agrees, show Pro
+    // instead of just dismissing; otherwise return as usual.
+    const after = useStore.getState().bottles.length;
+    if (crossedCollectionThreshold(after - 1, after) && maybePrompt('collection-grew')) return;
     navigation.goBack();
   };
 

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Emblem, TypeIcon } from '../components';
 import { nextMilestone, pourOfTheDay, streakAlive, tipOfTheDay } from '../lib/engagement';
+import { scheduleStreakReminder } from '../lib/notifications';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { buildVaultShareText } from '../lib/share';
 import { RootStackParamList } from '../navigation';
@@ -33,11 +34,17 @@ export default function HomeScreen() {
   const toggleHideValues = useStore((s) => s.toggleHideValues);
   const streak = useStore((s) => s.streak);
   const registerVisit = useStore((s) => s.registerVisit);
+  const notifications = useStore((s) => s.notifications);
+  const track = useStore((s) => s.track);
 
-  // Habit loop: log the daily visit once when Home mounts.
+  // Habit loop: log the daily visit once when Home mounts, and refresh the
+  // streak-save reminder so tonight's copy reflects the live streak count.
   useEffect(() => {
     registerVisit();
-  }, [registerVisit]);
+    if (notifications.enabled) {
+      scheduleStreakReminder(useStore.getState().streak.streak, notifications.hour);
+    }
+  }, [registerVisit, notifications.enabled, notifications.hour]);
 
   const value = bottles.reduce(
     (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
@@ -51,6 +58,7 @@ export default function HomeScreen() {
   const tip = tipOfTheDay();
 
   const shareVault = () => {
+    track('vault_shared');
     // Respect the hide-values toggle — never leak a dollar figure the user hid.
     Share.share({ message: buildVaultShareText(bottles, { includeValue: !hideValues }) }).catch(
       () => {}
