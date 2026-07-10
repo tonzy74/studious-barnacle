@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
+import { setAiContext } from './src/lib/aiClient';
 import { maybeFlushAnalytics } from './src/lib/analyticsFlush';
 import { configureNotifications } from './src/lib/notifications';
 import { useStore } from './src/store/useStore';
@@ -111,6 +112,14 @@ export default function App() {
     maybeFlushAnalytics();
     // Start the founder-offer clock on the very first open.
     useStore.getState().markFirstOpen();
+    // Keep the AI proxy context (install id + Pro flag) in sync for metering.
+    const sync = () => {
+      const s = useStore.getState();
+      setAiContext({ installId: s.anonId, isPro: s.isPro });
+    };
+    sync();
+    const unsub = useStore.subscribe(sync);
+    return unsub;
   }, []);
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
