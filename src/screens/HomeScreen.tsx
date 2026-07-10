@@ -10,6 +10,8 @@ import { Card, Emblem, TypeIcon } from '../components';
 import { collectorLevel } from '../lib/collectorLevel';
 import { nextMilestone, pourOfTheDay, streakAlive, tipOfTheDay } from '../lib/engagement';
 import { scheduleStreakReminder } from '../lib/notifications';
+import { requestAppReview } from '../lib/review';
+import { shouldAskForReview } from '../lib/reviewPolicy';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { buildVaultShareText } from '../lib/share';
 import { RootStackParamList } from '../navigation';
@@ -39,6 +41,8 @@ export default function HomeScreen() {
   const track = useStore((s) => s.track);
   const collectorLevelSeen = useStore((s) => s.collectorLevelSeen);
   const setCollectorLevelSeen = useStore((s) => s.setCollectorLevelSeen);
+  const reviewRequested = useStore((s) => s.reviewRequested);
+  const markReviewRequested = useStore((s) => s.markReviewRequested);
 
   const value = bottles.reduce(
     (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
@@ -61,6 +65,22 @@ export default function HomeScreen() {
     if (notifications.enabled) {
       scheduleStreakReminder(useStore.getState().streak.streak, notifications.hour);
     }
+    // Ask for a rating at a genuinely happy moment — but never in the same beat
+    // as a level-up celebration (that fires its own dialog below).
+    const noLevelUp = level.level === collectorLevelSeen;
+    if (
+      noLevelUp &&
+      shouldAskForReview({
+        requested: reviewRequested,
+        level: level.level,
+        bottleCount: bottles.length,
+        streak: streak.streak,
+      })
+    ) {
+      requestAppReview();
+      markReviewRequested();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerVisit, notifications.enabled, notifications.hour]);
 
   // Peak-end delight: celebrate a genuine rank-up once, the moment it happens.
