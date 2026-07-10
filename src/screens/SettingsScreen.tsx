@@ -220,6 +220,16 @@ export default function SettingsScreen() {
         );
       })}
 
+      <Text style={styles.section}>Invite &amp; earn</Text>
+      <Button
+        title="Give a month, get a month"
+        icon="gift-outline"
+        onPress={() => navigation.navigate('Referral')}
+      />
+      <Text style={styles.help}>
+        Share your code — when a friend joins with it, you both get a free month of Pro.
+      </Text>
+
       <Text style={styles.section}>Reminders</Text>
 
       <View style={styles.toggleRow}>

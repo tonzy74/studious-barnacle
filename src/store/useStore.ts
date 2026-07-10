@@ -26,6 +26,7 @@ import {
 } from '../lib/analyticsCore';
 import { DEFAULT_MODEL } from '../lib/models';
 import { registerVisit as foldVisit, StreakState } from '../lib/engagement';
+import { canApplyReferral, makeReferralCode } from '../lib/referral';
 
 /**
  * The Anthropic API key lives in the platform secure enclave (iOS Keychain /
@@ -78,6 +79,10 @@ interface VaultState {
   reviewRequested: boolean;
   /** First-open time — anchors the genuine, enforced founder-offer window. */
   firstOpenAt?: number;
+  /** Referral code the user redeemed (double-sided reward), if any. */
+  referredBy?: string;
+  /** When Pro access lapsed — powers the win-back offer. */
+  proLapsedAt?: number;
   /** True once persisted state has rehydrated — gates the onboarding flash. */
   hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -119,6 +124,8 @@ interface VaultState {
   markReviewRequested: () => void;
   /** Stamp first-open once, to start the founder-offer countdown. */
   markFirstOpen: () => void;
+  /** Redeem a friend's referral code (blocks self-referral / double-apply). */
+  applyReferral: (code: string) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -153,6 +160,8 @@ export const useStore = create<VaultState>()(
       collectorLevelSeen: 1,
       reviewRequested: false,
       firstOpenAt: undefined,
+      referredBy: undefined,
+      proLapsedAt: undefined,
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -172,7 +181,12 @@ export const useStore = create<VaultState>()(
         set({ apiKey });
       },
       setModel: (model) => set({ model }),
-      setPro: (isPro) => set({ isPro }),
+      setPro: (isPro) =>
+        set((s) => ({
+          isPro,
+          // Stamp the lapse when access ends; clear it once they're back on Pro.
+          proLapsedAt: isPro ? undefined : s.isPro ? Date.now() : s.proLapsedAt,
+        })),
       toggleHideValues: () => set((s) => ({ hideValues: !s.hideValues })),
       recordCorrection: (original, fixed) =>
         set((s) => ({ corrections: upsertCorrection(s.corrections, original, fixed) })),
@@ -206,6 +220,12 @@ export const useStore = create<VaultState>()(
       setCollectorLevelSeen: (level) => set({ collectorLevelSeen: level }),
       markReviewRequested: () => set({ reviewRequested: true }),
       markFirstOpen: () => set((s) => (s.firstOpenAt ? s : { firstOpenAt: Date.now() })),
+      applyReferral: (code) =>
+        set((s) => {
+          const own = makeReferralCode(s.anonId);
+          if (!canApplyReferral(code, own, s.referredBy)) return s;
+          return { referredBy: code.toUpperCase() };
+        }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -293,6 +313,8 @@ export const useStore = create<VaultState>()(
           collectorLevelSeen: s.collectorLevelSeen,
           reviewRequested: s.reviewRequested,
           firstOpenAt: s.firstOpenAt,
+          referredBy: s.referredBy,
+          proLapsedAt: s.proLapsedAt,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,
