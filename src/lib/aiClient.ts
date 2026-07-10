@@ -12,11 +12,25 @@ import { AI_PROXY_APP_TOKEN, AI_PROXY_URL } from '../config';
  *    entered in Settings (the original behavior).
  */
 
-let ctx: { installId: string; isPro: boolean } = { installId: 'anon', isPro: false };
+let ctx: { installId: string; isPro: boolean; attestToken: string } = {
+  installId: 'anon',
+  isPro: false,
+  attestToken: '',
+};
 
 /** App calls this so the proxy can meter per install and honor Pro. */
 export function setAiContext(next: Partial<typeof ctx>): void {
   ctx = { ...ctx, ...next };
+}
+
+/**
+ * Seam for device attestation (App Attest / Play Integrity / App Check). When
+ * the proxy runs with REQUIRE_ATTESTATION=1 it expects a fresh token in the
+ * x-wv-attest header. Wire a native attestation SDK and feed its token here;
+ * until then this stays empty and the header is omitted (proxy default is off).
+ */
+export function setAttestToken(token: string): void {
+  ctx = { ...ctx, attestToken: token };
 }
 
 /** True when AI is usable — a proxy is configured, or the user brought a key. */
@@ -34,7 +48,11 @@ export function makeClient(userKey: string): Anthropic {
       apiKey: AI_PROXY_APP_TOKEN || 'proxy',
       baseURL: AI_PROXY_URL,
       dangerouslyAllowBrowser: true,
-      defaultHeaders: { 'x-wv-install': ctx.installId, 'x-wv-pro': ctx.isPro ? '1' : '0' },
+      defaultHeaders: {
+        'x-wv-install': ctx.installId,
+        'x-wv-pro': ctx.isPro ? '1' : '0',
+        ...(ctx.attestToken ? { 'x-wv-attest': ctx.attestToken } : {}),
+      },
     });
   }
   return new Anthropic({ apiKey: userKey, dangerouslyAllowBrowser: true });
