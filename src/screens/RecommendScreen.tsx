@@ -16,10 +16,14 @@ export default function RecommendScreen() {
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
   const learned = useStore((s) => s.learned);
+  const tasteSeed = useStore((s) => s.tasteSeed);
   const addWishlist = useStore((s) => s.addWishlist);
   const { locked, goPro } = useProGate('recommendations');
 
-  const recs = useMemo(() => recommendBottles(bottles, learned, 20), [bottles, learned]);
+  const recs = useMemo(
+    () => recommendBottles(bottles, learned, 20, tasteSeed),
+    [bottles, learned, tasteSeed]
+  );
 
   const addToHunt = (r: Recommendation) =>
     addWishlist({

@@ -1,6 +1,6 @@
 import { WHISKEY_DB } from '../data/whiskeyDatabase';
 import { averageProfiles, cosineSimilarity, toVector } from './flavor';
-import { Bottle, WhiskeyRecord } from '../types';
+import { Bottle, FlavorProfile, WhiskeyRecord } from '../types';
 
 export interface Recommendation {
   record: WhiskeyRecord;
@@ -14,18 +14,24 @@ function normName(s: string): string {
 
 /**
  * Recommend bottles the user is likely to love, from the reference catalog,
- * by matching each candidate's flavor profile to the user's *palate* — the
- * average of their collection's profiles. Excludes bottles they already own,
- * skips store-pick variants (near-duplicates), and limits per distillery so
- * the list stays varied.
+ * by matching each candidate's flavor profile to the user's *palate*. The
+ * palate is the average of their collection's profiles; for a new user with an
+ * empty (or thin) collection we fall back to the taste-quiz `seed`, so
+ * recommendations work from day one. Excludes bottles they already own, skips
+ * store-pick variants (near-duplicates), and limits per distillery for variety.
  */
 export function recommendBottles(
   bottles: Bottle[],
   learned: WhiskeyRecord[] = [],
-  limit = 15
+  limit = 15,
+  seed?: FlavorProfile
 ): Recommendation[] {
-  if (bottles.length === 0) return [];
-  const palate = toVector(averageProfiles(bottles.map((b) => b.flavor)));
+  const profiles = bottles.map((b) => b.flavor);
+  // Blend the taste seed in while the collection is still thin so early recs
+  // reflect stated preferences, then let real bottles dominate as they're added.
+  if (seed && bottles.length < 3) profiles.push(seed);
+  if (profiles.length === 0) return [];
+  const palate = toVector(averageProfiles(profiles));
   const owned = new Set(bottles.map((b) => normName(b.name)));
 
   const scored: Recommendation[] = [];
