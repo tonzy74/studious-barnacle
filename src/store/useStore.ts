@@ -70,6 +70,8 @@ interface VaultState {
   onboardedAt?: number;
   /** Local-reminder preferences (opt-in re-engagement). */
   notifications: { enabled: boolean; hour: number };
+  /** Contextual-paywall frequency control (etiquette so we never nag). */
+  paywallPrompts: { lastShownAt: number; count: number };
   /** True once persisted state has rehydrated — gates the onboarding flash. */
   hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -103,6 +105,8 @@ interface VaultState {
   completeOnboarding: () => void;
   /** Persist the reminder toggle (scheduling itself is done in the screen). */
   setNotifications: (patch: Partial<{ enabled: boolean; hour: number }>) => void;
+  /** Record that a contextual paywall was auto-shown (for cooldown + cap). */
+  markPaywallShown: () => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -131,6 +135,7 @@ export const useStore = create<VaultState>()(
       onboardedAt: undefined,
       hasHydrated: false,
       notifications: { enabled: false, hour: 19 },
+      paywallPrompts: { lastShownAt: 0, count: 0 },
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -177,6 +182,10 @@ export const useStore = create<VaultState>()(
       completeOnboarding: () => set({ onboardedAt: Date.now() }),
       setNotifications: (patch) =>
         set((s) => ({ notifications: { ...s.notifications, ...patch } })),
+      markPaywallShown: () =>
+        set((s) => ({
+          paywallPrompts: { lastShownAt: Date.now(), count: s.paywallPrompts.count + 1 },
+        })),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -229,6 +238,7 @@ export const useStore = create<VaultState>()(
           consent: { analytics: false, sellShare: false, decidedAt: Date.now() },
           streak: { streak: 0, longestStreak: 0, lastVisitDay: -1 },
           notifications: { enabled: false, hour: 19 },
+          paywallPrompts: { lastShownAt: 0, count: 0 },
           events: [],
           anonId: newAnonId(),
         });
@@ -256,6 +266,7 @@ export const useStore = create<VaultState>()(
           streak: s.streak,
           onboardedAt: s.onboardedAt,
           notifications: s.notifications,
+          paywallPrompts: s.paywallPrompts,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,

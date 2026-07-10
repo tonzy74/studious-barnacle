@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,8 +12,10 @@ import { applyCorrections } from '../lib/corrections';
 import { diag } from '../lib/diagnostics';
 import { matchWhiskey, MatchConfidence } from '../lib/flavor';
 import { saveBottlePhoto } from '../lib/images';
+import { isValuableScan } from '../lib/paywallEngine';
 import { fairPrice, formatUsd } from '../lib/pricing';
 import { RARITY_LABELS } from '../lib/rarity';
+import { useContextualPaywall } from '../useContextualPaywall';
 import { useProGate } from '../useProGate';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
@@ -46,10 +48,22 @@ export default function ScanLabelScreen() {
   const corrections = useStore((s) => s.corrections);
   const addWishlist = useStore((s) => s.addWishlist);
   const { requirePro } = useProGate('ai-label-scan');
+  const { maybePrompt } = useContextualPaywall();
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<Result | undefined>();
+
+  // Peak-intent moment: the user just saw a genuinely valuable/rare bottle's
+  // worth. After a beat (so they read it first), the frequency-capped engine
+  // decides whether a Pro prompt is warranted.
+  useEffect(() => {
+    if (!result?.record) return;
+    const price = fairPrice(result.record.msrp, result.record.secondary, result.record.rarity);
+    if (!isValuableScan(price, result.record.rarity)) return;
+    const t = setTimeout(() => maybePrompt('valuable-scan'), 1300);
+    return () => clearTimeout(t);
+  }, [result, maybePrompt]);
 
   const scan = async (fromCamera: boolean) => {
     if (requirePro()) return;
