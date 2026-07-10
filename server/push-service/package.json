@@ -1,0 +1,12 @@
+{
+  "name": "whiskey-vault-push-service",
+  "version": "1.0.0",
+  "description": "Zero-dependency Expo push token registry + sender for Whiskey Vault.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

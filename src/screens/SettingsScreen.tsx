@@ -43,7 +43,8 @@ export default function SettingsScreen() {
 
   const toggleReminders = async (value: boolean) => {
     if (value) {
-      const ok = await enableReminders(useStore.getState().streak.streak, notifications.hour);
+      const st = useStore.getState();
+      const ok = await enableReminders(st.streak.streak, notifications.hour, st.anonId);
       if (ok) {
         setNotifications({ enabled: true });
         track('reminders_enabled');

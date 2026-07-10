@@ -34,3 +34,6 @@ export const ANALYTICS_URL = process.env.EXPO_PUBLIC_ANALYTICS_URL ?? '';
 
 /** EAS project id used to mint Expo push tokens. Empty = auto-detect in EAS builds. */
 export const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '';
+
+/** Base URL of the push-service (token registry). Empty = don't register tokens. */
+export const PUSH_URL = process.env.EXPO_PUBLIC_PUSH_URL ?? '';

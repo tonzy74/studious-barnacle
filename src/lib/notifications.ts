@@ -2,7 +2,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { EAS_PROJECT_ID } from '../config';
+import { EAS_PROJECT_ID, PUSH_URL } from '../config';
 import { diag } from './diagnostics';
 import {
   DEFAULT_REMINDER_HOUR,
@@ -151,14 +151,33 @@ export async function cancelAllReminders(): Promise<void> {
  * Enable the full reminder suite: prompt for permission, then schedule the
  * streak + release reminders. Returns whether it ended up enabled.
  */
-export async function enableReminders(streak: number, hour: number = DEFAULT_REMINDER_HOUR): Promise<boolean> {
+export async function enableReminders(
+  streak: number,
+  hour: number = DEFAULT_REMINDER_HOUR,
+  anonId?: string
+): Promise<boolean> {
   const granted = await requestNotificationPermission();
   if (!granted) return false;
   await scheduleStreakReminder(streak, hour);
   await scheduleReleaseDigest(hour);
-  // Warm the push token too so remote alerts are ready once a push backend is
-  // wired (no-op in Expo Go / simulators). Send `token` to your backend there.
+  // Warm the push token and, if a push backend is configured, register it so
+  // remote alerts can be sent (no-op in Expo Go / simulators / without URL).
   const token = await registerForPushToken();
-  if (token) diag.info('notifications', 'push token acquired (ready for backend)');
+  if (token) await registerTokenWithBackend(token, anonId);
   return true;
+}
+
+/** Send this device's push token to the push-service registry (best-effort). */
+export async function registerTokenWithBackend(token: string, anonId?: string): Promise<void> {
+  if (!PUSH_URL) return;
+  try {
+    await fetch(`${PUSH_URL.replace(/\/+$/, '')}/v1/push/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, anonId }),
+    });
+    diag.info('notifications', 'push token registered with backend');
+  } catch (err) {
+    diag.warn('notifications', `token register failed: ${(err as Error).message}`);
+  }
 }
