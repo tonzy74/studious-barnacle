@@ -83,6 +83,8 @@ interface VaultState {
   referredBy?: string;
   /** When Pro access lapsed — powers the win-back offer. */
   proLapsedAt?: number;
+  /** Key of the last fresh-start nudge the user saw (show once per landmark). */
+  freshStartSeen?: string;
   /** True once persisted state has rehydrated — gates the onboarding flash. */
   hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -126,6 +128,8 @@ interface VaultState {
   markFirstOpen: () => void;
   /** Redeem a friend's referral code (blocks self-referral / double-apply). */
   applyReferral: (code: string) => void;
+  /** Dismiss the current fresh-start nudge so it won't show again. */
+  dismissFreshStart: (key: string) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -162,6 +166,7 @@ export const useStore = create<VaultState>()(
       firstOpenAt: undefined,
       referredBy: undefined,
       proLapsedAt: undefined,
+      freshStartSeen: undefined,
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -226,6 +231,7 @@ export const useStore = create<VaultState>()(
           if (!canApplyReferral(code, own, s.referredBy)) return s;
           return { referredBy: code.toUpperCase() };
         }),
+      dismissFreshStart: (key) => set({ freshStartSeen: key }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -315,6 +321,7 @@ export const useStore = create<VaultState>()(
           firstOpenAt: s.firstOpenAt,
           referredBy: s.referredBy,
           proLapsedAt: s.proLapsedAt,
+          freshStartSeen: s.freshStartSeen,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,

@@ -23,6 +23,7 @@ export type RootStackParamList = {
   Diagnostics: undefined;
   Insights: undefined;
   Referral: undefined;
+  Lineups: undefined;
   Trade: undefined;
   Pour: undefined;
   Match: undefined;
