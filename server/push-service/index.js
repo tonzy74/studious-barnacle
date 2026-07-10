@@ -24,14 +24,22 @@ const http = require('http');
 const fs = require('fs');
 const { URL } = require('url');
 const { isExpoPushToken, chunk, buildMessages } = require('./lib/push');
+const { runReleaseCheck } = require('./lib/scheduler');
+const { fetchUpcomingReleases } = require('./lib/releases');
 
 const PORT = process.env.PORT || 8789;
 const TOKENS_FILE = process.env.TOKENS_FILE || null;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const EXPO_PUSH_URL = process.env.EXPO_PUSH_URL || 'https://exp.host/--/api/v2/push/send';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+// Interval (ms) for the internal release-watch cron; 0/unset = disabled (use the
+// admin endpoint from an external scheduler instead).
+const RELEASE_CRON_MS = Number(process.env.RELEASE_CRON_MS || 0);
 
 /** token -> { anonId, at } */
 const tokens = new Map();
+/** Release keys we've already alerted on (in-memory snapshot). */
+const seenReleases = new Set();
 
 if (TOKENS_FILE && fs.existsSync(TOKENS_FILE)) {
   for (const line of fs.readFileSync(TOKENS_FILE, 'utf8').split('\n')) {
@@ -72,6 +80,16 @@ function readBody(req) {
 function persistToken(token, rec) {
   if (!TOKENS_FILE) return;
   fs.appendFile(TOKENS_FILE, JSON.stringify({ token, ...rec }) + '\n', () => {});
+}
+
+/** Run the release-watch job with the live deps (tokens + Expo sender). */
+function releaseCheck() {
+  return runReleaseCheck({
+    seen: seenReleases,
+    fetchReleases: () => fetchUpcomingReleases(ANTHROPIC_API_KEY),
+    getTokens: () => [...tokens.keys()],
+    send: (message, toks) => sendViaExpo(buildMessages(toks, message)),
+  });
 }
 
 /** Fan messages out to the Expo Push API in chunks; returns ticket arrays. */
@@ -124,11 +142,33 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Release-watch: fetch upcoming releases, diff, and broadcast new ones.
+  // Point an external scheduler (Render Cron, GitHub Actions) at this, or set
+  // RELEASE_CRON_MS to run it internally.
+  if (req.method === 'POST' && url.pathname === '/v1/push/release-check') {
+    if (!ADMIN_TOKEN || req.headers['x-admin-token'] !== ADMIN_TOKEN) {
+      return sendJson(res, 401, { error: 'unauthorized' });
+    }
+    try {
+      const result = await releaseCheck();
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return sendJson(res, 502, { error: String(err.message || err) });
+    }
+  }
+
   sendJson(res, 404, { error: 'not found' });
 });
 
 if (require.main === module) {
   server.listen(PORT, () => console.log(`push-service listening on :${PORT}`));
+  if (RELEASE_CRON_MS > 0) {
+    setInterval(() => {
+      releaseCheck()
+        .then((r) => r.newCount && console.log(`release-check: ${r.newCount} new, sent ${r.sent}`))
+        .catch((e) => console.error('release-check failed', e.message));
+    }, RELEASE_CRON_MS).unref();
+  }
 }
 
 module.exports = { server };

@@ -1,3 +1,4 @@
+import { FunnelMetrics } from './funnel';
 import { AnalyticsEvent } from '../types';
 
 /**
@@ -18,4 +19,11 @@ export async function postEvents(baseUrl: string, events: AnalyticsEvent[]): Pro
     body: JSON.stringify({ events }),
   });
   if (!res.ok) throw new Error(`analytics flush HTTP ${res.status}`);
+}
+
+/** GET the aggregate growth funnel from the analytics service. */
+export async function fetchFunnel(baseUrl: string): Promise<FunnelMetrics> {
+  const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/v1/funnel`);
+  if (!res.ok) throw new Error(`funnel HTTP ${res.status}`);
+  return res.json();
 }

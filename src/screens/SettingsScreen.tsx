@@ -288,10 +288,21 @@ export default function SettingsScreen() {
 
       <Text style={styles.section}>Support</Text>
       <Button
+        title="Growth insights"
+        icon="stats-chart-outline"
+        variant="secondary"
+        onPress={() => navigation.navigate('Insights')}
+      />
+      <Text style={styles.help}>
+        Your acquisition → activation → revenue funnel. Aggregates all installs when the analytics
+        backend is configured; otherwise shows this device.
+      </Text>
+      <Button
         title="Diagnostics log"
         icon="bug-outline"
         variant="secondary"
         onPress={() => navigation.navigate('Diagnostics')}
+        style={{ marginTop: 10 }}
       />
       <Text style={styles.help}>
         A live log of scans and AI calls. If something misbehaves, open this and share it so the

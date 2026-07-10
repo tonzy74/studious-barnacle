@@ -19,6 +19,7 @@ import AchievementsScreen from './src/screens/AchievementsScreen';
 import DiagnosticsScreen from './src/screens/DiagnosticsScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import InsightsScreen from './src/screens/InsightsScreen';
 import JournalScreen from './src/screens/JournalScreen';
 import LogPourScreen from './src/screens/LogPourScreen';
 import MatchScreen from './src/screens/MatchScreen';
@@ -144,6 +145,7 @@ export default function App() {
         <Stack.Screen name="Achievements" component={AchievementsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="ScanLabel" component={ScanLabelScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Insights" component={InsightsScreen} options={{ headerShown: false }} />
         <Stack.Screen
           name="Paywall"
           component={PaywallScreen}
