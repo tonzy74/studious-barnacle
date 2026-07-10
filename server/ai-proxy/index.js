@@ -27,6 +27,7 @@ const fs = require('fs');
 const { URL } = require('url');
 const { evaluate } = require('./lib/quota');
 const { applyEvent, isActive } = require('./lib/entitlement');
+const { verifyAttestation } = require('./lib/attestation');
 
 const PORT = process.env.PORT || 8790;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
@@ -44,6 +45,12 @@ const ANTHROPIC_VERSION = process.env.ANTHROPIC_VERSION || '2023-06-01';
 // instead of trusting the app's x-wv-pro header. Set this as the webhook's
 // Authorization header value in the RevenueCat dashboard.
 const RC_WEBHOOK_SECRET = process.env.RC_WEBHOOK_SECRET || '';
+
+// Device attestation gate (anti-replay of the public APP_TOKEN). Off by default;
+// set REQUIRE_ATTESTATION=1 + ATTESTATION_MODE and wire a real verifier before
+// relying on it (see lib/attestation.js).
+const REQUIRE_ATTESTATION = process.env.REQUIRE_ATTESTATION === '1';
+const ATTESTATION_MODE = process.env.ATTESTATION_MODE || 'off';
 
 /** appUserId (== install id) -> { active, expiresAt } from RevenueCat. */
 const proStatus = new Map();
@@ -79,7 +86,7 @@ function sendJson(res, status, body, extraHeaders = {}) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version, x-wv-install, x-wv-pro',
+    'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version, x-wv-install, x-wv-pro, x-wv-attest',
     ...extraHeaders,
   });
   res.end(JSON.stringify(body));
@@ -149,6 +156,13 @@ const server = http.createServer(async (req, res) => {
     if (!ANTHROPIC_API_KEY) return sendJson(res, 500, { error: 'proxy missing ANTHROPIC_API_KEY' });
     if (!APP_TOKEN || req.headers['x-api-key'] !== APP_TOKEN) {
       return sendJson(res, 401, { error: 'unauthorized' });
+    }
+    if (REQUIRE_ATTESTATION) {
+      const attested = await verifyAttestation(req.headers['x-wv-attest'], {
+        mode: ATTESTATION_MODE,
+        install: req.headers['x-wv-install'],
+      });
+      if (!attested) return sendJson(res, 401, { error: 'attestation_failed' });
     }
     const install = String(req.headers['x-wv-install'] || '').slice(0, 64) || 'anon';
     // Pro is authoritative from RevenueCat webhooks when configured; otherwise

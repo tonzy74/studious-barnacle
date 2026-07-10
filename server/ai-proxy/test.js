@@ -5,12 +5,16 @@
 const assert = require('assert');
 const { monthKey, evaluate } = require('./lib/quota');
 const { applyEvent, isActive, statusFromEvent } = require('./lib/entitlement');
+const { verifyAttestation } = require('./lib/attestation');
 
 let passed = 0;
+const queue = [];
 const ok = (name, fn) => {
-  fn();
-  passed += 1;
-  console.log(`  ✓ ${name}`);
+  queue.push(async () => {
+    await fn();
+    passed += 1;
+    console.log(`  ✓ ${name}`);
+  });
 };
 
 const JAN = Date.UTC(2026, 0, 15);
@@ -82,4 +86,49 @@ ok('unknown event types are ignored', () => {
   assert.strictEqual(statusFromEvent({ type: 'TEST', app_user_id: 'u1' }, NOW), null);
 });
 
-console.log(`\n${passed} tests passed.`);
+ok("attestation mode 'off' is a no-op that allows (default)", async () => {
+  assert.strictEqual(await verifyAttestation(undefined, { mode: 'off' }), true);
+  assert.strictEqual(await verifyAttestation('anything', {}), true); // default mode is off
+});
+
+ok('when required with no token, fail closed', async () => {
+  assert.strictEqual(await verifyAttestation('', { mode: 'appattest' }), false);
+  assert.strictEqual(await verifyAttestation(undefined, { mode: 'appattest' }), false);
+});
+
+ok('when required with a token but no verifier, fail closed', async () => {
+  assert.strictEqual(await verifyAttestation('tok', { mode: 'appattest' }), false);
+});
+
+ok('an injected verifier is called and its result honored', async () => {
+  let seen = null;
+  const pass = await verifyAttestation('tok', {
+    mode: 'appattest',
+    verifier: (t) => {
+      seen = t;
+      return true;
+    },
+  });
+  assert.strictEqual(pass, true);
+  assert.strictEqual(seen, 'tok');
+  const fail = await verifyAttestation('tok', { mode: 'appattest', verifier: () => false });
+  assert.strictEqual(fail, false);
+});
+
+ok('a throwing verifier fails closed', async () => {
+  const r = await verifyAttestation('tok', {
+    mode: 'appattest',
+    verifier: () => {
+      throw new Error('boom');
+    },
+  });
+  assert.strictEqual(r, false);
+});
+
+(async () => {
+  for (const run of queue) await run();
+  console.log(`\n${passed} tests passed.`);
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

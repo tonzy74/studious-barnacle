@@ -67,8 +67,38 @@ trusting the app's `x-wv-pro` header (which a determined user could spoof).
 
 `POST /v1/rc/webhook` — RevenueCat events (Bearer-auth). Returns `{ ok: true }`.
 
+## Device attestation (stop APP_TOKEN replay)
+
+The `APP_TOKEN` ships in the app bundle, so a determined attacker could lift it
+and replay calls to burn your free-tier Anthropic budget. Device attestation
+proves a request comes from a genuine, unmodified install of *your* app.
+
+The gate is wired but **off by default** (a no-op that allows everything) so
+nothing breaks before you integrate a provider. To turn it on:
+
+| Env | Default | What it does |
+|---|---|---|
+| `REQUIRE_ATTESTATION` | (off) | `1` → every `/v1/messages` call must pass attestation |
+| `ATTESTATION_MODE` | `off` | Names the scheme; anything other than `off` fails closed until a verifier is wired |
+
+Flow: the app obtains a fresh attestation token from the OS and sends it as the
+`x-wv-attest` header (client seam: `setAttestToken()` in `src/lib/aiClient.ts`).
+The proxy passes it to `verifyAttestation()` in `lib/attestation.js`, which is
+dependency-free and takes an injected `verifier(token, opts)` so you can plug in
+one of:
+
+- **Apple App Attest / DeviceCheck** (iOS) — verify the attestation/assertion
+  against Apple's root and your app's key.
+- **Google Play Integrity** (Android) — verify the integrity verdict token.
+- **Firebase App Check** (cross-platform) — verify the RS256 JWT against Google's
+  JWKS.
+
+Until a verifier is provided, required mode **fails closed** (returns 401
+`attestation_failed`) rather than silently allowing — so you can't half-enable it.
+
 ## Production hardening
 
-- Add device attestation (App Attest / Play Integrity) so the `APP_TOKEN` can't
-  be lifted from the binary and abused.
+- Turn on device attestation (above) so the `APP_TOKEN` can't be replayed.
+- Set `RC_WEBHOOK_SECRET` so Pro is authoritative from RevenueCat (closes the
+  dev-only `x-wv-pro` header fallback).
 - Swap the in-memory usage/pro maps for a datastore; keep `MODEL_ALLOWLIST` tight.
