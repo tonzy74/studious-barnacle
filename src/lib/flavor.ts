@@ -43,6 +43,30 @@ function normalizeName(s: string): string {
  */
 const VARIANT_WORDS = new Set(['batch', 'pick', 'picked', 'bbl', 'store']);
 
+/**
+ * Retailer / store-pick vocabulary that appears in a scanned or typed name but
+ * isn't part of the bottling ("Blanton's — Total Wine Pick"). These must NOT be
+ * treated as distinctive expression specifiers, or a real pick would fail to
+ * match its base bottling. Used to exclude such words from the specifier-miss
+ * penalty. Conservative on purpose (no words that occur in real bottlings).
+ */
+const RETAILER_WORDS = new Set([
+  'total',
+  'wine',
+  'binny',
+  'binnys',
+  'costco',
+  'seelbach',
+  'seelbachs',
+  'kroger',
+  'specs',
+  'justins',
+  'party',
+  'liquor',
+  'barn',
+  'keg',
+]);
+
 /** Collector shorthand → full bottling names. */
 const ALIASES: Record<string, string> = {
   ecbp: 'elijah craig barrel proof',
@@ -173,8 +197,8 @@ interface MatchQuery {
 /**
  * Split a query into name words vs distillery words so distillery agreement is
  * scored separately and can never, on its own, pull in an unrelated bottling.
- * Drops batch codes and pick vocabulary, and expands collector shorthand
- * ("ecbp" → "elijah craig barrel proof").
+ * Drops batch codes, pick vocabulary, and retailer names, and expands collector
+ * shorthand ("ecbp" → "elijah craig barrel proof").
  */
 function buildQuery(input: NameQuery): MatchQuery {
   const name = typeof input === 'string' ? input : input.name;
@@ -182,7 +206,7 @@ function buildQuery(input: NameQuery): MatchQuery {
   const nameNorm = normalizeName(name);
   const words = nameNorm
     .split(' ')
-    .filter((w) => w && !isBatchCode(w) && !VARIANT_WORDS.has(w))
+    .filter((w) => w && !isBatchCode(w) && !VARIANT_WORDS.has(w) && !RETAILER_WORDS.has(w))
     .flatMap((w) => (ALIASES[w] ? ALIASES[w].split(' ') : [w]));
   // 1–3 digit numbers are ages/proofs (matched, never anchoring); 4-digit
   // numbers ("1792", "1910", "1920") are brand identifiers and stay as name
@@ -316,6 +340,16 @@ function scoreRecord(record: WhiskeyRecord, query: MatchQuery): RecordScore {
     if (!qNameSet.has(w)) extra++;
   }
   score -= extra * 0.75;
+
+  // Specifier miss: the query names a distinctive word this record lacks
+  // entirely (e.g. "Dovetail" against "…Single Barrel"). That's a different
+  // expression of the same brand, so dock it hard — this keeps a bottling that
+  // isn't in the catalog from snapping to a sibling at high confidence.
+  let specifierMiss = 0;
+  for (const w of query.nameWords) {
+    if (w.length >= 4 && !isAgeNumber(w) && !rec.full.includes(w)) specifierMiss++;
+  }
+  score -= specifierMiss * 2.5;
 
   // Generic descriptors (cask/proof/small/batch…) only break ties between
   // bottlings that already share a name anchor.
