@@ -1,4 +1,5 @@
 import { Bottle } from '../types';
+import { collectorLevel } from './collectorLevel';
 import { fairPrice, formatUsd } from './pricing';
 import { rarityRank } from './rarity';
 
@@ -18,6 +19,11 @@ export function buildVaultShareText(
 
   const units = bottles.reduce((n, b) => n + Math.max(1, b.quantity), 0);
   const styles = new Set(bottles.map((b) => b.type)).size;
+  const value = bottles.reduce(
+    (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
+    0
+  );
+  const level = collectorLevel(bottles, value);
 
   // Rarest bottle: best rarity tier, breaking ties by fair value.
   const rarest = [...bottles].sort((a, b) => {
@@ -27,15 +33,12 @@ export function buildVaultShareText(
   })[0];
 
   const lines = [
-    `🥃 My Whiskey Vault: ${units} bottle${units === 1 ? '' : 's'} across ${styles} style${styles === 1 ? '' : 's'}.`,
+    `🥃 ${level.title} (Level ${level.level}) on Whiskey Vault.`,
+    `${units} bottle${units === 1 ? '' : 's'} across ${styles} style${styles === 1 ? '' : 's'}.`,
   ];
 
-  if (opts.includeValue) {
-    const value = bottles.reduce(
-      (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
-      0
-    );
-    if (value > 0) lines.push(`Estimated value: ${formatUsd(value)}.`);
+  if (opts.includeValue && value > 0) {
+    lines.push(`Estimated value: ${formatUsd(value)}.`);
   }
 
   if (rarest) lines.push(`Crown jewel: ${rarest.name}.`);

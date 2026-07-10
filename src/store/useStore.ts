@@ -72,6 +72,8 @@ interface VaultState {
   notifications: { enabled: boolean; hour: number };
   /** Contextual-paywall frequency control (etiquette so we never nag). */
   paywallPrompts: { lastShownAt: number; count: number };
+  /** Highest collector level the user has been shown (to celebrate level-ups). */
+  collectorLevelSeen: number;
   /** True once persisted state has rehydrated — gates the onboarding flash. */
   hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -107,6 +109,8 @@ interface VaultState {
   setNotifications: (patch: Partial<{ enabled: boolean; hour: number }>) => void;
   /** Record that a contextual paywall was auto-shown (for cooldown + cap). */
   markPaywallShown: () => void;
+  /** Remember the collector level we've celebrated up to. */
+  setCollectorLevelSeen: (level: number) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -138,6 +142,7 @@ export const useStore = create<VaultState>()(
       hasHydrated: false,
       notifications: { enabled: false, hour: 19 },
       paywallPrompts: { lastShownAt: 0, count: 0 },
+      collectorLevelSeen: 1,
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -188,6 +193,7 @@ export const useStore = create<VaultState>()(
         set((s) => ({
           paywallPrompts: { lastShownAt: Date.now(), count: s.paywallPrompts.count + 1 },
         })),
+      setCollectorLevelSeen: (level) => set({ collectorLevelSeen: level }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -242,6 +248,7 @@ export const useStore = create<VaultState>()(
           streak: { streak: 0, longestStreak: 0, lastVisitDay: -1 },
           notifications: { enabled: false, hour: 19 },
           paywallPrompts: { lastShownAt: 0, count: 0 },
+          collectorLevelSeen: 1,
           events: [],
           anonId: newAnonId(),
         });
@@ -270,6 +277,7 @@ export const useStore = create<VaultState>()(
           onboardedAt: s.onboardedAt,
           notifications: s.notifications,
           paywallPrompts: s.paywallPrompts,
+          collectorLevelSeen: s.collectorLevelSeen,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,
