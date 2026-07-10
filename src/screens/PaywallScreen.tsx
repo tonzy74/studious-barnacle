@@ -6,7 +6,13 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
-import { FEATURE_COPY, FREE_TRIAL_DAYS, PRO_FEATURES, PRO_PLANS } from '../lib/monetization';
+import {
+  FEATURE_COPY,
+  FREE_TRIAL_DAYS,
+  PRO_FEATURES,
+  PRO_PLANS,
+  PRO_VALUE_LINE,
+} from '../lib/monetization';
 import { purchasePro, PURCHASES_READY, restorePurchases } from '../lib/purchases';
 import { useStore } from '../store/useStore';
 import { colors, gradients, radius, spacing, type as typo } from '../theme';
@@ -81,6 +87,12 @@ export default function PaywallScreen() {
           ))}
         </View>
 
+        {/* Value anchor — reframe price against what the app saves a collector */}
+        <View style={styles.valueLine}>
+          <Ionicons name="pricetag" size={15} color={colors.amberBright} />
+          <Text style={styles.valueText}>{PRO_VALUE_LINE}</Text>
+        </View>
+
         {PRO_PLANS.map((p) => (
           <TouchableOpacity
             key={p.id}
@@ -92,14 +104,35 @@ export default function PaywallScreen() {
               {plan === p.id && <View style={styles.radioDot} />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.planLabel}>
-                {p.label} {p.best && <Text style={styles.bestTag}>  BEST VALUE</Text>}
-              </Text>
+              <View style={styles.planLabelRow}>
+                <Text style={styles.planLabel}>{p.label}</Text>
+                {p.badge && <Text style={styles.saveBadge}>{p.badge}</Text>}
+                {p.best && <Text style={styles.bestTag}>BEST VALUE</Text>}
+              </View>
               <Text style={styles.planSub}>{p.sub}</Text>
             </View>
-            <Text style={styles.planPrice}>{p.price}</Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              {p.anchor && <Text style={styles.anchor}>{p.anchor}</Text>}
+              <Text style={styles.planPrice}>{p.price}</Text>
+            </View>
           </TouchableOpacity>
         ))}
+
+        {/* Risk-reversal — the trial does the heavy lifting on conversion */}
+        <View style={styles.trustRow}>
+          <View style={styles.trustItem}>
+            <Ionicons name="time-outline" size={15} color={colors.amber} />
+            <Text style={styles.trustText}>{FREE_TRIAL_DAYS} days free</Text>
+          </View>
+          <View style={styles.trustItem}>
+            <Ionicons name="notifications-off-outline" size={15} color={colors.amber} />
+            <Text style={styles.trustText}>Reminder before it bills</Text>
+          </View>
+          <View style={styles.trustItem}>
+            <Ionicons name="close-circle-outline" size={15} color={colors.amber} />
+            <Text style={styles.trustText}>Cancel anytime</Text>
+          </View>
+        </View>
 
         <Button
           title={busy ? 'Processing…' : `Start ${FREE_TRIAL_DAYS}-day free trial`}
@@ -108,6 +141,10 @@ export default function PaywallScreen() {
           disabled={busy}
           style={{ marginTop: spacing.lg }}
         />
+        <Text style={styles.thenPrice}>
+          Then {PRO_PLANS.find((p) => p.id === plan)?.price}
+          {plan === 'lifetime' ? '' : ' · cancel anytime in Settings'}
+        </Text>
         <TouchableOpacity onPress={restore} style={{ marginTop: spacing.md }}>
           <Text style={styles.restore}>Restore purchases</Text>
         </TouchableOpacity>
@@ -144,6 +181,47 @@ const styles = StyleSheet.create({
     padding: spacing.md, marginTop: spacing.md,
   },
   planActive: { borderColor: colors.amber, backgroundColor: colors.cardAlt },
+  valueLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.cardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  valueText: { color: colors.text, fontSize: 12.5, fontWeight: '600', flex: 1 },
+  planLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  saveBadge: {
+    color: colors.ink,
+    backgroundColor: colors.amberBright,
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  anchor: {
+    color: colors.textFaint,
+    fontSize: 11,
+    fontWeight: '600',
+    textDecorationLine: 'line-through',
+  },
+  trustRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  trustItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'center' },
+  trustText: { color: colors.textDim, fontSize: 10.5, fontWeight: '600' },
+  thenPrice: { color: colors.textDim, fontSize: 12, textAlign: 'center', marginTop: spacing.sm },
   radio: {
     width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.amber,
     alignItems: 'center', justifyContent: 'center',

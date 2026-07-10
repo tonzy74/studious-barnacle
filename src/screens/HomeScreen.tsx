@@ -2,12 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Share, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Emblem, TypeIcon } from '../components';
+import { nextMilestone, pourOfTheDay, streakAlive, tipOfTheDay } from '../lib/engagement';
 import { fairPrice, formatUsd } from '../lib/pricing';
+import { buildVaultShareText } from '../lib/share';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
 import { colors, gradients, radius, spacing, type as typo } from '../theme';
@@ -26,10 +28,16 @@ export default function HomeScreen() {
   const jump = (name: string) => (navigation as unknown as { navigate: (n: string) => void }).navigate(name);
   const insets = useSafeAreaInsets();
   const bottles = useStore((s) => s.bottles);
-  const pours = useStore((s) => s.pours);
   const isPro = useStore((s) => s.isPro);
   const hideValues = useStore((s) => s.hideValues);
   const toggleHideValues = useStore((s) => s.toggleHideValues);
+  const streak = useStore((s) => s.streak);
+  const registerVisit = useStore((s) => s.registerVisit);
+
+  // Habit loop: log the daily visit once when Home mounts.
+  useEffect(() => {
+    registerVisit();
+  }, [registerVisit]);
 
   const value = bottles.reduce(
     (sum, b) => sum + (fairPrice(b.msrp, b.secondary, b.rarity) ?? 0) * Math.max(1, b.quantity),
@@ -37,6 +45,17 @@ export default function HomeScreen() {
   );
   const units = bottles.reduce((n, b) => n + Math.max(1, b.quantity), 0);
   const recentBottles = [...bottles].sort((a, b) => b.addedAt - a.addedAt).slice(0, 4);
+  const pour = pourOfTheDay(bottles);
+  const milestone = nextMilestone(bottles, value);
+  const alive = streakAlive(streak);
+  const tip = tipOfTheDay();
+
+  const shareVault = () => {
+    // Respect the hide-values toggle — never leak a dollar figure the user hid.
+    Share.share({ message: buildVaultShareText(bottles, { includeValue: !hideValues }) }).catch(
+      () => {}
+    );
+  };
 
   const ACTIONS: { label: string; icon: keyof typeof Ionicons.glyphMap; go: () => void }[] = [
     { label: 'Scan', icon: 'barcode-outline', go: () => jump('Scan') },
@@ -59,9 +78,16 @@ export default function HomeScreen() {
               <Text style={styles.hello}>{greeting()}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')} activeOpacity={0.8}>
-            <Ionicons name="settings-outline" size={20} color={colors.amberBright} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {bottles.length > 0 && (
+              <TouchableOpacity style={styles.iconBtn} onPress={shareVault} activeOpacity={0.8}>
+                <Ionicons name="share-outline" size={20} color={colors.amberBright} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')} activeOpacity={0.8}>
+              <Ionicons name="settings-outline" size={20} color={colors.amberBright} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Value hero */}
@@ -79,6 +105,54 @@ export default function HomeScreen() {
             </Text>
           </LinearGradient>
         </TouchableOpacity>
+
+        {/* Today: streak + a reason to pour tonight (daily variable reward) */}
+        <View style={styles.todayRow}>
+          <View style={[styles.streakChip, !alive && styles.streakCold]}>
+            <Ionicons name="flame" size={18} color={alive ? colors.amberBright : colors.textFaint} />
+            <Text style={[styles.streakNum, !alive && { color: colors.textFaint }]}>
+              {streak.streak}
+            </Text>
+            <Text style={styles.streakLabel}>day{streak.streak === 1 ? '' : 's'}</Text>
+          </View>
+          {pour ? (
+            <TouchableOpacity
+              style={styles.pourCard}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('BottleDetail', { id: pour.id })}
+            >
+              <Text style={styles.pourLabel}>TONIGHT'S POUR</Text>
+              <Text style={styles.pourName} numberOfLines={1}>{pour.name}</Text>
+              <Text style={styles.pourSub} numberOfLines={1}>
+                {pour.opened ? 'Open now · pour it' : `${pour.distillery}`}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.pourCard}>
+              <Text style={styles.pourLabel}>TONIGHT'S POUR</Text>
+              <Text style={styles.pourSub}>Add a bottle to get a nightly suggestion.</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Next milestone — goal-gradient nudge toward the next badge */}
+        {milestone && (
+          <Card style={styles.milestone}>
+            <View style={styles.milestoneTop}>
+              <Ionicons name="trophy-outline" size={16} color={colors.amberBright} />
+              <Text style={styles.milestoneLabel}>{milestone.label}</Text>
+              <Text style={styles.milestoneCount}>
+                {milestone.key === 'value'
+                  ? `${Math.round(milestone.progress * 100)}%`
+                  : `${milestone.current} / ${milestone.target}`}
+              </Text>
+            </View>
+            <View style={styles.barTrack}>
+              <View style={[styles.barFill, { width: `${Math.min(100, Math.round(milestone.progress * 100))}%` }]} />
+            </View>
+            <Text style={styles.milestoneReward}>Earns: {milestone.reward}</Text>
+          </Card>
+        )}
 
         {/* Quick actions */}
         <View style={styles.actions}>
@@ -156,6 +230,15 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>Your vault is empty — scan or add your first bottle.</Text>
           </Card>
         )}
+
+        {/* Daily micro-education — a small reason to linger and come back */}
+        <Card style={styles.tipCard}>
+          <View style={styles.tipHead}>
+            <Ionicons name="bulb-outline" size={15} color={colors.amberBright} />
+            <Text style={styles.tipTitle}>Whiskey wisdom</Text>
+          </View>
+          <Text style={styles.tipText}>{tip}</Text>
+        </Card>
       </ScrollView>
     </LinearGradient>
   );
@@ -174,6 +257,43 @@ const styles = StyleSheet.create({
   heroLabel: { ...typo.overline, color: colors.amber },
   heroValue: { color: colors.text, fontSize: 34, fontWeight: '800', marginTop: spacing.sm, letterSpacing: 0.3 },
   heroSub: { color: colors.textDim, marginTop: 4, fontSize: 13 },
+  todayRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  streakChip: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderBright,
+    minWidth: 78,
+  },
+  streakCold: { borderColor: colors.border },
+  streakNum: { color: colors.text, fontSize: 22, fontWeight: '800', marginTop: 2 },
+  streakLabel: { color: colors.textDim, fontSize: 10, fontWeight: '600', letterSpacing: 0.5 },
+  pourCard: {
+    flex: 1,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+  },
+  pourLabel: { ...typo.overline, color: colors.amberDeep, fontSize: 9 },
+  pourName: { color: colors.text, fontSize: 15, fontWeight: '700', marginTop: 3 },
+  pourSub: { color: colors.textDim, fontSize: 12, marginTop: 2 },
+  milestone: { marginTop: spacing.md, padding: spacing.md, gap: spacing.sm },
+  milestoneTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  milestoneLabel: { color: colors.text, fontSize: 13.5, fontWeight: '700', flex: 1 },
+  milestoneCount: { color: colors.amberBright, fontSize: 13, fontWeight: '800' },
+  barTrack: { height: 8, borderRadius: 4, backgroundColor: colors.bgElevated, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: 4, backgroundColor: colors.amber },
+  milestoneReward: { color: colors.textDim, fontSize: 11.5 },
+  tipCard: { marginTop: spacing.lg, padding: spacing.md, gap: 6 },
+  tipHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tipTitle: { ...typo.overline, color: colors.amberDeep },
+  tipText: { color: colors.textDim, fontSize: 13, lineHeight: 19 },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   action: { flex: 1, alignItems: 'center', gap: 6 },
   actionIcon: {

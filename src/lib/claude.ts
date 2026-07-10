@@ -451,7 +451,10 @@ const RELEASES_SCHEMA = {
 } as const;
 
 /** Validate/normalize the releases output: exported separately for testing. */
-export function validateReleases(raw: unknown): UpcomingRelease[] {
+export function validateReleases(
+  raw: unknown,
+  currentYear: number = new Date().getFullYear()
+): UpcomingRelease[] {
   const releases = (raw as { releases?: unknown })?.releases;
   if (!Array.isArray(releases)) return [];
   const seen = new Set<string>();
@@ -475,7 +478,13 @@ export function validateReleases(raw: unknown): UpcomingRelease[] {
       name,
       distillery: typeof r.distillery === 'string' ? r.distillery.trim().slice(0, 80) : '',
       category,
-      window: typeof r.window === 'string' ? r.window.trim().slice(0, 40) : '',
+      // These are annually-recurring programs; if the model anchored on a stale
+      // year from its training data, roll any past year forward to now so the
+      // calendar never shows a year that has already passed.
+      window: (typeof r.window === 'string' ? r.window.trim().slice(0, 40) : '').replace(
+        /\b(?:19|20)\d{2}\b/g,
+        (y) => (parseInt(y, 10) < currentYear ? String(currentYear) : y)
+      ),
       rarity,
       note: typeof r.note === 'string' ? r.note.trim().slice(0, 200) : '',
     });
@@ -496,22 +505,27 @@ export async function upcomingReleases(
   model: string = DEFAULT_MODEL
 ): Promise<UpcomingRelease[]> {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const today = new Date();
+  const currentYear = today.getFullYear();
   const response = await client.messages.create({
     model,
     max_tokens: 4096,
     system:
+      `Today's date is ${today.toISOString().slice(0, 10)} (year ${currentYear}). ` +
       'You are a whiskey release expert. List notable upcoming or annually-recurring, ' +
       'highly-desirable American whiskey releases that collectors watch for (e.g. Buffalo ' +
       'Trace Antique Collection, Pappy Van Winkle, Four Roses Limited Edition, Old Forester ' +
       'Birthday Bourbon, Wild Turkey Master\'s Keep, Michter\'s 20/25). Use real, well-known ' +
       'release programs only — never invent products. Give an APPROXIMATE window (season + ' +
-      'year) since exact dates and prices are not fixed. Focus on American whiskey. Return ' +
-      'exactly 12 releases spanning allocated unicorns to attainable limited editions. Keep ' +
-      'each note to one short sentence.',
+      'year) since exact dates and prices are not fixed. CRITICAL: only list releases still ' +
+      `upcoming as of today — every window must be in ${currentYear} or later, never a past ` +
+      'year. For annual programs that already dropped this year, give next year\'s window. ' +
+      'Focus on American whiskey. Return exactly 12 releases spanning allocated unicorns to ' +
+      'attainable limited editions. Keep each note to one short sentence.',
     messages: [
       {
         role: 'user',
-        content: 'What notable American whiskey releases should I be watching for?',
+        content: `What notable American whiskey releases should I be watching for as of ${today.toISOString().slice(0, 10)}?`,
       },
     ],
     output_config: { format: { type: 'json_schema', schema: RELEASES_SCHEMA } },
@@ -520,7 +534,7 @@ export async function upcomingReleases(
     (block): block is Anthropic.TextBlock => block.type === 'text'
   )?.text;
   if (!text) return [];
-  return validateReleases(parseJsonObject(text));
+  return validateReleases(parseJsonObject(text), currentYear);
 }
 
 export interface CocktailSuggestion {

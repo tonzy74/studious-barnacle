@@ -1,0 +1,75 @@
+# Growth, Retention & Monetization Strategy
+
+Whiskey Vault's revenue is a function of **activation → habit → investment →
+conversion → LTV**. This doc records the behavioral science behind each lever
+and how it's implemented, so future changes stay grounded rather than guessed.
+
+## Who we optimize for
+
+American-whiskey enthusiasts and collectors: predominantly 30–55, disposable
+income, hobbyist/completionist mindset, motivated by valuation, rarity,
+"chasing" allocated bottles, and bragging rights. They already spend on the
+hobby — the app's job is to become the daily home for it.
+
+## 1. Daily habit — streaks (`engagement.ts`, Home "Today")
+
+- **Loss aversion** (Kahneman & Tversky, 1979): a running streak becomes
+  something the user doesn't want to *lose*, a stronger motivator than an
+  equivalent gain.
+- **The Hooked model** (Eyal, 2014): trigger → action → **variable reward** →
+  investment. The streak + a daily-rotating "Tonight's Pour" supply the
+  variable reward and a concrete reason to open the app every day.
+- **Habit formation** (Lally et al., 2010): habits take ~66 days of repetition;
+  a visible streak counter scaffolds that repetition.
+- Implementation: `registerVisit` folds one visit/day into a streak; Home shows
+  a flame + count and dims when the streak is at risk (recoverable within a day).
+
+## 2. Investment & completeness — milestones (`nextMilestone`)
+
+- **Goal-gradient effect** (Kivetz, Urminsky & Zheng, 2006): effort accelerates
+  as a goal nears. We always surface the *closest* unmet goal (bottles, value,
+  or styles) with a progress bar.
+- **Endowed progress** (Nunes & Drèze, 2006): progress already made pulls people
+  toward completion — the bar reframes an empty task as a half-done one.
+- **Zeigarnik effect**: incomplete tasks stay mentally "open," so a partially
+  filled progress bar nags pleasantly toward the next add.
+- **IKEA effect / investment**: every bottle, note, and rating raises switching
+  cost. More stored data ⇒ higher retention ⇒ higher LTV.
+
+## 3. Micro-education — daily tip (`tipOfTheDay`)
+
+Small, offline, rotating knowledge nuggets add session value and a low-cost
+reason to return (variable content), without any API cost or compliance risk.
+
+## 4. Conversion — the paywall (`PaywallScreen`, `monetization.ts`)
+
+- **Price anchoring & the decoy effect** (Ariely, *Predictably Irrational*): the
+  annual plan shows a struck-through `$59.88` anchor (12× the monthly price) and
+  a `SAVE 50%` badge; lifetime sits above as a high anchor that makes annual feel
+  reasonable.
+- **Default effect**: annual is pre-selected — most users accept the default.
+- **Risk reversal / free-trial framing**: a 7-day trial with an explicit
+  "reminder before it bills" and "cancel anytime" lowers perceived risk, the
+  single biggest driver of trial starts.
+- **Value reframing**: "One bottle you don't overpay for covers years of Pro"
+  anchors price against the hobby's own spend, not against other apps.
+- **Compliance**: no fabricated review counts or testimonials — App Store review
+  prohibits fake social proof, so every claim here is honest math or a real
+  feature. AI features are *not* gated (they run on the user's own key); Pro
+  gates only on-device power features that cost us nothing per use.
+
+## 5. Where the money comes from
+
+1. **Pro subscriptions** — annual-primary, monthly for the impatient, lifetime
+   for whales.
+2. **Affiliate** — buy-links on bottle/label/release screens (see
+   `docs/MONETIZATION.md`).
+3. **LTV compounding** — habit + investment raise retention, which multiplies
+   both subscription renewals and affiliate volume.
+
+## Measurement (when analytics backend lands)
+
+Track: D1/D7/D30 retention, streak length distribution, activation rate (first
+bottle added in session 1), paywall view→trial→paid funnel, and affiliate CTR.
+The consent-gated event queue (`analyticsCore.ts`) already captures the events;
+wiring a backend turns them into the dashboard these levers should move.
