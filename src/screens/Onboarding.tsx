@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Emblem } from '../components';
+import { seedFromTastes, TASTE_PROFILES } from '../lib/taste';
 import { useStore } from '../store/useStore';
 import { colors, gradients, radius, spacing, type as typo } from '../theme';
 
@@ -51,19 +52,33 @@ export default function Onboarding() {
   const onboardedAt = useStore((s) => s.onboardedAt);
   const bottleCount = useStore((s) => s.bottles.length);
   const completeOnboarding = useStore((s) => s.completeOnboarding);
+  const setTasteSeed = useStore((s) => s.setTasteSeed);
   const track = useStore((s) => s.track);
+  const [index, setIndex] = useState(0);
+  const [tastes, setTastes] = useState<Set<string>>(new Set());
+  const scroller = useRef<ScrollView>(null);
+
   const complete = () => {
+    const seed = seedFromTastes([...tastes]);
+    if (seed) setTasteSeed(seed);
     track('onboarding_completed');
     completeOnboarding();
   };
-  const [index, setIndex] = useState(0);
-  const scroller = useRef<ScrollView>(null);
 
   // Only for brand-new users: don't interrupt anyone who already has a vault
   // (e.g. an upgrade), and wait until persisted state has loaded.
   if (!hasHydrated || onboardedAt !== undefined || bottleCount > 0) return null;
 
-  const last = index >= SLIDES.length - 1;
+  // Pages = the value slides + one taste-picker page at the end.
+  const pageCount = SLIDES.length + 1;
+  const onTastePage = index >= SLIDES.length;
+  const last = onTastePage;
+  const toggleTaste = (id: string) =>
+    setTastes((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -103,11 +118,43 @@ export default function Onboarding() {
             <Text style={styles.body}>{s.body}</Text>
           </View>
         ))}
+
+        {/* Taste picker — seeds recommendations before the first bottle */}
+        <View style={[styles.tastePage, { width }]}>
+          <Text style={styles.title}>What do you love?</Text>
+          <Text style={styles.body}>Pick a couple. We'll tailor recommendations from day one.</Text>
+          <View style={styles.tasteList}>
+            {TASTE_PROFILES.map((t) => {
+              const on = tastes.has(t.id);
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  activeOpacity={0.85}
+                  onPress={() => toggleTaste(t.id)}
+                  style={[styles.tasteCard, on && styles.tasteCardOn]}
+                >
+                  <Ionicons name={t.icon} size={22} color={on ? colors.ink : colors.amberBright} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.tasteLabel, on && { color: colors.ink }]}>{t.label}</Text>
+                    <Text style={[styles.tasteBlurb, on && { color: colors.ink }]} numberOfLines={1}>
+                      {t.blurb}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={20}
+                    color={on ? colors.ink : colors.textFaint}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
         <View style={styles.dots}>
-          {SLIDES.map((_, i) => (
+          {Array.from({ length: pageCount }).map((_, i) => (
             <View key={i} style={[styles.dot, i === index && styles.dotActive]} />
           ))}
         </View>
@@ -133,6 +180,21 @@ const styles = StyleSheet.create({
   },
   skip: { color: colors.textDim, fontSize: 15, fontWeight: '600' },
   slide: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  tastePage: { justifyContent: 'center', paddingHorizontal: spacing.lg },
+  tasteList: { marginTop: spacing.xl, gap: spacing.sm, alignSelf: 'stretch' },
+  tasteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tasteCardOn: { backgroundColor: colors.amberBright, borderColor: colors.amberBright },
+  tasteLabel: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  tasteBlurb: { color: colors.textDim, fontSize: 11.5, marginTop: 1 },
   iconWrap: {
     width: 96,
     height: 96,

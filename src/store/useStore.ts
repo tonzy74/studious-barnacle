@@ -9,6 +9,7 @@ import {
   Comp,
   ConsentSettings,
   Correction,
+  FlavorProfile,
   Pour,
   UserProfile,
   ValueSnapshot,
@@ -85,6 +86,8 @@ interface VaultState {
   proLapsedAt?: number;
   /** Key of the last fresh-start nudge the user saw (show once per landmark). */
   freshStartSeen?: string;
+  /** Palate seed from the taste-onboarding quiz — powers cold-start recs. */
+  tasteSeed?: FlavorProfile;
   /** True once persisted state has rehydrated — gates the onboarding flash. */
   hasHydrated: boolean;
   /** Anonymized, consent-gated event queue (flushed to a backend one day). */
@@ -130,6 +133,8 @@ interface VaultState {
   applyReferral: (code: string) => void;
   /** Dismiss the current fresh-start nudge so it won't show again. */
   dismissFreshStart: (key: string) => void;
+  /** Save the taste-quiz palate seed. */
+  setTasteSeed: (seed: FlavorProfile) => void;
   setProfile: (profile: UserProfile | null) => void;
   setConsent: (patch: Partial<ConsentSettings>) => void;
   /** No-op unless the user has opted in to analytics. */
@@ -167,6 +172,7 @@ export const useStore = create<VaultState>()(
       referredBy: undefined,
       proLapsedAt: undefined,
       freshStartSeen: undefined,
+      tasteSeed: undefined,
       events: [],
       anonId: newAnonId(),
       addBottle: (bottle) => set((s) => ({ bottles: [bottle, ...s.bottles] })),
@@ -232,6 +238,7 @@ export const useStore = create<VaultState>()(
           return { referredBy: code.toUpperCase() };
         }),
       dismissFreshStart: (key) => set({ freshStartSeen: key }),
+      setTasteSeed: (seed) => set({ tasteSeed: seed }),
       learnRecord: (record) =>
         set((s) => {
           const existing = s.learned.find((r) => r.id === record.id);
@@ -322,6 +329,7 @@ export const useStore = create<VaultState>()(
           referredBy: s.referredBy,
           proLapsedAt: s.proLapsedAt,
           freshStartSeen: s.freshStartSeen,
+          tasteSeed: s.tasteSeed,
           events: s.events,
           anonId: s.anonId,
         }) as VaultState,
