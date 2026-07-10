@@ -20,3 +20,17 @@ export const PRICING_API_BASE_URL = '';
 export function hasPricingBackend(): boolean {
   return /^https:\/\//.test(PRICING_API_BASE_URL);
 }
+
+/**
+ * Build-time config via Expo public env vars (EXPO_PUBLIC_*). Defaults are
+ * empty so the app stays fully local until you set them. Set in `.env`, the EAS
+ * build profile env, or the shell before `expo`:
+ *   EXPO_PUBLIC_ANALYTICS_URL   base URL of the analytics-service (enables flush)
+ *   EXPO_PUBLIC_EAS_PROJECT_ID  EAS project id for push tokens (`eas init` sets it)
+ */
+
+/** Base URL of the analytics ingestion service. Empty = local-only (no flush). */
+export const ANALYTICS_URL = process.env.EXPO_PUBLIC_ANALYTICS_URL ?? '';
+
+/** EAS project id used to mint Expo push tokens. Empty = auto-detect in EAS builds. */
+export const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '';

@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
+import { maybeFlushAnalytics } from './src/lib/analyticsFlush';
 import { configureNotifications } from './src/lib/notifications';
 
 import { RootStackParamList, TabParamList } from './src/navigation';
@@ -102,6 +103,8 @@ const theme = {
 export default function App() {
   useEffect(() => {
     configureNotifications();
+    // Ship any queued analytics if a backend + consent are configured (no-op otherwise).
+    maybeFlushAnalytics();
   }, []);
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>

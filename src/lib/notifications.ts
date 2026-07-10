@@ -1,6 +1,8 @@
+import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { EAS_PROJECT_ID } from '../config';
 import { diag } from './diagnostics';
 import {
   DEFAULT_REMINDER_HOUR,
@@ -115,6 +117,27 @@ export async function scheduleReleaseDigest(hour: number = DEFAULT_REMINDER_HOUR
   }
 }
 
+/**
+ * Obtain this device's Expo push token so a backend can send remote pushes
+ * (server-driven price-drop / release alerts). Returns undefined on simulators,
+ * without permission, or in Expo Go (remote push needs an EAS build). Ship the
+ * returned token to your backend and send via the Expo Push API. The projectId
+ * is auto-detected in EAS builds; EXPO_PUBLIC_EAS_PROJECT_ID overrides it.
+ */
+export async function registerForPushToken(): Promise<string | undefined> {
+  if (!Device.isDevice) return undefined;
+  if (!(await notificationsAllowed())) return undefined;
+  try {
+    const token = await Notifications.getExpoPushTokenAsync(
+      EAS_PROJECT_ID ? { projectId: EAS_PROJECT_ID } : undefined
+    );
+    return token.data;
+  } catch (err) {
+    diag.warn('notifications', `push token unavailable: ${(err as Error).message}`);
+    return undefined;
+  }
+}
+
 /** Turn everything off (user toggled reminders off / data wipe). */
 export async function cancelAllReminders(): Promise<void> {
   try {
@@ -133,5 +156,9 @@ export async function enableReminders(streak: number, hour: number = DEFAULT_REM
   if (!granted) return false;
   await scheduleStreakReminder(streak, hour);
   await scheduleReleaseDigest(hour);
+  // Warm the push token too so remote alerts are ready once a push backend is
+  // wired (no-op in Expo Go / simulators). Send `token` to your backend there.
+  const token = await registerForPushToken();
+  if (token) diag.info('notifications', 'push token acquired (ready for backend)');
   return true;
 }
