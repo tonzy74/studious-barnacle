@@ -10,6 +10,8 @@
  *   4. Anonymized data    — consent-gated aggregate insights (B2B).
  */
 
+import type { AnnualPriceVariant } from './experiments';
+
 /** Feature keys that can be gated behind Pro. */
 export type ProFeature =
   | 'ai-bulk-add'
@@ -68,7 +70,7 @@ export interface ProPlan {
   best?: boolean;
   /** Struck-through anchor price (e.g. annualized monthly cost) for contrast. */
   anchor?: string;
-  /** Short savings/urgency badge, e.g. "SAVE 50%". Honest math only. */
+  /** Short savings/urgency badge, e.g. "SAVE 64%". Derived from real prices. */
   badge?: string;
   /** Discounted price shown only while the genuine founder offer is live. */
   introPrice?: string;
@@ -78,31 +80,62 @@ export interface ProPlan {
 
 /** Label for the enforced, time-boxed launch discount. */
 export const FOUNDER_BADGE = 'FOUNDER OFFER';
+/** The founder discount, applied to the annual price. Real and enforced. */
+export const FOUNDER_DISCOUNT = 0.4;
 
 /**
- * Plans shown on the paywall. Priced to undercut/á-la-Bourboneur ($3/mo) on
- * annual while capturing more on monthly, with a lifetime option for whales.
- * Actual prices come from App Store Connect / RevenueCat at runtime; these are
- * display defaults.
+ * Price tiers (see docs/PRICING.md). Monthly is deliberately priced as a decoy
+ * — its job is to widen the annual gap so the annual (pre-selected default)
+ * reads as the obvious buy, not to drive volume. Lifetime is the whale anchor.
+ * Actual charges come from App Store Connect / RevenueCat at runtime; these are
+ * the display defaults, kept in sync with the packages there.
  */
-export const PRO_PLANS: ProPlan[] = [
-  {
-    id: 'annual',
-    label: 'Annual',
-    price: '$29.99/yr',
-    sub: 'Just $2.50/mo, billed yearly',
-    anchor: '$59.88', // 12 × the monthly price — the honest anchor for the 50% claim
-    badge: 'SAVE 50%',
-    // Genuine, enforced launch discount — shown only while introOfferState is
-    // active. Maps to a real RevenueCat intro-offer package so it's truly charged.
-    introPrice: '$17.99/yr',
-    introSub: 'Founder’s price — your first week only',
-    packageId: '$rc_annual',
-    best: true,
-  },
-  { id: 'monthly', label: 'Monthly', price: '$4.99/mo', sub: 'Billed monthly, cancel anytime', packageId: '$rc_monthly' },
-  { id: 'lifetime', label: 'Lifetime', price: '$99.99', sub: 'Pay once, yours forever', packageId: '$rc_lifetime' },
-];
+const MONTHLY_PRICE = 6.99;
+const LIFETIME_PRICE = 99.99;
+
+/** Annual arms for the price A/B (docs/PRICING.md §6, top ARPU lever). */
+const ANNUAL_ARMS: Record<AnnualPriceVariant, { priceNum: number; packageId: string }> = {
+  a29: { priceNum: 29.99, packageId: '$rc_annual' },
+  b39: { priceNum: 39.99, packageId: '$rc_annual_39' },
+};
+
+const usd = (n: number) => `$${n.toFixed(2)}`;
+
+/**
+ * Build the paywall plans for a given annual-price variant. Anchor, savings
+ * badge, per-month sub, and the founder intro price are all *derived* from the
+ * real numbers so the math is always honest (no hand-typed "SAVE X%" that could
+ * drift from the actual price) — App Store review and the FTC both penalize
+ * inflated savings claims.
+ */
+export function buildProPlans(annualVariant: AnnualPriceVariant): ProPlan[] {
+  const { priceNum, packageId } = ANNUAL_ARMS[annualVariant];
+  const anchorNum = MONTHLY_PRICE * 12; // what a year of monthly would cost — the honest anchor
+  const savingsPct = Math.round((1 - priceNum / anchorNum) * 100);
+  const perMonth = priceNum / 12;
+  const introNum = priceNum * (1 - FOUNDER_DISCOUNT);
+  return [
+    {
+      id: 'annual',
+      label: 'Annual',
+      price: `${usd(priceNum)}/yr`,
+      sub: `Just ${usd(perMonth)}/mo, billed yearly`,
+      anchor: usd(anchorNum), // 12 × the monthly price — backs the savings claim
+      badge: `SAVE ${savingsPct}%`,
+      // Genuine, enforced launch discount — shown only while introOfferState is
+      // active. Maps to a real RevenueCat intro-offer package so it's truly charged.
+      introPrice: `${usd(introNum)}/yr`,
+      introSub: 'Founder’s price — your first week only',
+      packageId,
+      best: true,
+    },
+    { id: 'monthly', label: 'Monthly', price: `${usd(MONTHLY_PRICE)}/mo`, sub: 'Billed monthly, cancel anytime', packageId: '$rc_monthly' },
+    { id: 'lifetime', label: 'Lifetime', price: usd(LIFETIME_PRICE), sub: 'Pay once, yours forever', packageId: '$rc_lifetime' },
+  ];
+}
+
+/** Default plans (control arm) for any non-paywall consumer. */
+export const PRO_PLANS: ProPlan[] = buildProPlans('a29');
 
 export const FREE_TRIAL_DAYS = 7;
 
