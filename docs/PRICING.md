@@ -52,12 +52,20 @@ Current app: Annual $29.99 (best/default), Monthly $4.99, Lifetime $99.99,
 
 Recommendation — **keep the shape, widen the spread, test a higher annual:**
 
-| Plan | Now | Recommended | Rationale |
+| Plan | Was | Now (shipped) | Rationale |
 |---|---|---|---|
-| Monthly | $4.99 | **$6.99** | Widens the annual gap → annual reads "save ~64%". Captures impulse/monthly payers at higher ARPU. Its job is decoy, not volume. |
-| **Annual** (default) | $29.99 | **$29.99 → A/B vs $39.99** | Hobby buyers are price-insensitive; a 33% lift often barely dents conversion. Test it — the upside is pure margin. Keep `.99`, keep pre-selected, lead with "$2.50/mo". |
-| Lifetime | $99.99 | **$99.99** (test $129.99) | Whale anchor + one-time cash. Makes annual look reasonable. |
-| Founder intro | $17.99/wk1 | keep | Genuine, enforced launch urgency (already built). |
+| Monthly | $4.99 | **$6.99** ✅ | Widens the annual gap → annual reads "SAVE 64%". Captures impulse/monthly payers at higher ARPU. Its job is decoy, not volume. |
+| **Annual** (default) | $29.99 | **A/B: $29.99 vs $39.99** ✅ | Hobby buyers are price-insensitive; a 33% lift often barely dents conversion. Live 50/50 split (`annual_price_v1`) — the upside is pure margin. Keeps `.99`, pre-selected, leads with the per-month figure. |
+| Lifetime | $99.99 | **$99.99** (test $129.99 next) | Whale anchor + one-time cash. Makes annual look reasonable. |
+| Founder intro | $17.99/wk1 | **40% off the arm price** ✅ | Genuine, enforced launch urgency. Now derived from whichever annual arm the user is in ($17.99 or $23.99). |
+
+**Implemented** in `src/lib/monetization.ts` (`buildProPlans`) + `src/lib/experiments.ts`
+(`ANNUAL_PRICE_EXPERIMENT`). Every savings badge / anchor / per-month figure is
+*derived from the real price* so the math can't drift from what's charged. The
+assigned arm is stamped onto `paywall_shown` and `pro_purchased` events
+(`annual_variant`) for read-out. **Wire two annual packages in RevenueCat**
+(`$rc_annual` = $29.99, `$rc_annual_39` = $39.99) so the arm the user sees is the
+one billed; ship the winner and collapse the split.
 
 Why not race Bourboneur to $3/mo: the price–quality heuristic + the fact that
 your AI depth is a real differentiator. Compete on *value shown*, not on being
@@ -87,9 +95,9 @@ Keep the **metered-AI** model (already built):
 Run one variable at a time; ship the winner. Measure with the Insights funnel
 (paywall_shown → pro_purchased).
 
-1. **Annual $29.99 vs $39.99** — likely the biggest ARPU lever.
+1. **Annual $29.99 vs $39.99** — likely the biggest ARPU lever. ✅ *live* (`annual_price_v1`).
 2. **Trial 7-day vs 3-day** — conversion timing.
-3. **Monthly $4.99 vs $6.99** — decoy strength / annual mix.
+3. ~~Monthly $4.99 vs $6.99~~ — resolved: shipped at **$6.99** as the decoy.
 4. **Paywall copy**: value-reframe ("one bottle you don't overpay for…") vs
    feature-list-first.
 5. **Founder discount 40% vs 30%** — urgency vs margin.

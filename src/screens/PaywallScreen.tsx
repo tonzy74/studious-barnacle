@@ -6,14 +6,15 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
+import { assignVariant, ANNUAL_PRICE_EXPERIMENT } from '../lib/experiments';
 import { formatCountdown, introOfferState } from '../lib/introOffer';
 import { winBackState } from '../lib/winBackOffer';
 import {
+  buildProPlans,
   FEATURE_COPY,
   FOUNDER_BADGE,
   FREE_TRIAL_DAYS,
   PRO_FEATURES,
-  PRO_PLANS,
   PRO_VALUE_LINE,
 } from '../lib/monetization';
 import { purchasePro, PURCHASES_READY, restorePurchases } from '../lib/purchases';
@@ -28,14 +29,22 @@ export default function PaywallScreen() {
   const firstOpenAt = useStore((s) => s.firstOpenAt);
   const isPro = useStore((s) => s.isPro);
   const proLapsedAt = useStore((s) => s.proLapsedAt);
-  const [plan, setPlan] = useState(PRO_PLANS.find((p) => p.best)?.id ?? PRO_PLANS[0].id);
+  const anonId = useStore((s) => s.anonId);
+  // Stable annual-price A/B assignment for this install (see docs/PRICING.md).
+  const annualVariant = React.useMemo(
+    () => assignVariant(ANNUAL_PRICE_EXPERIMENT, anonId),
+    [anonId]
+  );
+  const proPlans = React.useMemo(() => buildProPlans(annualVariant), [annualVariant]);
+  const [plan, setPlan] = useState(proPlans.find((p) => p.best)?.id ?? proPlans[0].id);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
 
-  // Funnel: count every paywall view (manual or contextual).
+  // Funnel: count every paywall view (manual or contextual), tagged with the
+  // price variant so conversion can be read out per arm.
   useEffect(() => {
-    track('paywall_shown');
-  }, [track]);
+    track('paywall_shown', { annual_variant: annualVariant });
+  }, [track, annualVariant]);
 
   // Live countdown for the genuine, enforced founder offer.
   const intro = introOfferState(firstOpenAt, now);
@@ -48,14 +57,14 @@ export default function PaywallScreen() {
   }, [intro.active]);
 
   const buy = async () => {
-    const chosen = PRO_PLANS.find((p) => p.id === plan);
+    const chosen = proPlans.find((p) => p.id === plan);
     if (!chosen) return;
     setBusy(true);
     try {
       const res = await purchasePro(chosen.packageId);
       if (res.pro) {
         setPro(true);
-        track('pro_purchased', { plan: chosen.id });
+        track('pro_purchased', { plan: chosen.id, annual_variant: annualVariant });
         Alert.alert('Welcome to Pro 🥃', res.message ?? 'All features unlocked.', [
           { text: 'Great', onPress: () => navigation.goBack() },
         ]);
@@ -136,7 +145,7 @@ export default function PaywallScreen() {
           <Text style={styles.valueText}>{PRO_VALUE_LINE}</Text>
         </View>
 
-        {PRO_PLANS.map((p) => {
+        {proPlans.map((p) => {
           // While the founder offer is live, the annual plan shows its real
           // discounted price with the standard price struck through.
           const useIntro = intro.active && !!p.introPrice;
@@ -200,7 +209,7 @@ export default function PaywallScreen() {
         <Text style={styles.thenPrice}>
           Then{' '}
           {(() => {
-            const sel = PRO_PLANS.find((p) => p.id === plan);
+            const sel = proPlans.find((p) => p.id === plan);
             return intro.active && sel?.introPrice ? sel.introPrice : sel?.price;
           })()}
           {plan === 'lifetime' ? '' : ' · cancel anytime in Settings'}
