@@ -6,14 +6,13 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ScreenGradient } from '../components';
-import { assignVariant, ANNUAL_PRICE_EXPERIMENT } from '../lib/experiments';
+import { assignVariant, ANNUAL_PRICE_EXPERIMENT, resolveTrial } from '../lib/experiments';
 import { formatCountdown, introOfferState } from '../lib/introOffer';
 import { winBackState } from '../lib/winBackOffer';
 import {
   buildProPlans,
   FEATURE_COPY,
   FOUNDER_BADGE,
-  FREE_TRIAL_DAYS,
   PRO_FEATURES,
   PRO_VALUE_LINE,
 } from '../lib/monetization';
@@ -36,15 +35,17 @@ export default function PaywallScreen() {
     [anonId]
   );
   const proPlans = React.useMemo(() => buildProPlans(annualVariant), [annualVariant]);
+  // Stable trial-length A/B (7-day vs 3-day) for this install.
+  const trial = React.useMemo(() => resolveTrial(anonId), [anonId]);
   const [plan, setPlan] = useState(proPlans.find((p) => p.best)?.id ?? proPlans[0].id);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   // Funnel: count every paywall view (manual or contextual), tagged with the
-  // price variant so conversion can be read out per arm.
+  // active variants so conversion can be read out per arm.
   useEffect(() => {
-    track('paywall_shown', { annual_variant: annualVariant });
-  }, [track, annualVariant]);
+    track('paywall_shown', { annual_variant: annualVariant, trial_variant: trial.variant });
+  }, [track, annualVariant, trial.variant]);
 
   // Live countdown for the genuine, enforced founder offer.
   const intro = introOfferState(firstOpenAt, now);
@@ -64,7 +65,11 @@ export default function PaywallScreen() {
       const res = await purchasePro(chosen.packageId);
       if (res.pro) {
         setPro(true);
-        track('pro_purchased', { plan: chosen.id, annual_variant: annualVariant });
+        track('pro_purchased', {
+          plan: chosen.id,
+          annual_variant: annualVariant,
+          trial_variant: trial.variant,
+        });
         Alert.alert('Welcome to Pro 🥃', res.message ?? 'All features unlocked.', [
           { text: 'Great', onPress: () => navigation.goBack() },
         ]);
@@ -107,7 +112,7 @@ export default function PaywallScreen() {
         </LinearGradient>
         <Text style={styles.title}>Whiskey Vault Pro</Text>
         <Text style={styles.subtitle}>
-          The AI-powered edge no other whiskey app has — start with a {FREE_TRIAL_DAYS}-day free
+          The AI-powered edge no other whiskey app has — start with a {trial.days}-day free
           trial.
         </Text>
 
@@ -187,7 +192,7 @@ export default function PaywallScreen() {
         <View style={styles.trustRow}>
           <View style={styles.trustItem}>
             <Ionicons name="time-outline" size={15} color={colors.amber} />
-            <Text style={styles.trustText}>{FREE_TRIAL_DAYS} days free</Text>
+            <Text style={styles.trustText}>{trial.days} days free</Text>
           </View>
           <View style={styles.trustItem}>
             <Ionicons name="notifications-off-outline" size={15} color={colors.amber} />
@@ -200,7 +205,7 @@ export default function PaywallScreen() {
         </View>
 
         <Button
-          title={busy ? 'Processing…' : `Start ${FREE_TRIAL_DAYS}-day free trial`}
+          title={busy ? 'Processing…' : `Start ${trial.days}-day free trial`}
           icon="sparkles"
           onPress={buy}
           disabled={busy}
