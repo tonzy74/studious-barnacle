@@ -137,6 +137,11 @@ export function buildProPlans(annualVariant: AnnualPriceVariant): ProPlan[] {
 /** Default plans (control arm) for any non-paywall consumer. */
 export const PRO_PLANS: ProPlan[] = buildProPlans('a29');
 
+/**
+ * Default/fallback trial length. The *displayed* trial is variant-driven — see
+ * resolveTrial() in ./experiments (7-day vs 3-day A/B) — but this remains the
+ * control value and the copy fallback.
+ */
 export const FREE_TRIAL_DAYS = 7;
 
 /**

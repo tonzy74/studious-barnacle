@@ -7,6 +7,7 @@ import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, ScreenGradient, ScreenHeader } from '../components';
+import { resolveTrial } from '../lib/experiments';
 import { hasReferral, REFERRALS } from '../lib/monetization';
 import { RootStackParamList } from '../navigation';
 import { useStore } from '../store/useStore';
@@ -48,6 +49,9 @@ export default function ExploreScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const isPro = useStore((s) => s.isPro);
+  const anonId = useStore((s) => s.anonId);
+  // Teaser must name the same trial length the paywall will show this install.
+  const trialDays = resolveTrial(anonId).days;
   return (
     <ScreenGradient>
       <ScrollView
@@ -66,7 +70,7 @@ export default function ExploreScreen() {
               <Ionicons name="sparkles" size={24} color={colors.ink} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.proTitle}>Go Pro</Text>
-                <Text style={styles.proSub}>Unlock the full AI suite — 7-day free trial</Text>
+                <Text style={styles.proSub}>Unlock the full AI suite — {trialDays}-day free trial</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.ink} />
             </LinearGradient>

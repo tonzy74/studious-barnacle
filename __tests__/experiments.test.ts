@@ -1,4 +1,9 @@
-import { assignVariant, ANNUAL_PRICE_EXPERIMENT } from '../src/lib/experiments';
+import {
+  assignVariant,
+  ANNUAL_PRICE_EXPERIMENT,
+  TRIAL_LENGTH_EXPERIMENT,
+  resolveTrial,
+} from '../src/lib/experiments';
 import { buildProPlans, FOUNDER_DISCOUNT } from '../src/lib/monetization';
 
 describe('assignVariant', () => {
@@ -81,5 +86,43 @@ describe('buildProPlans pricing math', () => {
     const a = buildProPlans('a29').find((p) => p.id === 'annual')!;
     const b = buildProPlans('b39').find((p) => p.id === 'annual')!;
     expect(a.packageId).not.toBe(b.packageId);
+  });
+});
+
+describe('resolveTrial (7-day vs 3-day)', () => {
+  it('maps each arm to its real day count', () => {
+    for (let i = 0; i < 200; i++) {
+      const { variant, days } = resolveTrial(`seed-${i}`);
+      expect(TRIAL_LENGTH_EXPERIMENT.variants).toContain(variant);
+      expect(days).toBe(variant === 't7' ? 7 : 3);
+    }
+  });
+
+  it('is stable for a given install', () => {
+    expect(resolveTrial('install-abc')).toEqual(resolveTrial('install-abc'));
+  });
+
+  it('splits roughly evenly across a population', () => {
+    let sevens = 0;
+    const N = 4000;
+    for (let i = 0; i < N; i++) if (resolveTrial(`u-${i}`).days === 7) sevens += 1;
+    expect(sevens / N).toBeGreaterThan(0.4);
+    expect(sevens / N).toBeLessThan(0.6);
+  });
+
+  it('is independent of the annual-price assignment', () => {
+    // Different experiment keys → the two assignments should not be locked
+    // together across the population.
+    let both = 0;
+    const N = 500;
+    for (let i = 0; i < N; i++) {
+      const seed = `x-${i}`;
+      const price = assignVariant(ANNUAL_PRICE_EXPERIMENT, seed) === 'a29';
+      const trial = resolveTrial(seed).days === 7;
+      if (price === trial) both += 1;
+    }
+    // If perfectly correlated this would be 0 or N; expect somewhere in between.
+    expect(both).toBeGreaterThan(N * 0.2);
+    expect(both).toBeLessThan(N * 0.8);
   });
 });

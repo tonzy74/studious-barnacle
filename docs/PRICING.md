@@ -86,9 +86,13 @@ Keep the **metered-AI** model (already built):
   "cancel anytime" (all built). This is the single biggest conversion lever.
 - Test **hard paywall on the AI-quota wall** (trial offer at the moment of
   desire) vs a softer prompt — the contextual-paywall engine already fires here.
-- Consider a **3-day trial** A/B: shorter trials can lift paid conversion for
-  impulse categories (less time to forget the value); 7-day suits considered
-  purchases. Test both.
+- **3-day trial A/B** ✅ *live* (`trial_length_v1`, 7-day vs 3-day): shorter
+  trials can lift paid conversion for impulse categories (less time to forget the
+  value); 7-day suits considered purchases. Assigned per install via
+  `resolveTrial(anonId)`; the paywall and the Explore teaser both read the same
+  arm so the promised length always matches, and `trial_variant` is stamped onto
+  `paywall_shown` / `pro_purchased`. **Wire both intro offers in App Store
+  Connect / RevenueCat** so the arm shown is the one actually granted.
 
 ## 6. A/B test roadmap (in priority order)
 
@@ -96,7 +100,7 @@ Run one variable at a time; ship the winner. Measure with the Insights funnel
 (paywall_shown → pro_purchased).
 
 1. **Annual $29.99 vs $39.99** — likely the biggest ARPU lever. ✅ *live* (`annual_price_v1`).
-2. **Trial 7-day vs 3-day** — conversion timing.
+2. **Trial 7-day vs 3-day** — conversion timing. ✅ *live* (`trial_length_v1`).
 3. ~~Monthly $4.99 vs $6.99~~ — resolved: shipped at **$6.99** as the decoy.
 4. **Paywall copy**: value-reframe ("one bottle you don't overpay for…") vs
    feature-list-first.
